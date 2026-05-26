@@ -79,9 +79,14 @@ export default function SiteHeader() {
           >
             Home
           </NavLink>
-          <a href="/#listings" className="transition-colors hover:text-ink">
+          <NavLink
+            to="/find-room"
+            className={({ isActive }) =>
+              `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
+            }
+          >
             Find Room
-          </a>
+          </NavLink>
           <NavLink
             to="/roommates"
             className={({ isActive }) =>
@@ -138,13 +143,17 @@ export default function SiteHeader() {
             >
               Home
             </NavLink>
-            <a
-              href="/#listings"
+            <NavLink
+              to="/find-room"
               onClick={closeMenu}
-              className="rounded-xl px-3 py-2 text-sm font-black text-slate-700"
+              className={({ isActive }) =>
+                `rounded-xl px-3 py-2 text-sm font-black ${
+                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
+                }`
+              }
             >
               Find Room
-            </a>
+            </NavLink>
             <NavLink
               to="/roommates"
               onClick={closeMenu}

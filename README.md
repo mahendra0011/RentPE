@@ -6,7 +6,7 @@ The frontend intentionally does not include a map screen. Location is still stor
 
 ## Current UI Flow
 
-- Home page opens with hero search, ReactBits-style trust ticker, room cards, `How it Works`, then the tilt discovery cards, live city pulse, roommate CTA, owner CTA, stats, and footer.
+- Home page opens with hero search, ReactBits-style trust ticker, room cards, `How it Works` with electric step borders, then the tilt discovery cards, smart shortlist board, roommate CTA, owner CTA, stats, and footer.
 - Header navigation uses `Home`, `Find Room`, and `Find Roommate`.
 - Logged-out users see `Login` and `Signup` buttons in the navbar.
 - `List Your Room` appears in the navbar only after logging in or signing up as a room owner.
@@ -31,7 +31,7 @@ The frontend intentionally does not include a map screen. Location is still stor
 - User dashboard for saved rooms, contacted owners, and posted listings
 - Password login/signup with owner role support
 - Signup email verification with OTP delivered through the Brevo Transactional Email REST API using `BREVO_API_KEY`
-- ReactBits-style UI components for spotlight panels, infinite tickers, tilt cards, and animated counters
+- ReactBits-style UI components for electric borders, spotlight panels, infinite tickers, tilt cards, and animated counters
 - Cloudinary-ready image upload
 - MongoDB geospatial-ready room schema
 

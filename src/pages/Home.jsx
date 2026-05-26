@@ -10,12 +10,13 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter.jsx";
+import ElectricBorder from "@/components/reactbits/ElectricBorder.jsx";
 import InfiniteTicker from "@/components/reactbits/InfiniteTicker.jsx";
 import SpotlightPanel from "@/components/reactbits/SpotlightPanel.jsx";
 import TiltCard from "@/components/reactbits/TiltCard.jsx";
@@ -25,9 +26,6 @@ import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
 const popularCities = ["Bhopal", "Indore", "Pune", "Bangalore", "Delhi NCR"];
-const filterTypes = ["PG", "Hostel", "Flat"];
-const filterGenders = ["Girls", "Boys", "Co-ed"];
-const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
 const heroSignals = [
   "0% brokerage",
   "Verified rooms",
@@ -133,16 +131,10 @@ const roommateCards = [
 
 export default function Home() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const apiRooms = useSelector((state) => state.rooms.items);
   const rooms = apiRooms.length ? apiRooms : normalizeRooms(staticRooms);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const [priceMax, setPriceMax] = useState(20000);
-  const [selectedTypes, setSelectedTypes] = useState([]);
-  const [selectedGenders, setSelectedGenders] = useState([]);
-  const [selectedAmenities, setSelectedAmenities] = useState([]);
-  const [furnishedOnly, setFurnishedOnly] = useState(false);
+  const previewRooms = rooms.slice(0, 3);
 
   useEffect(() => {
     dispatch(fetchRooms());
@@ -152,11 +144,6 @@ export default function Home() {
     function openHashTarget() {
       const targetId = window.location.hash.slice(1);
       if (!targetId) return;
-
-      if (targetId === "listings") {
-        setShowAll(true);
-        setShowFilters(true);
-      }
 
       window.requestAnimationFrame(() => {
         document.getElementById(targetId)?.scrollIntoView({ block: "start" });
@@ -174,70 +161,14 @@ export default function Home() {
     const form = new FormData(event.currentTarget);
     const query = String(form.get("query") || "").trim();
     const budget = form.get("budget");
-
-    setSearchQuery(query);
-    setShowAll(true);
-
-    if (budget) {
-      setPriceMax(Number(budget));
-    }
-  }
-
-  const filteredRooms = useMemo(
-    () =>
-      rooms.filter((room) => {
-        const haystack = `${room.city} ${room.location} ${room.address} ${room.title}`
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, " ");
-        const queryTerms = searchQuery
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, " ")
-          .split(/\s+/)
-          .filter((term) => term.length > 2 && !["near", "room", "rooms"].includes(term));
-        const queryMatch = !queryTerms.length || queryTerms.some((term) => haystack.includes(term));
-
-        if (!queryMatch) return false;
-        if (room.price > priceMax) return false;
-        if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
-        if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
-        if (furnishedOnly && !room.furnished) return false;
-        if (
-          selectedAmenities.length &&
-          !selectedAmenities.every((amenity) => room.amenities.includes(amenity))
-        ) {
-          return false;
-        }
-
-        return true;
-      }),
-    [
-      furnishedOnly,
-      priceMax,
-      rooms,
-      searchQuery,
-      selectedAmenities,
-      selectedGenders,
-      selectedTypes,
-    ],
-  );
-
-  const visibleRooms = showAll ? filteredRooms : filteredRooms.slice(0, 3);
-
-  function toggleFilter(list, value, setter) {
-    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
-  }
-
-  function resetFilters() {
-    setPriceMax(20000);
-    setSelectedTypes([]);
-    setSelectedGenders([]);
-    setSelectedAmenities([]);
-    setFurnishedOnly(false);
+    const params = new URLSearchParams();
+    if (query) params.set("location", query);
+    if (budget) params.set("budget", String(budget));
+    navigate(`/find-room${params.toString() ? `?${params}` : ""}`);
   }
 
   function chooseCity(city) {
-    setSearchQuery(city);
-    setShowAll(true);
+    navigate(`/find-room?location=${encodeURIComponent(city)}`);
   }
 
   return (
@@ -329,162 +260,92 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setShowFilters((value) => !value)}
+              <Link
+                to="/find-room?filters=1"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
               >
                 <SlidersHorizontal className="size-4" />
                 Filter
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAll(true);
-                  setShowFilters(true);
-                }}
+              </Link>
+              <Link
+                to="/find-room?all=1"
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-black text-white transition-colors hover:bg-slate-800"
               >
                 See all
                 <ArrowRight className="size-4" />
-              </button>
+              </Link>
             </div>
           </div>
 
-          {showFilters && (
-            <div className="mb-7 rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-black text-ink">Filters</h3>
-                  <p className="mt-1 text-xs font-bold text-slate-500">
-                    Showing {visibleRooms.length} of {filteredRooms.length} matching rooms
-                    {searchQuery ? ` for ${searchQuery}` : ""}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="text-xs font-black text-brand"
-                >
-                  Reset
-                </button>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-4">
-                <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
-                  <input
-                    type="range"
-                    min={2000}
-                    max={30000}
-                    step={500}
-                    value={priceMax}
-                    onChange={(event) => setPriceMax(Number(event.target.value))}
-                    className="w-full accent-brand"
-                  />
-                </FilterBlock>
-
-                <FilterBlock label="Property type">
-                  <ChipRow
-                    items={filterTypes}
-                    selected={selectedTypes}
-                    onToggle={(value) => toggleFilter(selectedTypes, value, setSelectedTypes)}
-                  />
-                </FilterBlock>
-
-                <FilterBlock label="Tenant">
-                  <ChipRow
-                    items={filterGenders}
-                    selected={selectedGenders}
-                    onToggle={(value) => toggleFilter(selectedGenders, value, setSelectedGenders)}
-                  />
-                </FilterBlock>
-
-                <FilterBlock label="Amenities">
-                  <ChipRow
-                    items={filterAmenities}
-                    selected={selectedAmenities}
-                    onToggle={(value) =>
-                      toggleFilter(selectedAmenities, value, setSelectedAmenities)
-                    }
-                  />
-                </FilterBlock>
-              </div>
-
-              <label className="mt-5 flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={furnishedOnly}
-                  onChange={(event) => setFurnishedOnly(event.target.checked)}
-                  className="size-4 accent-brand"
-                />
-                <span className="text-sm font-bold text-slate-700">Furnished only</span>
-              </label>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 gap-7 md:grid-cols-3">
-            {visibleRooms.map((room, index) => (
+            {previewRooms.map((room, index) => (
               <RoomCard key={room.id} room={room} index={index} />
             ))}
-            {visibleRooms.length === 0 && (
+            {previewRooms.length === 0 && (
               <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center">
-                <p className="font-black text-ink">No rooms match these filters</p>
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="mt-3 text-sm font-black text-brand"
-                >
-                  Reset filters
-                </button>
+                <p className="font-black text-ink">No rooms available yet</p>
               </div>
             )}
           </div>
         </section>
 
         <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10 sm:px-6 md:py-16">
-          <div className="mb-10 text-center">
-            <span className="mb-4 inline-flex rounded-full bg-brand-soft px-4 py-1.5 text-xs font-black uppercase tracking-wide text-brand">
-              How it Works
-            </span>
-            <h2 className="mx-auto max-w-3xl text-3xl font-black leading-tight tracking-normal text-ink sm:text-4xl">
-              Find or list a room in <span className="text-brand">three simple steps.</span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-slate-600">
-              Search near your college or office, compare verified listings, and connect directly
-              with owners. No brokers. No spam.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {steps.map((step) => (
-              <article
-                key={step.title}
-                className="rounded-[20px] border border-slate-200 bg-white p-7 shadow-sm"
-              >
-                <span className="mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
-                  <step.icon className="size-5" />
+          <ElectricBorder
+            color="#7df9ff"
+            speed={0.8}
+            chaos={0.06}
+            thickness={2}
+            borderRadius={28}
+            style={{ borderRadius: 28 }}
+          >
+            <div className="rounded-[28px] border border-slate-200/80 bg-white/95 p-6 shadow-sm md:p-10">
+              <div className="mb-10 text-center">
+                <span className="mb-4 inline-flex rounded-full bg-brand-soft px-4 py-1.5 text-xs font-black uppercase tracking-wide text-brand">
+                  How it Works
                 </span>
-                <h3 className="text-base font-black text-ink">{step.title}</h3>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{step.body}</p>
-              </article>
-            ))}
-          </div>
+                <h2 className="mx-auto max-w-3xl text-3xl font-black leading-tight tracking-normal text-ink sm:text-4xl">
+                  Find or list a room in <span className="text-brand">three simple steps.</span>
+                </h2>
+                <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-slate-600">
+                  Search near your college or office, compare verified listings, and connect
+                  directly with owners. No brokers. No spam.
+                </p>
+              </div>
 
-          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-            <a
-              href="#listings"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform active:scale-95"
-            >
-              Browse rooms
-              <ArrowRight className="size-4" />
-            </a>
-            <Link
-              to="/signup?owner=1"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-7 text-sm font-black text-ink transition-colors hover:border-brand hover:text-brand"
-            >
-              List your room
-            </Link>
-          </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                {steps.map((step) => (
+                  <article
+                    key={step.title}
+                    className="rounded-[20px] border border-slate-200 bg-white p-7 shadow-sm"
+                  >
+                    <span className="mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
+                      <step.icon className="size-5" />
+                    </span>
+                    <h3 className="text-base font-black text-ink">{step.title}</h3>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+                      {step.body}
+                    </p>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link
+                  to="/find-room"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform active:scale-95"
+                >
+                  Browse rooms
+                  <ArrowRight className="size-4" />
+                </Link>
+                <Link
+                  to="/signup?owner=1"
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-7 text-sm font-black text-ink transition-colors hover:border-brand hover:text-brand"
+                >
+                  List your room
+                </Link>
+              </div>
+            </div>
+          </ElectricBorder>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
@@ -530,66 +391,94 @@ export default function Home() {
           transition={{ duration: 0.45 }}
           className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16"
         >
-          <SpotlightPanel className="border-0 bg-[#07111f] text-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.8)]">
-            <div className="grid overflow-hidden rounded-[28px] md:grid-cols-[0.9fr_1.1fr]">
+          <SpotlightPanel className="bg-white text-ink">
+            <div className="grid overflow-hidden rounded-[28px] md:grid-cols-[0.95fr_1.05fr]">
               <div className="p-7 md:p-10">
-                <span className="inline-flex rounded-full bg-emerald-400/15 px-4 py-1 text-xs font-black uppercase tracking-wide text-emerald-200">
-                  Live city pulse
+                <span className="inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
+                  Smart shortlist
                 </span>
-                <h2 className="mt-5 max-w-md text-3xl font-black leading-tight tracking-normal md:text-4xl">
-                  See where rooms are moving fastest.
+                <h2 className="mt-5 max-w-lg text-3xl font-black leading-tight tracking-normal md:text-4xl">
+                  Choose rooms with cleaner match signals.
                 </h2>
-                <p className="mt-4 max-w-md text-sm font-medium leading-7 text-slate-300">
-                  Use quick city signals to jump into areas with fresh PGs, flats, hostels, and
-                  owner-posted rooms.
+                <p className="mt-4 max-w-lg text-sm font-medium leading-7 text-slate-600">
+                  Compare rent, trust, amenities, and owner contact in one calm flow before you
+                  spend time calling or visiting.
                 </p>
-                <a
-                  href="#listings"
-                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-7 text-sm font-black text-ink transition-colors hover:bg-slate-100"
-                >
-                  Find Room
-                  <ArrowRight className="size-4" />
-                </a>
+
+                <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                  {shortlistStats.map((stat) => (
+                    <div key={stat.label} className="rounded-[18px] border border-slate-200 p-4">
+                      <p className="text-3xl font-black text-brand">
+                        <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+                      </p>
+                      <p className="mt-1 text-xs font-black uppercase tracking-wide text-slate-500">
+                        {stat.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
                 <InfiniteTicker
-                  items={neighborhoodTicker}
-                  duration={20}
-                  className="mt-8 max-w-sm"
-                  itemClassName="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[11px] font-black text-slate-200"
+                  items={shortlistSignals}
+                  duration={18}
+                  className="mt-8 max-w-lg"
+                  itemClassName="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-black text-slate-600"
                 />
               </div>
 
-              <div className="grid gap-4 bg-white/5 p-5 md:p-8">
-                {cityPulse.map((city, index) => (
-                  <motion.article
-                    key={city.city}
-                    initial={{ opacity: 0, x: 24 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, amount: 0.45 }}
-                    transition={{ duration: 0.35, delay: index * 0.08 }}
-                    className="rounded-[20px] border border-white/10 bg-white/10 p-5 backdrop-blur"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-black text-white">{city.city}</h3>
-                        <p className="mt-1 text-xs font-bold leading-5 text-slate-400">
-                          {city.area}
-                        </p>
+              <div className="bg-[#07111f] p-5 text-white md:p-8">
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                      Match board
+                    </p>
+                    <h3 className="mt-1 text-xl font-black tracking-normal">
+                      Before you contact owner
+                    </h3>
+                  </div>
+                  <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-black text-emerald-200">
+                    Live filters
+                  </span>
+                </div>
+
+                <div className="grid gap-4">
+                  {matchCards.map((card, index) => (
+                    <motion.article
+                      key={card.title}
+                      initial={{ opacity: 0, x: 24 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, amount: 0.45 }}
+                      transition={{ duration: 0.35, delay: index * 0.08 }}
+                      className="rounded-[20px] border border-white/10 bg-white/10 p-5 backdrop-blur"
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-indigo-200">
+                          <card.icon className="size-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <h4 className="font-black text-white">{card.title}</h4>
+                            <span className="text-sm font-black text-emerald-200">
+                              {card.score}%
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs font-bold leading-5 text-slate-400">
+                            {card.body}
+                          </p>
+                          <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{ width: `${card.score}%` }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.9, delay: 0.2 + index * 0.12 }}
+                              className="h-full rounded-full bg-emerald-300"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-black text-emerald-200">
-                        <AnimatedCounter value={city.rooms} suffix="+" /> rooms
-                      </span>
-                    </div>
-                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${city.fill}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.9, delay: 0.2 + index * 0.12 }}
-                        className="h-full rounded-full bg-emerald-300"
-                      />
-                    </div>
-                  </motion.article>
-                ))}
+                    </motion.article>
+                  ))}
+                </div>
               </div>
             </div>
           </SpotlightPanel>
@@ -716,40 +605,6 @@ function FooterColumn({ title, links }) {
           </Link>
         ))}
       </div>
-    </div>
-  );
-}
-
-function FilterBlock({ label, children }) {
-  return (
-    <div>
-      <h4 className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">{label}</h4>
-      {children}
-    </div>
-  );
-}
-
-function ChipRow({ items, selected, onToggle }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {items.map((item) => {
-        const active = selected.includes(item);
-
-        return (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onToggle(item)}
-            className={`rounded-full border px-3 py-1 text-xs font-black transition-colors ${
-              active
-                ? "border-brand bg-brand text-brand-foreground"
-                : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
-            }`}
-          >
-            {item}
-          </button>
-        );
-      })}
     </div>
   );
 }
