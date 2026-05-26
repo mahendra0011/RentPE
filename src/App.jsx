@@ -17,6 +17,7 @@ export default function App() {
       <Route path="/find-room" element={<FindRoom />} />
       <Route path="/login" element={<Auth />} />
       <Route path="/signup" element={<Auth />} />
+      <Route path="/forgot-password" element={<Auth />} />
       <Route path="/search" element={<Navigate to="/find-room" replace />} />
       <Route path="/list-room" element={<ListRoom />} />
       <Route path="/roommates" element={<Roommates />} />

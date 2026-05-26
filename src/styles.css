@@ -43,6 +43,24 @@
   --shadow-card: 0 16px 38px -18px oklch(0.16 0.04 257 / 0.22);
 }
 
+.dark {
+  --background: oklch(0.145 0.028 257);
+  --foreground: oklch(0.94 0.012 255);
+  --card: oklch(0.205 0.03 257);
+  --card-foreground: oklch(0.94 0.012 255);
+  --brand: oklch(0.68 0.19 280);
+  --brand-foreground: oklch(0.99 0.005 247);
+  --brand-soft: oklch(0.27 0.07 280);
+  --success: oklch(0.7 0.16 160);
+  --success-foreground: oklch(0.11 0.02 257);
+  --ink: oklch(0.94 0.012 255);
+  --border: oklch(0.34 0.025 257);
+  --input: oklch(0.28 0.026 257);
+  --ring: oklch(0.72 0.12 280);
+  --shadow-card: 0 18px 46px -24px oklch(0 0 0 / 0.72);
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -69,6 +87,12 @@
   a {
     -webkit-tap-highlight-color: transparent;
   }
+
+  .dark input,
+  .dark select,
+  .dark textarea {
+    color: var(--color-ink);
+  }
 }
 
 @layer components {
@@ -93,6 +117,66 @@
 }
 
 @layer utilities {
+  .dark .bg-white,
+  .dark .bg-white\/95,
+  .dark .bg-white\/92,
+  .dark .bg-card\/90 {
+    background-color: oklch(0.205 0.03 257 / 0.94) !important;
+  }
+
+  .dark .bg-background {
+    background-color: var(--color-background) !important;
+  }
+
+  .dark .bg-card {
+    background-color: var(--color-card) !important;
+  }
+
+  .dark .bg-slate-50,
+  .dark .bg-slate-100 {
+    background-color: oklch(0.25 0.026 257) !important;
+  }
+
+  .dark .bg-red-50 {
+    background-color: oklch(0.26 0.07 25) !important;
+  }
+
+  .dark .bg-amber-50 {
+    background-color: oklch(0.28 0.065 75) !important;
+  }
+
+  .dark .bg-emerald-50 {
+    background-color: oklch(0.27 0.07 160) !important;
+  }
+
+  .dark .text-ink,
+  .dark .text-slate-700,
+  .dark .text-slate-800,
+  .dark .text-slate-900 {
+    color: var(--color-ink) !important;
+  }
+
+  .dark .text-slate-300,
+  .dark .text-slate-400,
+  .dark .text-slate-500,
+  .dark .text-slate-600 {
+    color: oklch(0.76 0.026 257) !important;
+  }
+
+  .dark .border-slate-100,
+  .dark .border-slate-200,
+  .dark .border-white\/10 {
+    border-color: var(--color-border) !important;
+  }
+
+  .dark .placeholder\:text-slate-400::placeholder {
+    color: oklch(0.65 0.025 257) !important;
+  }
+
+  .dark .shadow-sm {
+    box-shadow: 0 10px 28px -22px oklch(0 0 0 / 0.86) !important;
+  }
+
   @keyframes float-soft {
     0%,
     100% {

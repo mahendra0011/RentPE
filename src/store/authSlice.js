@@ -57,6 +57,17 @@ export const loginUser = createAsyncThunk(
   },
 );
 
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ email, otp, password }) => {
+    return apiRequest("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, password }),
+    });
+  },
+);
+
 const persisted = readAuth();
 
 const authSlice = createSlice({
@@ -142,6 +153,19 @@ const authSlice = createSlice({
         saveAuth({ user: action.payload.user, token: action.payload.token });
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
+      })
+      .addCase(resetPassword.pending, (state) => {
+        state.status = "loading";
+        state.error = "";
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.status = "password-reset";
+        state.otpSent = false;
+        state.devOtp = "";
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message;
       });

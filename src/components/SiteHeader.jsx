@@ -1,5 +1,5 @@
-import { Heart, LogOut, MapPin, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Heart, LogOut, MapPin, Menu, Moon, Sun, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, NavLink } from "react-router-dom";
 
@@ -51,10 +51,28 @@ function AuthLinks({ onClick }) {
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const wishlistCount = useSelector((state) => state.rooms.savedIds.length);
   const isOwner = user?.role === "owner";
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("rentpe:theme");
+    const shouldUseDark =
+      storedTheme === "dark" ||
+      (!storedTheme && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+
+    setDarkMode(shouldUseDark);
+    document.documentElement.classList.toggle("dark", shouldUseDark);
+  }, []);
+
+  function toggleDarkMode() {
+    const nextMode = !darkMode;
+    setDarkMode(nextMode);
+    document.documentElement.classList.toggle("dark", nextMode);
+    localStorage.setItem("rentpe:theme", nextMode ? "dark" : "light");
+  }
 
   function closeMenu() {
     setOpen(false);
@@ -115,6 +133,14 @@ export default function SiteHeader() {
         </div>
 
         <div className="hidden items-center gap-4 md:flex">
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </button>
           {user ? (
             <>
               <span className="max-w-36 truncate text-sm font-black text-slate-600">
@@ -135,14 +161,24 @@ export default function SiteHeader() {
           {isOwner && <ListRoomCta />}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-ink md:hidden"
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-ink"
+            aria-label="Toggle menu"
+          >
+            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+        </div>
       </nav>
 
       {open && (
@@ -201,6 +237,16 @@ export default function SiteHeader() {
                 </span>
               )}
             </NavLink>
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-700"
+            >
+              <span className="inline-flex items-center gap-2">
+                {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                {darkMode ? "Light mode" : "Dark mode"}
+              </span>
+            </button>
             {user ? (
               <>
                 <span className="rounded-xl px-3 py-2 text-sm font-black text-slate-500">

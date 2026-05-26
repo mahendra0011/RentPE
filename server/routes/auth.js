@@ -275,7 +275,9 @@ router.post("/request-otp", async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const role = request.body.isOwner ? "owner" : "seeker";
-    const purpose = request.body.purpose === "signup" ? "signup" : "login";
+    const purpose = ["signup", "reset"].includes(request.body.purpose)
+      ? request.body.purpose
+      : "login";
 
     if (!email || !email.includes("@")) {
       response.status(400).json({ message: "Valid email is required." });
@@ -293,6 +295,17 @@ router.post("/request-otp", async (request, response, next) => {
       }
     }
 
+    if (purpose === "reset") {
+      const existing = isMongoConnected()
+        ? await User.findOne({ email }).lean()
+        : memoryUsers.get(email) || null;
+
+      if (!existing?.passwordHash) {
+        response.status(404).json({ message: "No account found with this email." });
+        return;
+      }
+    }
+
     const otp = storeOtp({ email, role, purpose });
 
     const delivery = await sendOtpEmail({ email, otp, purpose });
@@ -301,6 +314,61 @@ router.post("/request-otp", async (request, response, next) => {
       delivered: delivery.delivered,
       devOtp: delivery.devOtp,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/reset-password", async (request, response, next) => {
+  try {
+    const email = normalizeEmail(request.body.email);
+    const otp = String(request.body.otp || "").trim();
+    const password = String(request.body.password || "");
+
+    if (!email || !email.includes("@")) {
+      response.status(400).json({ message: "Valid email is required." });
+      return;
+    }
+
+    if (password.length < 6) {
+      response.status(400).json({ message: "Password must be at least 6 characters." });
+      return;
+    }
+
+    if (!otp) {
+      response.status(400).json({ message: "Email OTP is required." });
+      return;
+    }
+
+    const existing = isMongoConnected()
+      ? await User.findOne({ email }).lean()
+      : memoryUsers.get(email) || null;
+
+    if (!existing?.passwordHash) {
+      response.status(404).json({ message: "No account found with this email." });
+      return;
+    }
+
+    const verifiedOtp = consumeOtp({ email, otp, purpose: "reset" });
+    if (!verifiedOtp.ok) {
+      response.status(400).json({ message: verifiedOtp.message });
+      return;
+    }
+
+    const { hash, salt } = hashPassword(password);
+    const updates = {
+      passwordHash: hash,
+      passwordSalt: salt,
+      emailVerifiedAt: existing.emailVerifiedAt || new Date(),
+    };
+
+    if (isMongoConnected()) {
+      await User.findOneAndUpdate({ email }, { $set: updates });
+    } else {
+      memoryUsers.set(email, { ...existing, ...updates });
+    }
+
+    response.json({ ok: true, message: "Password reset successfully. Please login." });
   } catch (error) {
     next(error);
   }

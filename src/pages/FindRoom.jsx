@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { LocateFixed, MapPin, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -264,11 +264,9 @@ export default function FindRoom() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <motion.button
+                <button
                   type="button"
                   onClick={() => setShowFilters((value) => !value)}
-                  whileHover={{ y: -2, scale: 1.02 }}
-                  whileTap={{ scale: 0.96 }}
                   className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
                 >
                   <SlidersHorizontal className="size-4" />
@@ -278,140 +276,123 @@ export default function FindRoom() {
                       {activeFilterCount}
                     </span>
                   )}
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   type="button"
                   onClick={resetFilters}
-                  whileHover={{ y: -2, scale: 1.02 }}
-                  whileTap={{ scale: 0.96 }}
                   className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-black text-white transition-colors hover:bg-slate-800"
                 >
                   <RotateCcw className="size-4" />
                   Reset
-                </motion.button>
+                </button>
               </div>
             </motion.div>
 
-            <AnimatePresence initial={false}>
-              {showFilters && (
-                <motion.div
-                  key="find-room-filters"
-                  initial={{ opacity: 0, height: 0, y: -12 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -12 }}
-                  transition={{ duration: 0.28, ease: "easeOut" }}
-                  className="mb-7 overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-sm"
-                >
-                  <div className="p-5">
-                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <h2 className="font-black text-ink">Filters</h2>
-                        <p className="mt-1 text-xs font-bold text-slate-500">
-                          Location, budget, distance and room preferences apply instantly
-                        </p>
-                      </div>
-                      <motion.button
-                        type="button"
-                        onClick={resetFilters}
-                        whileHover={{ x: 2 }}
-                        whileTap={{ scale: 0.96 }}
-                        className="text-xs font-black text-brand"
-                      >
-                        Reset filters
-                      </motion.button>
-                    </div>
-
-                    <div className="grid gap-5 md:grid-cols-4">
-                      <FilterBlock label="Location">
-                        <ChipRow
-                          items={quickLocations}
-                          selected={[locationQuery]}
-                          onToggle={chooseLocation}
-                        />
-                      </FilterBlock>
-
-                      <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
-                        <input
-                          type="range"
-                          min={2000}
-                          max={30000}
-                          step={500}
-                          value={priceMax}
-                          onChange={(event) => setPriceMax(Number(event.target.value))}
-                          className="w-full accent-brand"
-                        />
-                      </FilterBlock>
-
-                      <FilterBlock label={`${distanceMax} km from location`}>
-                        <div className="flex items-center gap-3">
-                          <LocateFixed className="size-4 text-slate-400" />
-                          <input
-                            type="range"
-                            min={1}
-                            max={15}
-                            step={1}
-                            value={distanceMax}
-                            onChange={(event) => setDistanceMax(Number(event.target.value))}
-                            className="w-full accent-brand"
-                          />
-                        </div>
-                      </FilterBlock>
-
-                      <FilterBlock label="Property type">
-                        <ChipRow
-                          items={filterTypes}
-                          selected={selectedTypes}
-                          onToggle={(value) => toggleFilter(selectedTypes, value, setSelectedTypes)}
-                        />
-                      </FilterBlock>
-
-                      <FilterBlock label="Tenant">
-                        <ChipRow
-                          items={filterGenders}
-                          selected={selectedGenders}
-                          onToggle={(value) =>
-                            toggleFilter(selectedGenders, value, setSelectedGenders)
-                          }
-                        />
-                      </FilterBlock>
-
-                      <FilterBlock label="Amenities">
-                        <ChipRow
-                          items={filterAmenities}
-                          selected={selectedAmenities}
-                          onToggle={(value) =>
-                            toggleFilter(selectedAmenities, value, setSelectedAmenities)
-                          }
-                        />
-                      </FilterBlock>
-
-                      <FilterBlock label="City">
-                        <ChipRow
-                          items={cityFilters}
-                          selected={[locationQuery]}
-                          onToggle={chooseLocation}
-                        />
-                      </FilterBlock>
-
-                      <FilterBlock label="Availability">
-                        <div className="flex flex-wrap gap-2">
-                          <CheckboxFilter
-                            label="Furnished"
-                            checked={furnishedOnly}
-                            onChange={setFurnishedOnly}
-                          />
-                          <CheckboxFilter
-                            label="Available"
-                            checked={availableOnly}
-                            onChange={setAvailableOnly}
-                          />
-                        </div>
-                      </FilterBlock>
-                    </div>
+            {showFilters && (
+              <div className="mb-7 rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-black text-ink">Filters</h2>
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      Location, budget, distance and room preferences apply instantly
+                    </p>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="text-xs font-black text-brand"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-4">
+                  <FilterBlock label="Location">
+                    <ChipRow
+                      items={quickLocations}
+                      selected={[locationQuery]}
+                      onToggle={chooseLocation}
+                    />
+                  </FilterBlock>
+
+                  <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
+                    <input
+                      type="range"
+                      min={2000}
+                      max={30000}
+                      step={500}
+                      value={priceMax}
+                      onChange={(event) => setPriceMax(Number(event.target.value))}
+                      className="w-full accent-brand"
+                    />
+                  </FilterBlock>
+
+                  <FilterBlock label={`${distanceMax} km from location`}>
+                    <div className="flex items-center gap-3">
+                      <LocateFixed className="size-4 text-slate-400" />
+                      <input
+                        type="range"
+                        min={1}
+                        max={15}
+                        step={1}
+                        value={distanceMax}
+                        onChange={(event) => setDistanceMax(Number(event.target.value))}
+                        className="w-full accent-brand"
+                      />
+                    </div>
+                  </FilterBlock>
+
+                  <FilterBlock label="Property type">
+                    <ChipRow
+                      items={filterTypes}
+                      selected={selectedTypes}
+                      onToggle={(value) => toggleFilter(selectedTypes, value, setSelectedTypes)}
+                    />
+                  </FilterBlock>
+
+                  <FilterBlock label="Tenant">
+                    <ChipRow
+                      items={filterGenders}
+                      selected={selectedGenders}
+                      onToggle={(value) => toggleFilter(selectedGenders, value, setSelectedGenders)}
+                    />
+                  </FilterBlock>
+
+                  <FilterBlock label="Amenities">
+                    <ChipRow
+                      items={filterAmenities}
+                      selected={selectedAmenities}
+                      onToggle={(value) =>
+                        toggleFilter(selectedAmenities, value, setSelectedAmenities)
+                      }
+                    />
+                  </FilterBlock>
+
+                  <FilterBlock label="City">
+                    <ChipRow
+                      items={cityFilters}
+                      selected={[locationQuery]}
+                      onToggle={chooseLocation}
+                    />
+                  </FilterBlock>
+
+                  <FilterBlock label="Availability">
+                    <div className="flex flex-wrap gap-2">
+                      <CheckboxFilter
+                        label="Furnished"
+                        checked={furnishedOnly}
+                        onChange={setFurnishedOnly}
+                      />
+                      <CheckboxFilter
+                        label="Available"
+                        checked={availableOnly}
+                        onChange={setAvailableOnly}
+                      />
+                    </div>
+                  </FilterBlock>
+                </div>
+              </div>
+            )}
 
             <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
               {filteredRooms.map((room, index) => (
@@ -453,13 +434,10 @@ function ChipRow({ items, selected, onToggle }) {
         const active = selected.includes(item);
 
         return (
-          <motion.button
+          <button
             key={item}
             type="button"
             onClick={() => onToggle(item)}
-            variants={chipMotion}
-            whileHover={{ y: -2, scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
             className={`rounded-full border px-3 py-1 text-xs font-black transition-colors ${
               active
                 ? "border-brand bg-brand text-brand-foreground"
@@ -467,7 +445,7 @@ function ChipRow({ items, selected, onToggle }) {
             }`}
           >
             {item}
-          </motion.button>
+          </button>
         );
       })}
     </div>
@@ -476,11 +454,7 @@ function ChipRow({ items, selected, onToggle }) {
 
 function CheckboxFilter({ label, checked, onChange }) {
   return (
-    <motion.label
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
-    >
+    <label className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand">
       <input
         type="checkbox"
         checked={checked}
@@ -488,6 +462,6 @@ function CheckboxFilter({ label, checked, onChange }) {
         className="size-3.5 accent-brand"
       />
       <span>{label}</span>
-    </motion.label>
+    </label>
   );
 }

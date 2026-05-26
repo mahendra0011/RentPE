@@ -21,6 +21,8 @@ The frontend intentionally does not include a map screen. Location is still stor
 - Signup uses name, email, mobile number, password, owner checkbox, and email OTP verification.
 - Login uses only email, password, and owner checkbox.
 - If a user continues as owner, `List Your Room` appears in the navbar and opens the room posting flow.
+- Forgot password uses email OTP verification before setting a new password.
+- Header includes a dark mode toggle, saved locally in the browser.
 
 ## Features
 
@@ -36,6 +38,8 @@ The frontend intentionally does not include a map screen. Location is still stor
 - User dashboard for wishlist rooms, contacted owners, and posted listings
 - Password login/signup with owner role support
 - Signup email verification with OTP delivered through the Brevo Transactional Email REST API using `BREVO_API_KEY`
+- Forgot-password OTP reset flow
+- Dark mode with a persistent header toggle
 - ReactBits-style UI components for electric borders, spotlight panels, infinite tickers, tilt cards, and animated counters
 - Cloudinary-ready image upload
 - MongoDB geospatial-ready room schema
@@ -153,6 +157,7 @@ Notes:
 - `/find-room` - Dedicated find room page with all rooms and location filters
 - `/login` - Password login
 - `/signup` - Password signup
+- `/forgot-password` - Email OTP password reset
 - `/search` - Redirects to `/find-room` for old links
 - `/rooms/:id` - Room details
 - `/list-room` - Owner room posting flow
@@ -187,6 +192,7 @@ POST   /api/auth/signup
 POST   /api/auth/login
 POST   /api/auth/request-otp
 POST   /api/auth/verify-otp
+POST   /api/auth/reset-password
 ```
 
 System:

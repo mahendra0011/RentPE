@@ -4,7 +4,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
-import { clearAuthError, loginUser, requestOtp, signupUser } from "@/store/authSlice.js";
+import {
+  clearAuthError,
+  loginUser,
+  requestOtp,
+  resetPassword,
+  signupUser,
+} from "@/store/authSlice.js";
 
 export default function Auth() {
   const location = useLocation();
@@ -12,6 +18,7 @@ export default function Auth() {
   const dispatch = useDispatch();
   const { status, error, devOtp } = useSelector((state) => state.auth);
   const isSignup = location.pathname.includes("signup");
+  const isForgot = location.pathname.includes("forgot-password");
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const ownerFromUrl = query.get("owner") === "1";
   const [form, setForm] = useState({
@@ -23,30 +30,38 @@ export default function Auth() {
   });
   const [otp, setOtp] = useState("");
   const [otpEmail, setOtpEmail] = useState("");
+  const [resetDone, setResetDone] = useState(false);
   const loading = status === "loading";
   const normalizedEmail = form.email.trim().toLowerCase();
   const otpReady = isSignup && otpEmail && otpEmail === normalizedEmail;
+  const resetOtpReady = isForgot && otpEmail && otpEmail === normalizedEmail;
   const submitLabel = loading
     ? "Please wait..."
-    : isSignup
-      ? otpReady
-        ? "Verify email & create account"
-        : "Send email OTP"
-      : "Login";
+    : isForgot
+      ? resetOtpReady
+        ? "Reset password"
+        : "Send reset OTP"
+      : isSignup
+        ? otpReady
+          ? "Verify email & create account"
+          : "Send email OTP"
+        : "Login";
 
   useEffect(() => {
     setForm((current) => ({ ...current, isOwner: ownerFromUrl }));
     setOtp("");
     setOtpEmail("");
+    setResetDone(false);
     dispatch(clearAuthError());
-  }, [dispatch, ownerFromUrl, isSignup]);
+  }, [dispatch, ownerFromUrl, isSignup, isForgot]);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
 
-    if (isSignup && (key === "email" || key === "isOwner")) {
+    if ((isSignup || isForgot) && (key === "email" || key === "isOwner")) {
       setOtp("");
       setOtpEmail("");
+      setResetDone(false);
     }
   }
 
@@ -61,12 +76,37 @@ export default function Auth() {
     setOtpEmail(normalizedEmail);
   }
 
+  async function sendResetOtp() {
+    await dispatch(
+      requestOtp({
+        email: normalizedEmail,
+        isOwner: false,
+        purpose: "reset",
+      }),
+    ).unwrap();
+    setOtpEmail(normalizedEmail);
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
     try {
       if (isSignup && !otpReady) {
         await sendSignupOtp();
+        return;
+      }
+
+      if (isForgot && !resetOtpReady) {
+        await sendResetOtp();
+        return;
+      }
+
+      if (isForgot) {
+        await dispatch(
+          resetPassword({ email: normalizedEmail, otp, password: form.password }),
+        ).unwrap();
+        setResetDone(true);
+        setOtp("");
         return;
       }
 
@@ -90,12 +130,18 @@ export default function Auth() {
             Secure account
           </span>
           <h1 className="mt-5 max-w-xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl">
-            {isSignup ? "Create your RentPE account." : "Login to RentPE."}
+            {isForgot
+              ? "Reset your RentPE password."
+              : isSignup
+                ? "Create your RentPE account."
+                : "Login to RentPE."}
           </h1>
           <p className="mt-4 max-w-lg text-base font-medium leading-7 text-slate-600">
-            {isSignup
-              ? "Add your details, verify your email with an OTP, and start using RentPE."
-              : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
+            {isForgot
+              ? "Enter your email, verify the OTP, and set a fresh password."
+              : isSignup
+                ? "Add your details, verify your email with an OTP, and start using RentPE."
+                : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <InfoPill title="Room seekers" body="Save rooms and contact owners directly." />
@@ -107,12 +153,14 @@ export default function Auth() {
           <div className="mb-7 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-black tracking-normal">
-                {isSignup ? "Sign up" : "Login"}
+                {isForgot ? "Forgot password" : isSignup ? "Sign up" : "Login"}
               </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {isSignup
-                  ? "We will email an OTP before creating your account."
-                  : "Email, password, and owner mode only."}
+                {isForgot
+                  ? "We will email an OTP before changing your password."
+                  : isSignup
+                    ? "We will email an OTP before creating your account."
+                    : "Email, password, and owner mode only."}
               </p>
             </div>
             <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
@@ -159,7 +207,7 @@ export default function Auth() {
               />
             </Field>
 
-            <Field label="Password" icon={Lock}>
+            <Field label={isForgot ? "New password" : "Password"} icon={Lock}>
               <input
                 type="password"
                 value={form.password}
@@ -171,24 +219,26 @@ export default function Auth() {
               />
             </Field>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
-              <input
-                type="checkbox"
-                checked={form.isOwner}
-                onChange={(event) => update("isOwner", event.target.checked)}
-                className="mt-1 size-4 accent-brand"
-              />
-              <span>
-                <span className="block text-sm font-black text-ink">Continue as room owner</span>
-                <span className="mt-1 block text-xs font-bold leading-5 text-slate-500">
-                  {isSignup
-                    ? "Owner accounts show List Your Room after OTP verification."
-                    : "Tick this only when logging in as a room owner."}
+            {!isForgot && (
+              <label className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
+                <input
+                  type="checkbox"
+                  checked={form.isOwner}
+                  onChange={(event) => update("isOwner", event.target.checked)}
+                  className="mt-1 size-4 accent-brand"
+                />
+                <span>
+                  <span className="block text-sm font-black text-ink">Continue as room owner</span>
+                  <span className="mt-1 block text-xs font-bold leading-5 text-slate-500">
+                    {isSignup
+                      ? "Owner accounts show List Your Room after OTP verification."
+                      : "Tick this only when logging in as a room owner."}
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            )}
 
-            {otpReady && (
+            {(otpReady || resetOtpReady) && (
               <Field label="Email OTP" icon={ShieldCheck}>
                 <input
                   value={otp}
@@ -201,12 +251,12 @@ export default function Auth() {
               </Field>
             )}
 
-            {isSignup && otpReady && (
+            {(isSignup && otpReady) || (isForgot && resetOtpReady) ? (
               <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
                 OTP sent to {otpEmail}.{" "}
                 <button
                   type="button"
-                  onClick={sendSignupOtp}
+                  onClick={isForgot ? sendResetOtp : sendSignupOtp}
                   disabled={loading}
                   className="font-black text-brand disabled:opacity-60"
                 >
@@ -217,6 +267,15 @@ export default function Auth() {
                     Development OTP: {devOtp}
                   </span>
                 )}
+              </div>
+            ) : null}
+
+            {resetDone && (
+              <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
+                Password reset successfully.{" "}
+                <Link to="/login" className="font-black text-brand">
+                  Login now
+                </Link>
               </div>
             )}
 
@@ -237,14 +296,21 @@ export default function Auth() {
           </form>
 
           <p className="mt-6 text-center text-sm font-bold text-slate-500">
-            {isSignup ? "Already have an account?" : "New here?"}{" "}
+            {isForgot ? "Remembered it?" : isSignup ? "Already have an account?" : "New here?"}{" "}
             <Link
-              to={isSignup ? "/login" : "/signup"}
+              to={isForgot || isSignup ? "/login" : "/signup"}
               className="font-black text-brand hover:text-brand/80"
             >
-              {isSignup ? "Login" : "Create account"}
+              {isForgot || isSignup ? "Login" : "Create account"}
             </Link>
           </p>
+          {!isSignup && !isForgot && (
+            <p className="mt-3 text-center text-sm font-bold">
+              <Link to="/forgot-password" className="text-brand hover:text-brand/80">
+                Forgot password?
+              </Link>
+            </p>
+          )}
         </section>
       </main>
     </div>
