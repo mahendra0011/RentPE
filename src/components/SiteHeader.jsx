@@ -6,7 +6,7 @@ import { Link, NavLink } from "react-router-dom";
 import { logout } from "@/store/authSlice.js";
 
 const navItems = [
-  { to: "/search", label: "Find Rooms" },
+  { to: "/search?all=1", label: "Find Rooms" },
   { to: "/roommates", label: "Roommate Finder" },
 ];
 

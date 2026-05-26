@@ -101,6 +101,7 @@ const roomsSlice = createSlice({
       .addCase(fetchRooms.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.items = action.payload;
+        state.origin = null;
       })
       .addCase(fetchRooms.rejected, (state, action) => {
         state.status = "failed";

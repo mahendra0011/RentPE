@@ -32,6 +32,28 @@ export const verifyOtp = createAsyncThunk("auth/verifyOtp", async ({ email, otp,
   });
 });
 
+export const signupUser = createAsyncThunk(
+  "auth/signupUser",
+  async ({ name, email, mobile, password, isOwner }) => {
+    return apiRequest("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, mobile, password, isOwner }),
+    });
+  },
+);
+
+export const loginUser = createAsyncThunk(
+  "auth/loginUser",
+  async ({ name, email, mobile, password, isOwner }) => {
+    return apiRequest("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, mobile, password, isOwner }),
+    });
+  },
+);
+
 const persisted = readAuth();
 
 const authSlice = createSlice({
@@ -85,6 +107,38 @@ const authSlice = createSlice({
         saveAuth({ user: action.payload.user, token: action.payload.token });
       })
       .addCase(verifyOtp.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
+      })
+      .addCase(signupUser.pending, (state) => {
+        state.status = "loading";
+        state.error = "";
+      })
+      .addCase(signupUser.fulfilled, (state, action) => {
+        state.status = "authenticated";
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.otpSent = false;
+        state.devOtp = "";
+        saveAuth({ user: action.payload.user, token: action.payload.token });
+      })
+      .addCase(signupUser.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
+      })
+      .addCase(loginUser.pending, (state) => {
+        state.status = "loading";
+        state.error = "";
+      })
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.status = "authenticated";
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.otpSent = false;
+        state.devOtp = "";
+        saveAuth({ user: action.payload.user, token: action.payload.token });
+      })
+      .addCase(loginUser.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message;
       });

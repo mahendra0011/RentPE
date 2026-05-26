@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
 import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 
@@ -7,39 +7,54 @@ import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
-import { searchNearbyRooms } from "@/store/roomsSlice.js";
+import { fetchRooms, searchNearbyRooms } from "@/store/roomsSlice.js";
 
 const types = ["PG", "Hostel", "Flat"];
 const genders = ["Girls", "Boys", "Co-ed"];
 const amenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV", "Geyser"];
 
+function queryFromParams(params) {
+  const showAll = params.get("all") === "1" || params.get("filters") === "1";
+  return showAll ? "" : params.get("query") || params.get("city") || "";
+}
+
 export default function Search() {
   const [params] = useSearchParams();
+  const paramsKey = params.toString();
   const dispatch = useDispatch();
   const { items: apiRooms, origin, status, error } = useSelector((state) => state.rooms);
-  const [query, setQuery] = useState(params.get("query") || params.get("city") || "Bhopal");
+  const [query, setQuery] = useState(queryFromParams(params));
   const [priceMax, setPriceMax] = useState(20000);
   const [distMax, setDistMax] = useState(5);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedGenders, setSelectedGenders] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [furnishedOnly, setFurnishedOnly] = useState(false);
-  const [openFilters, setOpenFilters] = useState(false);
+  const [openFilters, setOpenFilters] = useState(params.get("filters") === "1");
   const sourceRooms = apiRooms.length ? apiRooms : normalizeRooms(staticRooms);
 
   useEffect(() => {
-    dispatch(
-      searchNearbyRooms({
-        query,
-        maxDistance: distMax * 1000,
-        priceMax,
-        types: selectedTypes,
-        genders: selectedGenders,
-        amenities: selectedAmenities,
-        furnishedOnly,
-        availableOnly: true,
-      }),
-    );
+    const filters = {
+      priceMax,
+      types: selectedTypes,
+      genders: selectedGenders,
+      amenities: selectedAmenities,
+      furnishedOnly,
+      availableOnly: true,
+    };
+
+    if (query.trim()) {
+      dispatch(
+        searchNearbyRooms({
+          ...filters,
+          query,
+          maxDistance: distMax * 1000,
+        }),
+      );
+      return;
+    }
+
+    dispatch(fetchRooms(filters));
   }, [
     dispatch,
     distMax,
@@ -50,6 +65,14 @@ export default function Search() {
     selectedGenders,
     selectedTypes,
   ]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(paramsKey);
+    setQuery(queryFromParams(nextParams));
+    if (nextParams.get("filters") === "1") {
+      setOpenFilters(true);
+    }
+  }, [paramsKey]);
 
   const filtered = useMemo(
     () =>
@@ -96,6 +119,10 @@ export default function Search() {
     setSelectedGenders([]);
     setSelectedAmenities([]);
     setFurnishedOnly(false);
+  }
+
+  function applyFilters() {
+    setOpenFilters(false);
   }
 
   return (
@@ -148,7 +175,7 @@ export default function Search() {
           </div>
 
           <div className="space-y-6 lg:sticky lg:top-24">
-            <FilterBlock label={`Max price - ₹${priceMax.toLocaleString("en-IN")}`}>
+            <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
               <input
                 type="range"
                 min={2000}
@@ -205,6 +232,14 @@ export default function Search() {
               />
               <span className="text-sm font-bold">Furnished only</span>
             </label>
+
+            <button
+              type="button"
+              onClick={applyFilters}
+              className="inline-flex w-full items-center justify-center rounded-full bg-brand px-5 py-3 text-sm font-black text-brand-foreground shadow-md shadow-brand/25 lg:hidden"
+            >
+              Apply filters
+            </button>
           </div>
         </aside>
 
@@ -212,10 +247,10 @@ export default function Search() {
           <div className="mb-4 flex items-end justify-between">
             <div>
               <h1 className="text-xl font-black">
-                {filtered.length} rooms in {query || "all cities"}
+                {filtered.length} rooms {query ? `in ${query}` : "available"}
               </h1>
               <p className="text-sm text-slate-500">
-                {origin?.label || "Sorted by distance, nearest first"}
+                {query ? origin?.label || "Sorted by distance, nearest first" : "Showing all rooms"}
               </p>
             </div>
           </div>
@@ -229,7 +264,7 @@ export default function Search() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {status === "loading" && filtered.length === 0 && (
               <div className="col-span-full rounded-2xl border border-slate-200 bg-card p-6 text-sm font-bold text-slate-500">
-                Searching nearby rooms...
+                Searching rooms...
               </div>
             )}
             {filtered.map((room, index) => (

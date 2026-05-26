@@ -13,7 +13,7 @@ The UI intentionally does not include a map screen. Location is still used in th
 - Room details page with gallery, owner card, amenities, nearby essentials, and WhatsApp contact
 - Roommate finder with budget, city, area, college or office, and move-in fields
 - User dashboard for saved rooms, contacted owners, and posted listings
-- Email OTP login and signup with owner role support
+- Password login and signup with name, email, mobile number, and owner role support
 - Report listing action
 - Availability support for available or occupied rooms
 - Cloudinary-ready image upload
@@ -120,8 +120,10 @@ Notes:
 ## App Routes
 
 - `/` - Home page
-- `/login` - Email OTP login
-- `/signup` - Email OTP signup
+- `/login` - Password login
+- `/signup` - Password signup
+- `/search?all=1` - All rooms
+- `/search?filters=1` - All rooms with filters open
 - `/search?query=LNCT` - Search nearby rooms
 - `/rooms/:id` - Room details
 - `/list-room` - Add room
@@ -151,6 +153,8 @@ POST   /api/roommates
 Auth:
 
 ```txt
+POST   /api/auth/signup
+POST   /api/auth/login
 POST   /api/auth/request-otp
 POST   /api/auth/verify-otp
 ```
