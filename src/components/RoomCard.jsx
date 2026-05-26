@@ -12,13 +12,22 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
 
   return (
     <motion.article
+      layout
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6, scale: 1.015 }}
+      whileTap={{ scale: 0.995 }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ delay: index * 0.04, duration: 0.38 }}
+      transition={{
+        delay: index * 0.04,
+        duration: 0.38,
+        type: "spring",
+        stiffness: 240,
+        damping: 24,
+      }}
       onMouseEnter={() => onHover?.(room.id)}
       onMouseLeave={() => onHover?.(null)}
-      className={`group rounded-[20px] border bg-card p-3 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-card)] ${
+      className={`group rounded-[20px] border bg-card p-3 transition-shadow hover:shadow-[var(--shadow-card)] ${
         highlighted ? "border-brand shadow-[var(--shadow-card)]" : "border-slate-200"
       }`}
     >
@@ -78,16 +87,19 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
           <MessageCircle className="size-3.5" />
           WhatsApp Owner
         </a>
-        <button
+        <motion.button
           type="button"
           onClick={() => dispatch(toggleSavedRoom(room.id))}
           aria-label="Save room"
+          whileTap={{ scale: 0.86 }}
+          animate={saved ? { scale: [1, 1.16, 1] } : { scale: 1 }}
+          transition={{ duration: 0.24 }}
           className={`inline-flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-slate-50 ${
             saved ? "border-brand bg-brand-soft" : "border-slate-200"
           }`}
         >
           <Heart className={`size-4 ${saved ? "fill-brand text-brand" : "text-slate-500"}`} />
-        </button>
+        </motion.button>
       </div>
     </motion.article>
   );

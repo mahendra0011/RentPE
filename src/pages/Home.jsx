@@ -26,6 +26,21 @@ import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
 const popularCities = ["Bhopal", "Indore", "Pune", "Bangalore", "Delhi NCR"];
+const fadeUp = {
+  hidden: { opacity: 0, y: 22 },
+  visible: { opacity: 1, y: 0 },
+};
+const heroStagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.06 },
+  },
+};
+const chipMotion = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0 },
+};
 const heroSignals = [
   "0% brokerage",
   "Verified rooms",
@@ -177,22 +192,27 @@ export default function Home() {
 
       <main>
         <section className="mx-auto max-w-6xl px-4 pb-16 pt-20 text-center sm:px-6 md:pb-20 md:pt-24">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-          >
-            <h1 className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl lg:text-[64px]">
+          <motion.div initial="hidden" animate="visible" variants={heroStagger}>
+            <motion.h1
+              variants={fadeUp}
+              className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl lg:text-[64px]"
+            >
               Your perfect room in <span className="text-brand">any city.</span>
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600">
+            </motion.h1>
+            <motion.p
+              variants={fadeUp}
+              className="mx-auto mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600"
+            >
               The smartest way for students and migrants to find PG, flats, and roommates near
               colleges or offices. Zero brokerage, direct owner contact.
-            </p>
+            </motion.p>
 
-            <form
+            <motion.form
               onSubmit={onSearch}
-              className="mx-auto mt-10 max-w-[760px] rounded-[28px] border border-slate-200 bg-white p-2 shadow-[0_24px_70px_-32px_rgba(79,70,229,0.55)] md:rounded-full"
+              variants={fadeUp}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              className="animate-soft-pulse mx-auto mt-10 max-w-[760px] rounded-[28px] border border-slate-200 bg-white p-2 shadow-[0_24px_70px_-32px_rgba(79,70,229,0.55)] md:rounded-full"
             >
               <div className="flex flex-col gap-2 md:h-14 md:flex-row md:items-center">
                 <label className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 md:px-5 md:py-0">
@@ -218,40 +238,59 @@ export default function Home() {
                     <option value="20000">₹10k - ₹20k</option>
                   </select>
                 </label>
-                <button className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-8 text-sm font-black text-brand-foreground shadow-lg shadow-brand/30 transition-transform active:scale-95 md:h-full">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="animate-shimmer inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-8 text-sm font-black text-brand-foreground shadow-lg shadow-brand/30 transition-transform active:scale-95 md:h-full"
+                >
                   <Search className="size-4" />
                   Search
-                </button>
+                </motion.button>
               </div>
-            </form>
+            </motion.form>
 
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+            <motion.div
+              variants={heroStagger}
+              className="mt-7 flex flex-wrap items-center justify-center gap-2"
+            >
               <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
                 Popular:
               </span>
               {popularCities.map((city) => (
-                <button
+                <motion.button
                   key={city}
                   type="button"
                   onClick={() => chooseCity(city)}
+                  variants={chipMotion}
+                  whileHover={{ y: -2, scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
                   className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-brand hover:text-brand"
                 >
                   {city}
-                </button>
+                </motion.button>
               ))}
-            </div>
+            </motion.div>
 
-            <InfiniteTicker
-              items={heroSignals}
-              duration={18}
-              className="mx-auto mt-8 max-w-3xl"
-              itemClassName="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm"
-            />
+            <motion.div variants={fadeUp}>
+              <InfiniteTicker
+                items={heroSignals}
+                duration={18}
+                className="mx-auto mt-8 max-w-3xl"
+                itemClassName="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm"
+              />
+            </motion.div>
           </motion.div>
         </section>
 
-        <section id="listings" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6">
-          <div className="mb-7 flex items-end justify-between gap-4">
+        <motion.section
+          id="listings"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeUp}
+          className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6"
+        >
+          <motion.div variants={fadeUp} className="mb-7 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black tracking-normal text-ink">Rooms near you</h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
@@ -262,22 +301,22 @@ export default function Home() {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/find-room?filters=1"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand hover:text-brand"
               >
                 <SlidersHorizontal className="size-4" />
                 Filter
               </Link>
               <Link
                 to="/find-room?all=1"
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-black text-white transition-colors hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-black text-white transition-all hover:-translate-y-0.5 hover:bg-slate-800"
               >
                 See all
                 <ArrowRight className="size-4" />
               </Link>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 gap-7 md:grid-cols-3">
+          <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
             {previewRooms.map((room, index) => (
               <RoomCard key={room.id} room={room} index={index} />
             ))}
@@ -286,10 +325,17 @@ export default function Home() {
                 <p className="font-black text-ink">No rooms available yet</p>
               </div>
             )}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10 sm:px-6 md:py-16">
+        <motion.section
+          id="how"
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.22 }}
+          transition={{ duration: 0.48 }}
+          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10 sm:px-6 md:py-16"
+        >
           <ElectricBorder
             color="#7df9ff"
             speed={0.8}
@@ -313,24 +359,29 @@ export default function Home() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-3">
-                {steps.map((step) => (
-                  <article
+                {steps.map((step, index) => (
+                  <motion.article
                     key={step.title}
+                    initial={{ opacity: 0, y: 18 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.45 }}
+                    whileHover={{ y: -5, scale: 1.015 }}
+                    transition={{ delay: index * 0.08, duration: 0.36 }}
                     className="rounded-[20px] border border-slate-200 bg-white p-7 shadow-sm"
                   >
-                    <span className="mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
+                    <span className="animate-float-soft mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
                       <step.icon className="size-5" />
                     </span>
                     <h3 className="text-base font-black text-ink">{step.title}</h3>
                     <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{step.body}</p>
-                  </article>
+                  </motion.article>
                 ))}
               </div>
 
               <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   to="/find-room"
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform active:scale-95"
+                  className="animate-shimmer inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform hover:-translate-y-0.5 active:scale-95"
                 >
                   Browse rooms
                   <ArrowRight className="size-4" />
@@ -344,9 +395,15 @@ export default function Home() {
               </div>
             </div>
           </ElectricBorder>
-        </section>
+        </motion.section>
 
-        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.22 }}
+          transition={{ duration: 0.48 }}
+          className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16"
+        >
           <div className="mb-7 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
               <span className="mb-3 inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
@@ -380,7 +437,7 @@ export default function Home() {
               </TiltCard>
             ))}
           </div>
-        </section>
+        </motion.section>
 
         <motion.section
           initial={{ opacity: 0, y: 28 }}
@@ -482,7 +539,13 @@ export default function Home() {
           </SpotlightPanel>
         </motion.section>
 
-        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.22 }}
+          transition={{ duration: 0.48 }}
+          className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16"
+        >
           <div className="grid overflow-hidden rounded-[28px] bg-[#07111f] px-6 py-10 text-white md:min-h-[360px] md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-14 md:py-14">
             <div>
               <span className="inline-flex rounded-full bg-brand/25 px-4 py-1 text-xs font-black uppercase tracking-wide text-indigo-100">
@@ -506,8 +569,13 @@ export default function Home() {
 
             <div className="mt-10 grid gap-5 sm:grid-cols-2 md:mt-0 md:pl-6">
               {roommateCards.map((person, index) => (
-                <div
+                <motion.div
                   key={person.name}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.45 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  transition={{ delay: index * 0.1, duration: 0.36 }}
                   className={`rounded-[20px] border border-white/10 bg-white/10 p-6 backdrop-blur ${
                     index === 1 ? "md:translate-y-8" : ""
                   }`}
@@ -517,14 +585,24 @@ export default function Home() {
                   </span>
                   <p className="font-black text-white">{person.name}</p>
                   <p className="mt-1 text-xs font-bold text-slate-400">{person.detail}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:px-6 md:grid-cols-[1.85fr_0.9fr] md:py-16">
-          <div className="rounded-[24px] border border-slate-200 bg-white p-8 shadow-sm md:p-12">
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.22 }}
+          transition={{ duration: 0.48 }}
+          className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:px-6 md:grid-cols-[1.85fr_0.9fr] md:py-16"
+        >
+          <motion.div
+            whileHover={{ y: -4 }}
+            transition={{ type: "spring", stiffness: 260, damping: 24 }}
+            className="rounded-[24px] border border-slate-200 bg-white p-8 shadow-sm md:p-12"
+          >
             <span className="mb-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-brand">
               <Building2 className="size-4" />
               For Owners
@@ -542,9 +620,13 @@ export default function Home() {
             >
               List Property - It's Free
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="rounded-[24px] bg-brand-soft p-8 text-brand md:p-10">
+          <motion.div
+            whileHover={{ y: -4 }}
+            transition={{ type: "spring", stiffness: 260, damping: 24 }}
+            className="rounded-[24px] bg-brand-soft p-8 text-brand md:p-10"
+          >
             <div>
               <p className="text-5xl font-black tracking-normal">15k+</p>
               <p className="mt-1 text-sm font-medium text-slate-600">
@@ -556,8 +638,8 @@ export default function Home() {
               <p className="text-5xl font-black tracking-normal">0%</p>
               <p className="mt-1 text-sm font-medium text-slate-600">Brokerage. Forever.</p>
             </div>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
       </main>
 
       <footer className="mt-10 border-t border-slate-200 bg-white">
