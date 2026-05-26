@@ -1,4 +1,4 @@
-import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -129,162 +129,169 @@ export default function Search() {
     <div className="min-h-screen bg-background font-sans text-ink">
       <SiteHeader />
 
-      <div className="border-b border-slate-200 bg-card">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-4 sm:px-6">
-          <label className="flex max-w-2xl flex-1 items-center gap-3 rounded-full border border-slate-200 bg-background px-5 py-2.5">
-            <SearchIcon className="size-4 text-slate-400" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="flex-1 bg-transparent text-sm font-semibold outline-none"
-              placeholder="City, area, college or office"
-            />
-          </label>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12">
+        <section className="mb-8 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <span className="mb-3 inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
+              Available listings
+            </span>
+            <h1 className="text-3xl font-black tracking-normal text-ink md:text-5xl">
+              Rooms, PGs and flats
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+              {query
+                ? origin?.label || `Showing rooms matching ${query}`
+                : "Showing all available rooms with direct owner contact."}
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={() => setOpenFilters(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-card px-4 py-2.5 text-sm font-black lg:hidden"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand lg:hidden"
           >
             <SlidersHorizontal className="size-4" />
             Filters
           </button>
-        </div>
-      </div>
+        </section>
 
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr]">
-        <aside
-          className={`${
-            openFilters ? "fixed inset-0 z-50 overflow-auto bg-background p-6" : "hidden"
-          } lg:static lg:block lg:p-0`}
-        >
-          <div className="mb-5 flex items-center justify-between lg:mb-4">
-            <h2 className="text-lg font-black">Filters</h2>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={reset} className="text-xs font-black text-brand">
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpenFilters(false)}
-                className="flex size-8 items-center justify-center rounded-full bg-slate-100 lg:hidden"
-                aria-label="Close filters"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-6 lg:sticky lg:top-24">
-            <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
-              <input
-                type="range"
-                min={2000}
-                max={30000}
-                step={500}
-                value={priceMax}
-                onChange={(event) => setPriceMax(Number(event.target.value))}
-                className="w-full accent-brand"
-              />
-            </FilterBlock>
-
-            <FilterBlock label={`Max distance - ${distMax} km`}>
-              <input
-                type="range"
-                min={0.5}
-                max={10}
-                step={0.5}
-                value={distMax}
-                onChange={(event) => setDistMax(Number(event.target.value))}
-                className="w-full accent-brand"
-              />
-            </FilterBlock>
-
-            <FilterBlock label="Property type">
-              <ChipRow
-                items={types}
-                selected={selectedTypes}
-                onToggle={(value) => toggle(selectedTypes, value, setSelectedTypes)}
-              />
-            </FilterBlock>
-
-            <FilterBlock label="Tenant">
-              <ChipRow
-                items={genders}
-                selected={selectedGenders}
-                onToggle={(value) => toggle(selectedGenders, value, setSelectedGenders)}
-              />
-            </FilterBlock>
-
-            <FilterBlock label="Amenities">
-              <ChipRow
-                items={amenities}
-                selected={selectedAmenities}
-                onToggle={(value) => toggle(selectedAmenities, value, setSelectedAmenities)}
-              />
-            </FilterBlock>
-
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={furnishedOnly}
-                onChange={(event) => setFurnishedOnly(event.target.checked)}
-                className="size-4 accent-brand"
-              />
-              <span className="text-sm font-bold">Furnished only</span>
-            </label>
-
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="inline-flex w-full items-center justify-center rounded-full bg-brand px-5 py-3 text-sm font-black text-brand-foreground shadow-md shadow-brand/25 lg:hidden"
-            >
-              Apply filters
-            </button>
-          </div>
-        </aside>
-
-        <section>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h1 className="text-xl font-black">
-                {filtered.length} rooms {query ? `in ${query}` : "available"}
-              </h1>
-              <p className="text-sm text-slate-500">
-                {query ? origin?.label || "Sorted by distance, nearest first" : "Showing all rooms"}
-              </p>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
-              {error}. Showing local demo rooms.
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {status === "loading" && filtered.length === 0 && (
-              <div className="col-span-full rounded-2xl border border-slate-200 bg-card p-6 text-sm font-bold text-slate-500">
-                Searching rooms...
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[280px_1fr]">
+          <aside
+            className={`${
+              openFilters ? "fixed inset-0 z-50 overflow-auto bg-background p-5" : "hidden"
+            } lg:static lg:block lg:p-0`}
+          >
+            <div className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-lg font-black">Filters</h2>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={reset} className="text-xs font-black text-brand">
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpenFilters(false)}
+                    className="flex size-8 items-center justify-center rounded-full bg-slate-100 lg:hidden"
+                    aria-label="Close filters"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
               </div>
-            )}
-            {filtered.map((room, index) => (
-              <RoomCard key={room.id} room={room} index={index} />
-            ))}
-            {filtered.length === 0 && (
-              <div className="col-span-full rounded-2xl border border-dashed border-slate-200 py-16 text-center">
-                <p className="mb-1 font-black">No rooms match your filters</p>
+
+              <div className="space-y-6">
+                <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
+                  <input
+                    type="range"
+                    min={2000}
+                    max={30000}
+                    step={500}
+                    value={priceMax}
+                    onChange={(event) => setPriceMax(Number(event.target.value))}
+                    className="w-full accent-brand"
+                  />
+                </FilterBlock>
+
+                <FilterBlock label={`Max distance - ${distMax} km`}>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={10}
+                    step={0.5}
+                    value={distMax}
+                    onChange={(event) => setDistMax(Number(event.target.value))}
+                    className="w-full accent-brand"
+                  />
+                </FilterBlock>
+
+                <FilterBlock label="Property type">
+                  <ChipRow
+                    items={types}
+                    selected={selectedTypes}
+                    onToggle={(value) => toggle(selectedTypes, value, setSelectedTypes)}
+                  />
+                </FilterBlock>
+
+                <FilterBlock label="Tenant">
+                  <ChipRow
+                    items={genders}
+                    selected={selectedGenders}
+                    onToggle={(value) => toggle(selectedGenders, value, setSelectedGenders)}
+                  />
+                </FilterBlock>
+
+                <FilterBlock label="Amenities">
+                  <ChipRow
+                    items={amenities}
+                    selected={selectedAmenities}
+                    onToggle={(value) => toggle(selectedAmenities, value, setSelectedAmenities)}
+                  />
+                </FilterBlock>
+
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={furnishedOnly}
+                    onChange={(event) => setFurnishedOnly(event.target.checked)}
+                    className="size-4 accent-brand"
+                  />
+                  <span className="text-sm font-bold">Furnished only</span>
+                </label>
+
                 <button
                   type="button"
-                  onClick={reset}
-                  className="mt-2 text-sm font-black text-brand"
+                  onClick={applyFilters}
+                  className="inline-flex w-full items-center justify-center rounded-full bg-brand px-5 py-3 text-sm font-black text-brand-foreground shadow-md shadow-brand/25"
                 >
-                  Reset filters
+                  Apply filters
                 </button>
               </div>
+            </div>
+          </aside>
+
+          <section>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black">
+                  {filtered.length} {filtered.length === 1 ? "listing" : "listings"}
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  {query ? `Filtered by ${query}` : "Sorted by latest available rooms"}
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+                {error}. Showing local demo rooms.
+              </div>
             )}
-          </div>
-        </section>
-      </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {status === "loading" && filtered.length === 0 && (
+                <div className="col-span-full rounded-[20px] border border-slate-200 bg-white p-6 text-sm font-bold text-slate-500">
+                  Loading rooms...
+                </div>
+              )}
+              {filtered.map((room, index) => (
+                <RoomCard key={room.id} room={room} index={index} />
+              ))}
+              {filtered.length === 0 && (
+                <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-16 text-center">
+                  <p className="mb-1 font-black">No rooms match your filters</p>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="mt-2 text-sm font-black text-brand"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }
