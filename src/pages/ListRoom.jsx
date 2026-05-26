@@ -179,7 +179,7 @@ export default function ListRoom() {
           </motion.div>
           <h1 className="mb-3 text-3xl font-black tracking-normal">Your listing is live.</h1>
           <p className="mb-8 text-slate-600">
-            It has been sent to the RoomRadar API and is ready for verified tenants.
+            It has been sent to the RentPE API and is ready for verified tenants.
           </p>
           <div className="flex justify-center gap-3">
             <Link
@@ -413,7 +413,7 @@ export default function ListRoom() {
                     </Field>
                   </div>
                   <div className="rounded-xl bg-brand-soft p-4 text-xs font-bold leading-5 text-slate-700">
-                    RoomRadar uses this address and landmark for nearby search. Users will see the
+                    RentPE uses this address and landmark for nearby search. Users will see the
                     area, distance, price, photos, and owner contact.
                   </div>
                 </div>

@@ -7,11 +7,11 @@ import { logout } from "@/store/authSlice.js";
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2" aria-label="RoomRadar home">
+    <Link to="/" className="flex items-center gap-2" aria-label="RentPE home">
       <span className="flex size-8 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg shadow-brand/25">
         <MapPin className="size-4" strokeWidth={2.6} />
       </span>
-      <span className="text-lg font-black tracking-normal text-ink">RoomRadar</span>
+      <span className="text-lg font-black tracking-normal text-ink">RentPE</span>
     </Link>
   );
 }

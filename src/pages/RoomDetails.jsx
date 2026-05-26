@@ -277,7 +277,7 @@ export default function RoomDetails() {
 
               <a
                 href={`https://wa.me/${room.owner.phone}?text=${encodeURIComponent(
-                  `Hi, I am interested in your room "${room.title}" on RoomRadar.`,
+                  `Hi, I am interested in your room "${room.title}" on RentPE.`,
                 )}`}
                 target="_blank"
                 rel="noreferrer"

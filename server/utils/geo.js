@@ -93,7 +93,7 @@ export async function geocodeAddress(query = "") {
 
     const response = await fetch(url, {
       headers: {
-        "User-Agent": process.env.GEOCODER_USER_AGENT || "RoomRadar local development",
+        "User-Agent": process.env.GEOCODER_USER_AGENT || "RentPE local development",
       },
       signal: controller.signal,
     });

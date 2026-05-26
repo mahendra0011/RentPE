@@ -31,7 +31,7 @@ export default function Dashboard() {
               User dashboard
             </span>
             <h1 className="text-3xl font-black tracking-normal md:text-4xl">
-              Your RoomRadar activity
+              Your RentPE activity
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Track saved rooms, contacted owners, and properties you have posted.

@@ -1,19 +1,20 @@
-# RoomRadar
+# RentPE
 
-RoomRadar is a room rental marketplace for students, interns, job seekers, and people moving to a new city. Owners can list rooms, PGs, hostels, and flats. Seekers can compare rooms, apply filters, and connect directly with owners on WhatsApp.
+RentPE is a room rental marketplace for students, interns, job seekers, and people moving to a new city. Owners can list rooms, PGs, hostels, and flats. Seekers can compare rooms, apply filters, and connect directly with owners on WhatsApp.
 
 The frontend intentionally does not include a map screen. Location is still stored in the backend for nearby search and distance-based results.
 
 ## Current UI Flow
 
-- Home page opens with hero search, ReactBits-style trust ticker, room cards, `How it Works` with electric step borders, then the tilt discovery cards, smart shortlist board, roommate CTA, owner CTA, stats, and footer.
+- Home page opens with hero search, ReactBits-style trust ticker, room card preview, `How it Works` with one electric border around the full section, then the tilt discovery cards, smart shortlist board, roommate CTA, owner CTA, stats, and footer.
 - Header navigation uses `Home`, `Find Room`, and `Find Roommate`.
 - Logged-out users see `Login` and `Signup` buttons in the navbar.
 - `List Your Room` appears in the navbar only after logging in or signing up as a room owner.
-- Header `Find Room` scrolls to the home listings section and opens every room with filters visible.
-- Home `Filter` opens the filter panel inline on the same page.
-- Home `See all` expands the same page listing to show every room while keeping filters visible.
-- The dedicated find room page has been removed. Old `/search` URLs redirect back to the home page.
+- Header `Find Room` opens the dedicated find room page.
+- Home `Filter` and `See all` open the dedicated find room page.
+- The dedicated find room page uses the same room-card layout as the home room section, with a top search bar and inline filters instead of a side filter column.
+- Find room filters include location search, quick location chips, city chips, distance, budget, tenant, property type, furnished, availability, and amenities.
+- Old `/search` URLs redirect to the find room page.
 - Room cards show photos, room type, distance, price, amenities, WhatsApp owner CTA, and save action.
 - Signup uses name, email, mobile number, password, owner checkbox, and email OTP verification.
 - Login uses only email, password, and owner checkbox.
@@ -23,8 +24,8 @@ The frontend intentionally does not include a map screen. Location is still stor
 
 - Room, PG, hostel, and flat listings
 - Owner room posting flow with photos, price, amenities, address, and contact
-- Inline home filters for price, furnished status, tenant type, amenities, and property type
-- Inline see-all listing on the home page with filter controls
+- Dedicated find room page with all listings and filter controls
+- Location filters for city, area, college, office, quick locations, and distance
 - Nearby search using city, area, college, office, or landmark
 - Room details page with gallery, owner card, amenities, nearby essentials, report action, and WhatsApp contact
 - Roommate finder with budget, city, area, college or office, and move-in fields
@@ -130,9 +131,9 @@ CLOUDINARY_API_SECRET=your_api_secret
 CLOUDINARY_FOLDER=rentpe/rooms
 BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=verified-sender@example.com
-BREVO_SENDER_NAME=RoomRadar
+BREVO_SENDER_NAME=RentPE
 GEOCODER_PROVIDER=nominatim
-GEOCODER_USER_AGENT=RoomRadar local development
+GEOCODER_USER_AGENT=RentPE local development
 ```
 
 Notes:
@@ -144,10 +145,11 @@ Notes:
 
 ## App Routes
 
-- `/` - Home page with inline filters and expandable room listing
+- `/` - Home page with search, room preview, and owner/roommate sections
+- `/find-room` - Dedicated find room page with all rooms and location filters
 - `/login` - Password login
 - `/signup` - Password signup
-- `/search` - Redirects to `/` for old links
+- `/search` - Redirects to `/find-room` for old links
 - `/rooms/:id` - Room details
 - `/list-room` - Owner room posting flow
 - `/roommates` - Roommate finder

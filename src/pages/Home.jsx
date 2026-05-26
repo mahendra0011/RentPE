@@ -322,9 +322,7 @@ export default function Home() {
                       <step.icon className="size-5" />
                     </span>
                     <h3 className="text-base font-black text-ink">{step.title}</h3>
-                    <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                      {step.body}
-                    </p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{step.body}</p>
                   </article>
                 ))}
               </div>
@@ -359,8 +357,8 @@ export default function Home() {
               </h2>
             </div>
             <p className="max-w-md text-sm font-medium leading-6 text-slate-500">
-              Whether you are joining college, starting a job, or shifting cities, RoomRadar keeps
-              the first decision simple.
+              Whether you are joining college, starting a job, or shifting cities, RentPE keeps the
+              first decision simple.
             </p>
           </div>
 
@@ -569,7 +567,7 @@ export default function Home() {
               <span className="flex size-8 items-center justify-center rounded-full bg-brand text-white">
                 <MapPin className="size-4" />
               </span>
-              <span className="text-lg font-black text-ink">RoomRadar</span>
+              <span className="text-lg font-black text-ink">RentPE</span>
             </Link>
             <p className="mt-5 max-w-md text-sm font-medium leading-6 text-slate-500">
               Modern housing for India's students, interns and migrants. Find a room you'll actually
@@ -583,7 +581,7 @@ export default function Home() {
           </div>
         </div>
         <p className="border-t border-slate-100 py-6 text-center text-xs font-bold text-slate-400">
-          (c) 2026 RoomRadar India. Made for the modern nomad.
+          (c) 2026 RentPE India. Made for the modern nomad.
         </p>
       </footer>
     </div>

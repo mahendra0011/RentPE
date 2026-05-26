@@ -90,11 +90,11 @@ export default function Auth() {
             Secure account
           </span>
           <h1 className="mt-5 max-w-xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl">
-            {isSignup ? "Create your RoomRadar account." : "Login to RoomRadar."}
+            {isSignup ? "Create your RentPE account." : "Login to RentPE."}
           </h1>
           <p className="mt-4 max-w-lg text-base font-medium leading-7 text-slate-600">
             {isSignup
-              ? "Add your details, verify your email with an OTP, and start using RoomRadar."
+              ? "Add your details, verify your email with an OTP, and start using RentPE."
               : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">

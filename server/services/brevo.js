@@ -1,7 +1,7 @@
 export async function sendOtpEmail({ email, otp, purpose = "login" }) {
   const apiKey = process.env.BREVO_API_KEY;
   const senderEmail = process.env.BREVO_SENDER_EMAIL;
-  const senderName = process.env.BREVO_SENDER_NAME || "RoomRadar";
+  const senderName = process.env.BREVO_SENDER_NAME || "RentPE";
 
   if (!apiKey || !senderEmail) {
     console.log(`Dev OTP for ${email}: ${otp}`);
@@ -9,7 +9,7 @@ export async function sendOtpEmail({ email, otp, purpose = "login" }) {
   }
 
   const isSignup = purpose === "signup";
-  const title = isSignup ? "Verify your RoomRadar email" : "Your RoomRadar OTP";
+  const title = isSignup ? "Verify your RentPE email" : "Your RentPE OTP";
 
   // Brevo calls this Transactional Email REST route /smtp/email, but this uses API-key HTTP.
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {

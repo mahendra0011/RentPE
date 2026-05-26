@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { apiRequest } from "@/lib/api.js";
 
-const storageKey = "roomradar:auth";
+const storageKey = "RentPE:auth";
 
 function readAuth() {
   try {

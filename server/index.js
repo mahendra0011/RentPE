@@ -35,7 +35,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/api/health", (_request, response) => {
   response.json({
     ok: true,
-    service: "RoomRadar API",
+    service: "RentPE API",
     mongodb: isMongoConnected() ? "connected" : "not connected",
     cloudinary: isCloudinaryReady() ? "configured" : "not configured",
   });
@@ -54,6 +54,6 @@ app.use((error, _request, response, _next) => {
 
 connectDB().finally(() => {
   app.listen(port, () => {
-    console.log(`RoomRadar API running on http://localhost:${port}`);
+    console.log(`RentPE API running on http://localhost:${port}`);
   });
 });
