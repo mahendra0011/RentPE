@@ -5,11 +5,6 @@ import { Link, NavLink } from "react-router-dom";
 
 import { logout } from "@/store/authSlice.js";
 
-const navItems = [
-  { to: "/search?all=1", label: "Find Rooms" },
-  { to: "/roommates", label: "Roommate Finder" },
-];
-
 function Logo() {
   return (
     <Link to="/" className="flex items-center gap-2" aria-label="RoomRadar home">
@@ -55,20 +50,26 @@ export default function SiteHeader() {
         <Logo />
 
         <div className="hidden items-center gap-10 text-sm font-black text-slate-500 md:flex">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-          <a href="/#how" className="transition-colors hover:text-ink">
-            How it Works
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
+            }
+          >
+            Home
+          </NavLink>
+          <a href="/#listings" className="transition-colors hover:text-ink">
+            Find Room
           </a>
+          <NavLink
+            to="/roommates"
+            className={({ isActive }) =>
+              `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
+            }
+          >
+            Find Roommate
+          </NavLink>
         </div>
 
         <div className="hidden items-center gap-4 md:flex">
@@ -107,27 +108,36 @@ export default function SiteHeader() {
       {open && (
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-2">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={closeMenu}
-                className={({ isActive }) =>
-                  `rounded-xl px-3 py-2 text-sm font-black ${
-                    isActive ? "bg-brand-soft text-brand" : "text-slate-700"
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            <NavLink
+              to="/"
+              end
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                `rounded-xl px-3 py-2 text-sm font-black ${
+                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
+                }`
+              }
+            >
+              Home
+            </NavLink>
             <a
-              href="/#how"
+              href="/#listings"
               onClick={closeMenu}
               className="rounded-xl px-3 py-2 text-sm font-black text-slate-700"
             >
-              How it Works
+              Find Room
             </a>
+            <NavLink
+              to="/roommates"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                `rounded-xl px-3 py-2 text-sm font-black ${
+                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
+                }`
+              }
+            >
+              Find Roommate
+            </NavLink>
             {user ? (
               <button
                 type="button"

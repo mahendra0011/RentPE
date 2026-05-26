@@ -62,7 +62,7 @@ export default function Dashboard() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black">Saved rooms</h2>
-              <Link to="/search" className="text-sm font-black text-brand">
+              <Link to="/#listings" className="text-sm font-black text-brand">
                 Find more
               </Link>
             </div>
@@ -77,7 +77,7 @@ export default function Dashboard() {
                 title="No saved rooms yet"
                 body="Tap the heart icon on any listing to keep it here for quick comparison."
                 cta="Browse rooms"
-                to="/search"
+                to="/#listings"
               />
             )}
           </div>

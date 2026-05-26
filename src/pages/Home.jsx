@@ -10,9 +10,9 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
@@ -21,6 +21,9 @@ import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
 const popularCities = ["Bhopal", "Indore", "Pune", "Bangalore", "Delhi NCR"];
+const filterTypes = ["PG", "Hostel", "Flat"];
+const filterGenders = ["Girls", "Boys", "Co-ed"];
+const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
 
 const steps = [
   {
@@ -40,6 +43,33 @@ const steps = [
   },
 ];
 
+const discoveryCards = [
+  {
+    icon: GraduationCap,
+    title: "Student PGs",
+    body: "Budget rooms near colleges, coaching hubs, and libraries.",
+    meta: "Girls, boys, and co-ed options",
+  },
+  {
+    icon: BriefcaseBusiness,
+    title: "Working stays",
+    body: "Quiet rooms near offices with commute-friendly locations.",
+    meta: "WiFi, parking, and furnished filters",
+  },
+  {
+    icon: Building2,
+    title: "Private flats",
+    body: "Independent rooms and 1BHK flats for more privacy.",
+    meta: "Direct owner contact",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Verified leads",
+    body: "Cleaner listings with report controls and owner checks.",
+    meta: "No brokerage pressure",
+  },
+];
+
 const roommateCards = [
   {
     icon: GraduationCap,
@@ -54,20 +84,112 @@ const roommateCards = [
 ];
 
 export default function Home() {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const apiRooms = useSelector((state) => state.rooms.items);
   const rooms = apiRooms.length ? apiRooms : normalizeRooms(staticRooms);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [priceMax, setPriceMax] = useState(20000);
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [selectedGenders, setSelectedGenders] = useState([]);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [furnishedOnly, setFurnishedOnly] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchRooms({ availableOnly: true }));
+    dispatch(fetchRooms());
   }, [dispatch]);
+
+  useEffect(() => {
+    function openHashTarget() {
+      const targetId = window.location.hash.slice(1);
+      if (!targetId) return;
+
+      if (targetId === "listings") {
+        setShowAll(true);
+        setShowFilters(true);
+      }
+
+      window.requestAnimationFrame(() => {
+        document.getElementById(targetId)?.scrollIntoView({ block: "start" });
+      });
+    }
+
+    openHashTarget();
+    window.addEventListener("hashchange", openHashTarget);
+
+    return () => window.removeEventListener("hashchange", openHashTarget);
+  }, []);
 
   function onSearch(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const query = form.get("query") || "Near LNCT College, Bhopal";
-    navigate(`/search?query=${encodeURIComponent(query)}`);
+    const query = String(form.get("query") || "").trim();
+    const budget = form.get("budget");
+
+    setSearchQuery(query);
+    setShowAll(true);
+
+    if (budget) {
+      setPriceMax(Number(budget));
+    }
+  }
+
+  const filteredRooms = useMemo(
+    () =>
+      rooms.filter((room) => {
+        const haystack = `${room.city} ${room.location} ${room.address} ${room.title}`
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, " ");
+        const queryTerms = searchQuery
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, " ")
+          .split(/\s+/)
+          .filter((term) => term.length > 2 && !["near", "room", "rooms"].includes(term));
+        const queryMatch = !queryTerms.length || queryTerms.some((term) => haystack.includes(term));
+
+        if (!queryMatch) return false;
+        if (room.price > priceMax) return false;
+        if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
+        if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
+        if (furnishedOnly && !room.furnished) return false;
+        if (
+          selectedAmenities.length &&
+          !selectedAmenities.every((amenity) => room.amenities.includes(amenity))
+        ) {
+          return false;
+        }
+
+        return true;
+      }),
+    [
+      furnishedOnly,
+      priceMax,
+      rooms,
+      searchQuery,
+      selectedAmenities,
+      selectedGenders,
+      selectedTypes,
+    ],
+  );
+
+  const visibleRooms = showAll ? filteredRooms : filteredRooms.slice(0, 3);
+
+  function toggleFilter(list, value, setter) {
+    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  }
+
+  function resetFilters() {
+    setPriceMax(20000);
+    setSelectedTypes([]);
+    setSelectedGenders([]);
+    setSelectedAmenities([]);
+    setFurnishedOnly(false);
+  }
+
+  function chooseCity(city) {
+    setSearchQuery(city);
+    setShowAll(true);
   }
 
   return (
@@ -111,10 +233,10 @@ export default function Home() {
                     className="bg-transparent text-sm font-black text-slate-600 outline-none"
                     aria-label="Budget"
                   >
-                    <option>Any Budget</option>
-                    <option>Under ₹5,000</option>
-                    <option>₹5k - ₹10k</option>
-                    <option>₹10k - ₹20k</option>
+                    <option value="">Any Budget</option>
+                    <option value="5000">Under ₹5,000</option>
+                    <option value="10000">₹5k - ₹10k</option>
+                    <option value="20000">₹10k - ₹20k</option>
                   </select>
                 </label>
                 <button className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-8 text-sm font-black text-brand-foreground shadow-lg shadow-brand/30 transition-transform active:scale-95 md:h-full">
@@ -132,7 +254,7 @@ export default function Home() {
                 <button
                   key={city}
                   type="button"
-                  onClick={() => navigate(`/search?query=${encodeURIComponent(city)}`)}
+                  onClick={() => chooseCity(city)}
                   className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-brand hover:text-brand"
                 >
                   {city}
@@ -142,7 +264,42 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section id="listings" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+          <div className="mb-7 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="mb-3 inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
+                Find your fit
+              </span>
+              <h2 className="text-3xl font-black tracking-normal text-ink">
+                Start with the stay type that matches your move.
+              </h2>
+            </div>
+            <p className="max-w-md text-sm font-medium leading-6 text-slate-500">
+              Whether you are joining college, starting a job, or shifting cities, RoomRadar keeps
+              the first decision simple.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-4">
+            {discoveryCards.map((card) => (
+              <article
+                key={card.title}
+                className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <span className="mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <card.icon className="size-5" />
+                </span>
+                <h3 className="font-black text-ink">{card.title}</h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{card.body}</p>
+                <p className="mt-5 text-xs font-black uppercase tracking-wide text-slate-400">
+                  {card.meta}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="listings" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6">
           <div className="mb-7 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black tracking-normal text-ink">Rooms near you</h2>
@@ -151,31 +308,133 @@ export default function Home() {
                 your search
               </p>
             </div>
-            <Link
-              to="/search?filters=1"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
-            >
-              <SlidersHorizontal className="size-4" />
-              Filter
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFilters((value) => !value)}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
+              >
+                <SlidersHorizontal className="size-4" />
+                Filter
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAll(true);
+                  setShowFilters(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-black text-white transition-colors hover:bg-slate-800"
+              >
+                See all
+                <ArrowRight className="size-4" />
+              </button>
+            </div>
           </div>
 
+          {showFilters && (
+            <div className="mb-7 rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-black text-ink">Filters</h3>
+                  <p className="mt-1 text-xs font-bold text-slate-500">
+                    Showing {visibleRooms.length} of {filteredRooms.length} matching rooms
+                    {searchQuery ? ` for ${searchQuery}` : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-xs font-black text-brand"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-4">
+                <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
+                  <input
+                    type="range"
+                    min={2000}
+                    max={30000}
+                    step={500}
+                    value={priceMax}
+                    onChange={(event) => setPriceMax(Number(event.target.value))}
+                    className="w-full accent-brand"
+                  />
+                </FilterBlock>
+
+                <FilterBlock label="Property type">
+                  <ChipRow
+                    items={filterTypes}
+                    selected={selectedTypes}
+                    onToggle={(value) => toggleFilter(selectedTypes, value, setSelectedTypes)}
+                  />
+                </FilterBlock>
+
+                <FilterBlock label="Tenant">
+                  <ChipRow
+                    items={filterGenders}
+                    selected={selectedGenders}
+                    onToggle={(value) => toggleFilter(selectedGenders, value, setSelectedGenders)}
+                  />
+                </FilterBlock>
+
+                <FilterBlock label="Amenities">
+                  <ChipRow
+                    items={filterAmenities}
+                    selected={selectedAmenities}
+                    onToggle={(value) =>
+                      toggleFilter(selectedAmenities, value, setSelectedAmenities)
+                    }
+                  />
+                </FilterBlock>
+              </div>
+
+              <label className="mt-5 flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={furnishedOnly}
+                  onChange={(event) => setFurnishedOnly(event.target.checked)}
+                  className="size-4 accent-brand"
+                />
+                <span className="text-sm font-bold text-slate-700">Furnished only</span>
+              </label>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-7 md:grid-cols-3">
-            {rooms.slice(0, 3).map((room, index) => (
+            {visibleRooms.map((room, index) => (
               <RoomCard key={room.id} room={room} index={index} />
             ))}
+            {visibleRooms.length === 0 && (
+              <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center">
+                <p className="font-black text-ink">No rooms match these filters</p>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mt-3 text-sm font-black text-brand"
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
-        <section id="how" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
+        <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10 sm:px-6 md:py-16">
           <div className="mb-10 text-center">
-            <h2 className="text-3xl font-black tracking-normal text-ink">
-              Find or list in three steps
+            <span className="mb-4 inline-flex rounded-full bg-brand-soft px-4 py-1.5 text-xs font-black uppercase tracking-wide text-brand">
+              How it Works
+            </span>
+            <h2 className="mx-auto max-w-3xl text-3xl font-black leading-tight tracking-normal text-ink sm:text-4xl">
+              Find or list a room in <span className="text-brand">three simple steps.</span>
             </h2>
-            <p className="mt-2 text-sm font-medium text-slate-500">
-              No brokers. No spam. Just direct connections.
+            <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-slate-600">
+              Search near your college or office, compare verified listings, and connect directly
+              with owners. No brokers. No spam.
             </p>
           </div>
+
           <div className="grid gap-6 md:grid-cols-3">
             {steps.map((step) => (
               <article
@@ -189,6 +448,22 @@ export default function Home() {
                 <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{step.body}</p>
               </article>
             ))}
+          </div>
+
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <a
+              href="#listings"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform active:scale-95"
+            >
+              Browse rooms
+              <ArrowRight className="size-4" />
+            </a>
+            <Link
+              to="/signup?owner=1"
+              className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-7 text-sm font-black text-ink transition-colors hover:border-brand hover:text-brand"
+            >
+              List your room
+            </Link>
           </div>
         </section>
 
@@ -306,13 +581,47 @@ function FooterColumn({ title, links }) {
         {links.map((link) => (
           <Link
             key={link}
-            to={link === "How it Works" ? "/#how" : `/search?query=${encodeURIComponent(link)}`}
+            to={link === "How it Works" ? "/#how" : "/#listings"}
             className="block font-bold text-slate-500 hover:text-brand"
           >
             {link}
           </Link>
         ))}
       </div>
+    </div>
+  );
+}
+
+function FilterBlock({ label, children }) {
+  return (
+    <div>
+      <h4 className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">{label}</h4>
+      {children}
+    </div>
+  );
+}
+
+function ChipRow({ items, selected, onToggle }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item) => {
+        const active = selected.includes(item);
+
+        return (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onToggle(item)}
+            className={`rounded-full border px-3 py-1 text-xs font-black transition-colors ${
+              active
+                ? "border-brand bg-brand text-brand-foreground"
+                : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
+            }`}
+          >
+            {item}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -66,7 +66,7 @@ export default function RoomDetails() {
           <h1 className="mb-2 text-2xl font-black">Room not found</h1>
           <p className="mb-6 text-slate-500">This listing may have been removed.</p>
           <Link
-            to="/search"
+            to="/#listings"
             className="rounded-full bg-ink px-5 py-2.5 text-sm font-black text-background"
           >
             Browse rooms
@@ -94,11 +94,11 @@ export default function RoomDetails() {
 
       <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6">
         <Link
-          to="/search"
+          to="/#listings"
           className="mb-5 inline-flex items-center gap-1.5 text-sm font-black text-slate-600 transition-colors hover:text-brand"
         >
           <ArrowLeft className="size-4" />
-          Back to results
+          Back to listings
         </Link>
 
         <section className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-[1.6fr_1fr]">

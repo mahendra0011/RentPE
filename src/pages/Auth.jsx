@@ -38,7 +38,7 @@ export default function Auth() {
     try {
       const action = isSignup ? signupUser : loginUser;
       const result = await dispatch(action(form)).unwrap();
-      navigate(result.user.role === "owner" ? "/list-room" : "/search?all=1");
+      navigate(result.user.role === "owner" ? "/list-room" : "/");
     } catch {
       // Redux slice stores the visible error message.
     }

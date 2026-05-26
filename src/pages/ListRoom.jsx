@@ -189,7 +189,7 @@ export default function ListRoom() {
               Back home
             </Link>
             <Link
-              to="/search"
+              to="/#listings"
               className="rounded-full border border-slate-200 px-6 py-3 text-sm font-black"
             >
               Browse listings

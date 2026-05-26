@@ -1,21 +1,33 @@
 # RoomRadar
 
-RoomRadar is a room rental marketplace for students, interns, job seekers, and people moving to a new city. Owners can post rooms, PGs, hostels, and flats. Seekers can search by city, area, college, or office and connect directly with owners on WhatsApp.
+RoomRadar is a room rental marketplace for students, interns, job seekers, and people moving to a new city. Owners can list rooms, PGs, hostels, and flats. Seekers can compare rooms, apply filters, and connect directly with owners on WhatsApp.
 
-The UI intentionally does not include a map screen. Location is still used in the backend for nearby search and distance-based results.
+The frontend intentionally does not include a map screen. Location is still stored in the backend for nearby search and distance-based results.
+
+## Current UI Flow
+
+- Home page opens with hero search, then a stay-type discovery section, room cards, `How it Works`, roommate CTA, owner CTA, stats, and footer.
+- Header navigation uses `Home`, `Find Room`, and `Find Roommate`.
+- Header `Find Room` scrolls to the home listings section and opens every room with filters visible.
+- Home `Filter` opens the filter panel inline on the same page.
+- Home `See all` expands the same page listing to show every room while keeping filters visible.
+- The dedicated find room page has been removed. Old `/search` URLs redirect back to the home page.
+- Room cards show photos, room type, distance, price, amenities, WhatsApp owner CTA, and save action.
+- Login/signup use name, email, password, mobile number, and an owner checkbox.
+- If a user continues as owner, `List Your Room` opens the room posting flow.
 
 ## Features
 
 - Room, PG, hostel, and flat listings
 - Owner room posting flow with photos, price, amenities, address, and contact
+- Inline home filters for price, furnished status, tenant type, amenities, and property type
+- Inline see-all listing on the home page with filter controls
 - Nearby search using city, area, college, office, or landmark
-- Filters for price, distance, furnished, amenities, tenant type, and property type
-- Room details page with gallery, owner card, amenities, nearby essentials, and WhatsApp contact
+- Room details page with gallery, owner card, amenities, nearby essentials, report action, and WhatsApp contact
 - Roommate finder with budget, city, area, college or office, and move-in fields
 - User dashboard for saved rooms, contacted owners, and posted listings
-- Password login and signup with name, email, mobile number, and owner role support
-- Report listing action
-- Availability support for available or occupied rooms
+- Password login/signup with owner role support
+- Optional Brevo OTP routes kept in the backend for email-code auth experiments
 - Cloudinary-ready image upload
 - MongoDB geospatial-ready room schema
 
@@ -37,6 +49,7 @@ Backend:
 - MongoDB with Mongoose
 - Cloudinary
 - Multer
+- Brevo transactional email support
 
 ## Project Structure
 
@@ -47,6 +60,7 @@ RentPE/
     data/            Local seed data for development fallback
     models/          Mongoose models
     routes/          Express API routes
+    services/        Brevo email service
     utils/           Geocoding and distance helpers
   src/
     assets/          Room images
@@ -91,7 +105,13 @@ Default URLs:
 - Backend: `http://localhost:5000`
 - Health check: `http://localhost:5000/api/health`
 
-Vite is set to `strictPort`, so it fails instead of silently opening another project on a different port.
+If you run the backend on another port, point Vite at it:
+
+```bash
+API_PROXY_TARGET=http://localhost:5001 npm run dev
+```
+
+Vite uses `strictPort`, so it fails instead of silently opening another project on a different frontend port.
 
 ## Environment Variables
 
@@ -114,19 +134,17 @@ Notes:
 
 - If `MONGODB_URI` is missing, the API uses in-memory seed data.
 - If Cloudinary keys are missing, room posting still works, but uploaded images are not sent to Cloudinary.
-- If Brevo keys are missing, the API returns a local development OTP in the response.
+- If Brevo keys are missing, OTP routes return a local development OTP in the response.
 - Geocoding has built-in known locations for common demo searches such as `Bhopal`, `LNCT`, `MP Nagar`, and `Arera Colony`.
 
 ## App Routes
 
-- `/` - Home page
+- `/` - Home page with inline filters and expandable room listing
 - `/login` - Password login
 - `/signup` - Password signup
-- `/search?all=1` - All rooms
-- `/search?filters=1` - All rooms with filters open
-- `/search?query=LNCT` - Search nearby rooms
+- `/search` - Redirects to `/` for old links
 - `/rooms/:id` - Room details
-- `/list-room` - Add room
+- `/list-room` - Owner room posting flow
 - `/roommates` - Roommate finder
 - `/dashboard` - User dashboard
 
