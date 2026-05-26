@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     mobile: { type: String, trim: true },
     passwordHash: { type: String },
     passwordSalt: { type: String },
+    emailVerifiedAt: { type: Date },
     lastLoginAt: { type: Date },
   },
   { timestamps: true },

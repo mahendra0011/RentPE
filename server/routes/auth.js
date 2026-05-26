@@ -26,6 +26,7 @@ function createToken(user) {
       role: user.role,
       name: user.name || "",
       mobile: user.mobile || "",
+      emailVerified: Boolean(user.emailVerifiedAt),
       issuedAt: Date.now(),
     }),
   ).toString("base64url");
@@ -37,6 +38,7 @@ function safeUser(user) {
     role: user.role,
     name: user.name || "",
     mobile: user.mobile || "",
+    emailVerified: Boolean(user.emailVerifiedAt),
   };
 }
 
@@ -57,6 +59,38 @@ function verifyPassword(password, user) {
   return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(user.passwordHash, "hex"));
 }
 
+function otpKey(email, purpose = "login") {
+  return `${purpose}:${email}`;
+}
+
+function storeOtp({ email, role, purpose = "login" }) {
+  const otp = createOtp();
+  otpStore.set(otpKey(email, purpose), {
+    otp,
+    role,
+    purpose,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  });
+  return otp;
+}
+
+function consumeOtp({ email, otp, purpose = "login" }) {
+  const key = otpKey(email, purpose);
+  const stored = otpStore.get(key);
+
+  if (!stored || stored.expiresAt < Date.now()) {
+    otpStore.delete(key);
+    return { ok: false, message: "OTP expired. Request a new code." };
+  }
+
+  if (stored.otp !== otp) {
+    return { ok: false, message: "Incorrect OTP." };
+  }
+
+  otpStore.delete(key);
+  return { ok: true, role: stored.role };
+}
+
 async function upsertUser({ email, role, name, mobile }) {
   if (isMongoConnected()) {
     const user = await User.findOneAndUpdate(
@@ -66,6 +100,7 @@ async function upsertUser({ email, role, name, mobile }) {
           role,
           name: name || email.split("@")[0],
           mobile,
+          emailVerifiedAt: new Date(),
           lastLoginAt: new Date(),
         },
       },
@@ -83,6 +118,7 @@ async function upsertUser({ email, role, name, mobile }) {
     mobile: mobile || existing.mobile || "",
     passwordHash: existing.passwordHash,
     passwordSalt: existing.passwordSalt,
+    emailVerifiedAt: existing.emailVerifiedAt || new Date(),
     lastLoginAt: new Date(),
   };
   memoryUsers.set(email, user);
@@ -95,7 +131,7 @@ router.post("/signup", async (request, response, next) => {
     const name = String(request.body.name || "").trim();
     const mobile = normalizeMobile(request.body.mobile);
     const password = String(request.body.password || "");
-    const role = request.body.isOwner ? "owner" : "seeker";
+    const otp = String(request.body.otp || "").trim();
 
     if (!name || name.length < 2) {
       response.status(400).json({ message: "Name is required." });
@@ -117,6 +153,11 @@ router.post("/signup", async (request, response, next) => {
       return;
     }
 
+    if (!otp) {
+      response.status(400).json({ message: "Email OTP is required." });
+      return;
+    }
+
     const { hash, salt } = hashPassword(password);
 
     let user;
@@ -127,6 +168,12 @@ router.post("/signup", async (request, response, next) => {
         return;
       }
 
+      const verifiedOtp = consumeOtp({ email, otp, purpose: "signup" });
+      if (!verifiedOtp.ok) {
+        response.status(400).json({ message: verifiedOtp.message });
+        return;
+      }
+
       user = await User.findOneAndUpdate(
         { email },
         {
@@ -134,9 +181,10 @@ router.post("/signup", async (request, response, next) => {
             name,
             email,
             mobile,
-            role,
+            role: verifiedOtp.role,
             passwordHash: hash,
             passwordSalt: salt,
+            emailVerifiedAt: new Date(),
             lastLoginAt: new Date(),
           },
         },
@@ -149,13 +197,20 @@ router.post("/signup", async (request, response, next) => {
         return;
       }
 
+      const verifiedOtp = consumeOtp({ email, otp, purpose: "signup" });
+      if (!verifiedOtp.ok) {
+        response.status(400).json({ message: verifiedOtp.message });
+        return;
+      }
+
       user = {
         email,
         name,
         mobile,
-        role,
+        role: verifiedOtp.role,
         passwordHash: hash,
         passwordSalt: salt,
+        emailVerifiedAt: new Date(),
         lastLoginAt: new Date(),
       };
       memoryUsers.set(email, user);
@@ -174,7 +229,6 @@ router.post("/signup", async (request, response, next) => {
 router.post("/login", async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
-    const mobile = normalizeMobile(request.body.mobile);
     const password = String(request.body.password || "");
     const requestedRole = request.body.isOwner ? "owner" : "seeker";
 
@@ -195,8 +249,8 @@ router.post("/login", async (request, response, next) => {
     const nextRole = requestedRole === "owner" ? "owner" : user.role || "seeker";
     const updates = {
       role: nextRole,
-      mobile: mobile || user.mobile || "",
-      name: request.body.name || user.name || email.split("@")[0],
+      mobile: user.mobile || "",
+      name: user.name || email.split("@")[0],
       lastLoginAt: new Date(),
     };
 
@@ -221,20 +275,27 @@ router.post("/request-otp", async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const role = request.body.isOwner ? "owner" : "seeker";
+    const purpose = request.body.purpose === "signup" ? "signup" : "login";
 
     if (!email || !email.includes("@")) {
       response.status(400).json({ message: "Valid email is required." });
       return;
     }
 
-    const otp = createOtp();
-    otpStore.set(email, {
-      otp,
-      role,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    });
+    if (purpose === "signup") {
+      const existing = isMongoConnected()
+        ? await User.findOne({ email }).lean()
+        : memoryUsers.get(email) || null;
 
-    const delivery = await sendOtpEmail({ email, otp });
+      if (existing?.passwordHash) {
+        response.status(409).json({ message: "Account already exists. Please login." });
+        return;
+      }
+    }
+
+    const otp = storeOtp({ email, role, purpose });
+
+    const delivery = await sendOtpEmail({ email, otp, purpose });
     response.json({
       ok: true,
       delivered: delivery.delivered,
@@ -249,22 +310,16 @@ router.post("/verify-otp", async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const otp = String(request.body.otp || "").trim();
-    const stored = otpStore.get(email);
+    const verifiedOtp = consumeOtp({ email, otp, purpose: "login" });
 
-    if (!stored || stored.expiresAt < Date.now()) {
-      response.status(400).json({ message: "OTP expired. Request a new code." });
+    if (!verifiedOtp.ok) {
+      response.status(400).json({ message: verifiedOtp.message });
       return;
     }
 
-    if (stored.otp !== otp) {
-      response.status(400).json({ message: "Incorrect OTP." });
-      return;
-    }
-
-    otpStore.delete(email);
     const user = await upsertUser({
       email,
-      role: stored.role,
+      role: verifiedOtp.role,
       name: request.body.name,
       mobile: normalizeMobile(request.body.mobile),
     });

@@ -6,15 +6,18 @@ The frontend intentionally does not include a map screen. Location is still stor
 
 ## Current UI Flow
 
-- Home page opens with hero search, then a stay-type discovery section, room cards, `How it Works`, roommate CTA, owner CTA, stats, and footer.
+- Home page opens with hero search, ReactBits-style trust ticker, room cards, `How it Works`, then the tilt discovery cards, live city pulse, roommate CTA, owner CTA, stats, and footer.
 - Header navigation uses `Home`, `Find Room`, and `Find Roommate`.
+- Logged-out users see `Login` and `Signup` buttons in the navbar.
+- `List Your Room` appears in the navbar only after logging in or signing up as a room owner.
 - Header `Find Room` scrolls to the home listings section and opens every room with filters visible.
 - Home `Filter` opens the filter panel inline on the same page.
 - Home `See all` expands the same page listing to show every room while keeping filters visible.
 - The dedicated find room page has been removed. Old `/search` URLs redirect back to the home page.
 - Room cards show photos, room type, distance, price, amenities, WhatsApp owner CTA, and save action.
-- Login/signup use name, email, password, mobile number, and an owner checkbox.
-- If a user continues as owner, `List Your Room` opens the room posting flow.
+- Signup uses name, email, mobile number, password, owner checkbox, and email OTP verification.
+- Login uses only email, password, and owner checkbox.
+- If a user continues as owner, `List Your Room` appears in the navbar and opens the room posting flow.
 
 ## Features
 
@@ -27,7 +30,8 @@ The frontend intentionally does not include a map screen. Location is still stor
 - Roommate finder with budget, city, area, college or office, and move-in fields
 - User dashboard for saved rooms, contacted owners, and posted listings
 - Password login/signup with owner role support
-- Optional Brevo OTP routes kept in the backend for email-code auth experiments
+- Signup email verification with OTP delivered through the Brevo Transactional Email REST API using `BREVO_API_KEY`
+- ReactBits-style UI components for spotlight panels, infinite tickers, tilt cards, and animated counters
 - Cloudinary-ready image upload
 - MongoDB geospatial-ready room schema
 
@@ -65,6 +69,7 @@ RentPE/
   src/
     assets/          Room images
     components/      Shared React components
+      reactbits/     Animated UI primitives
     lib/             API, formatting, and room normalization helpers
     pages/           App pages
     store/           Redux Toolkit slices and store

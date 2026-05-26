@@ -4,13 +4,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
-import { clearAuthError, loginUser, signupUser } from "@/store/authSlice.js";
+import { clearAuthError, loginUser, requestOtp, signupUser } from "@/store/authSlice.js";
 
 export default function Auth() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { status, error } = useSelector((state) => state.auth);
+  const { status, error, devOtp } = useSelector((state) => state.auth);
   const isSignup = location.pathname.includes("signup");
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const ownerFromUrl = query.get("owner") === "1";
@@ -21,23 +21,58 @@ export default function Auth() {
     password: "",
     isOwner: ownerFromUrl,
   });
+  const [otp, setOtp] = useState("");
+  const [otpEmail, setOtpEmail] = useState("");
   const loading = status === "loading";
+  const normalizedEmail = form.email.trim().toLowerCase();
+  const otpReady = isSignup && otpEmail && otpEmail === normalizedEmail;
+  const submitLabel = loading
+    ? "Please wait..."
+    : isSignup
+      ? otpReady
+        ? "Verify email & create account"
+        : "Send email OTP"
+      : "Login";
 
   useEffect(() => {
     setForm((current) => ({ ...current, isOwner: ownerFromUrl }));
+    setOtp("");
+    setOtpEmail("");
     dispatch(clearAuthError());
   }, [dispatch, ownerFromUrl, isSignup]);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
+
+    if (isSignup && (key === "email" || key === "isOwner")) {
+      setOtp("");
+      setOtpEmail("");
+    }
+  }
+
+  async function sendSignupOtp() {
+    await dispatch(
+      requestOtp({
+        email: normalizedEmail,
+        isOwner: form.isOwner,
+        purpose: "signup",
+      }),
+    ).unwrap();
+    setOtpEmail(normalizedEmail);
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     try {
-      const action = isSignup ? signupUser : loginUser;
-      const result = await dispatch(action(form)).unwrap();
+      if (isSignup && !otpReady) {
+        await sendSignupOtp();
+        return;
+      }
+
+      const result = await dispatch(
+        isSignup ? signupUser({ ...form, email: normalizedEmail, otp }) : loginUser(form),
+      ).unwrap();
       navigate(result.user.role === "owner" ? "/list-room" : "/");
     } catch {
       // Redux slice stores the visible error message.
@@ -58,8 +93,9 @@ export default function Auth() {
             {isSignup ? "Create your RoomRadar account." : "Login to RoomRadar."}
           </h1>
           <p className="mt-4 max-w-lg text-base font-medium leading-7 text-slate-600">
-            Add your name, email, password and mobile number. Tick owner mode when you want to list
-            rooms and show List Your Room in the navbar.
+            {isSignup
+              ? "Add your details, verify your email with an OTP, and start using RoomRadar."
+              : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <InfoPill title="Room seekers" body="Save rooms and contact owners directly." />
@@ -74,7 +110,9 @@ export default function Auth() {
                 {isSignup ? "Sign up" : "Login"}
               </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {isSignup ? "Create a new profile." : "Use your saved account details."}
+                {isSignup
+                  ? "We will email an OTP before creating your account."
+                  : "Email, password, and owner mode only."}
               </p>
             </div>
             <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
@@ -83,30 +121,32 @@ export default function Auth() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name" icon={UserRound}>
-                <input
-                  value={form.name}
-                  onChange={(event) => update("name", event.target.value)}
-                  placeholder="Your name"
-                  className="form-input pl-11"
-                  required={isSignup}
-                />
-              </Field>
+            {isSignup && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Name" icon={UserRound}>
+                  <input
+                    value={form.name}
+                    onChange={(event) => update("name", event.target.value)}
+                    placeholder="Your name"
+                    className="form-input pl-11"
+                    required
+                  />
+                </Field>
 
-              <Field label="Mobile number" icon={Phone}>
-                <input
-                  value={form.mobile}
-                  onChange={(event) =>
-                    update("mobile", event.target.value.replace(/\D/g, "").slice(0, 10))
-                  }
-                  placeholder="9876543210"
-                  inputMode="numeric"
-                  className="form-input pl-11"
-                  required
-                />
-              </Field>
-            </div>
+                <Field label="Mobile number" icon={Phone}>
+                  <input
+                    value={form.mobile}
+                    onChange={(event) =>
+                      update("mobile", event.target.value.replace(/\D/g, "").slice(0, 10))
+                    }
+                    placeholder="9876543210"
+                    inputMode="numeric"
+                    className="form-input pl-11"
+                    required
+                  />
+                </Field>
+              </div>
+            )}
 
             <Field label="Email" icon={Mail}>
               <input
@@ -141,10 +181,44 @@ export default function Auth() {
               <span>
                 <span className="block text-sm font-black text-ink">Continue as room owner</span>
                 <span className="mt-1 block text-xs font-bold leading-5 text-slate-500">
-                  Owner accounts can open List Your Room after login.
+                  {isSignup
+                    ? "Owner accounts show List Your Room after OTP verification."
+                    : "Tick this only when logging in as a room owner."}
                 </span>
               </span>
             </label>
+
+            {otpReady && (
+              <Field label="Email OTP" icon={ShieldCheck}>
+                <input
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="6 digit code"
+                  inputMode="numeric"
+                  className="form-input pl-11"
+                  required
+                />
+              </Field>
+            )}
+
+            {isSignup && otpReady && (
+              <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
+                OTP sent to {otpEmail}.{" "}
+                <button
+                  type="button"
+                  onClick={sendSignupOtp}
+                  disabled={loading}
+                  className="font-black text-brand disabled:opacity-60"
+                >
+                  Resend code
+                </button>
+                {devOtp && (
+                  <span className="mt-2 block text-xs text-emerald-700">
+                    Development OTP: {devOtp}
+                  </span>
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="rounded-[18px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
@@ -157,7 +231,7 @@ export default function Auth() {
               disabled={loading}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
             >
-              {loading ? "Please wait..." : isSignup ? "Create account" : "Login"}
+              {submitLabel}
               <ArrowRight className="size-4" />
             </button>
           </form>

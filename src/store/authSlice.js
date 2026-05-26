@@ -16,13 +16,16 @@ function saveAuth(auth) {
   localStorage.setItem(storageKey, JSON.stringify(auth));
 }
 
-export const requestOtp = createAsyncThunk("auth/requestOtp", async ({ email, isOwner }) => {
-  return apiRequest("/api/auth/request-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, isOwner }),
-  });
-});
+export const requestOtp = createAsyncThunk(
+  "auth/requestOtp",
+  async ({ email, isOwner, purpose = "login" }) => {
+    return apiRequest("/api/auth/request-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, isOwner, purpose }),
+    });
+  },
+);
 
 export const verifyOtp = createAsyncThunk("auth/verifyOtp", async ({ email, otp, name }) => {
   return apiRequest("/api/auth/verify-otp", {
@@ -34,22 +37,22 @@ export const verifyOtp = createAsyncThunk("auth/verifyOtp", async ({ email, otp,
 
 export const signupUser = createAsyncThunk(
   "auth/signupUser",
-  async ({ name, email, mobile, password, isOwner }) => {
+  async ({ name, email, mobile, password, isOwner, otp }) => {
     return apiRequest("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, mobile, password, isOwner }),
+      body: JSON.stringify({ name, email, mobile, password, isOwner, otp }),
     });
   },
 );
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-  async ({ name, email, mobile, password, isOwner }) => {
+  async ({ email, password, isOwner }) => {
     return apiRequest("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, mobile, password, isOwner }),
+      body: JSON.stringify({ email, password, isOwner }),
     });
   },
 );

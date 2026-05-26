@@ -16,12 +16,10 @@ function Logo() {
   );
 }
 
-function ListRoomCta({ user, onClick }) {
-  const isOwner = user?.role === "owner";
-
+function ListRoomCta({ onClick }) {
   return (
     <Link
-      to={isOwner ? "/list-room" : "/signup?owner=1"}
+      to="/list-room"
       onClick={onClick}
       className="inline-flex min-h-10 items-center justify-center rounded-full bg-ink px-5 text-sm font-black text-white shadow-sm transition-colors hover:bg-slate-800"
     >
@@ -30,10 +28,32 @@ function ListRoomCta({ user, onClick }) {
   );
 }
 
+function AuthLinks({ onClick }) {
+  return (
+    <>
+      <Link
+        to="/login"
+        onClick={onClick}
+        className="flex min-h-10 min-w-20 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
+      >
+        Login
+      </Link>
+      <Link
+        to="/signup"
+        onClick={onClick}
+        className="flex min-h-10 min-w-24 items-center justify-center rounded-full bg-brand px-5 text-sm font-black text-brand-foreground shadow-sm shadow-brand/20 transition-colors hover:bg-brand/90"
+      >
+        Signup
+      </Link>
+    </>
+  );
+}
+
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const isOwner = user?.role === "owner";
 
   function closeMenu() {
     setOpen(false);
@@ -88,11 +108,9 @@ export default function SiteHeader() {
               </button>
             </>
           ) : (
-            <Link to="/login" className="text-sm font-black text-slate-600 hover:text-ink">
-              Login
-            </Link>
+            <AuthLinks />
           )}
-          <ListRoomCta user={user} />
+          {isOwner && <ListRoomCta />}
         </div>
 
         <button
@@ -139,23 +157,24 @@ export default function SiteHeader() {
               Find Roommate
             </NavLink>
             {user ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-xl px-3 py-2 text-left text-sm font-black text-slate-700"
-              >
-                Logout
-              </button>
+              <>
+                <span className="rounded-xl px-3 py-2 text-sm font-black text-slate-500">
+                  {user.name || user.email}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-xl px-3 py-2 text-left text-sm font-black text-slate-700"
+                >
+                  Logout
+                </button>
+              </>
             ) : (
-              <Link
-                to="/login"
-                onClick={closeMenu}
-                className="rounded-xl px-3 py-2 text-sm font-black text-slate-700"
-              >
-                Login
-              </Link>
+              <div className="grid grid-cols-2 gap-2 px-3 pt-2">
+                <AuthLinks onClick={closeMenu} />
+              </div>
             )}
-            <ListRoomCta user={user} onClick={closeMenu} />
+            {isOwner && <ListRoomCta onClick={closeMenu} />}
           </div>
         </div>
       )}

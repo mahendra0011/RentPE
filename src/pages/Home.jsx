@@ -15,6 +15,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
+import AnimatedCounter from "@/components/reactbits/AnimatedCounter.jsx";
+import InfiniteTicker from "@/components/reactbits/InfiniteTicker.jsx";
+import SpotlightPanel from "@/components/reactbits/SpotlightPanel.jsx";
+import TiltCard from "@/components/reactbits/TiltCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
@@ -24,6 +28,14 @@ const popularCities = ["Bhopal", "Indore", "Pune", "Bangalore", "Delhi NCR"];
 const filterTypes = ["PG", "Hostel", "Flat"];
 const filterGenders = ["Girls", "Boys", "Co-ed"];
 const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
+const heroSignals = [
+  "0% brokerage",
+  "Verified rooms",
+  "WhatsApp owners",
+  "No map clutter",
+  "Student friendly",
+  "Owner direct",
+];
 
 const steps = [
   {
@@ -68,6 +80,42 @@ const discoveryCards = [
     body: "Cleaner listings with report controls and owner checks.",
     meta: "No brokerage pressure",
   },
+];
+
+const shortlistSignals = [
+  "Budget fit",
+  "Verified owner",
+  "Direct WhatsApp",
+  "Amenities match",
+  "Privacy choice",
+  "No brokerage",
+];
+
+const matchCards = [
+  {
+    icon: Search,
+    title: "Budget match",
+    body: "See rooms that fit your rent range, furnished needs, tenant type, and amenities.",
+    score: 92,
+  },
+  {
+    icon: ShieldCheck,
+    title: "Trust match",
+    body: "Prefer verified owners, clear photos, report controls, and safer direct contact.",
+    score: 88,
+  },
+  {
+    icon: MessageCircle,
+    title: "Contact match",
+    body: "Shortlist rooms where the owner is ready for WhatsApp or call follow-up.",
+    score: 96,
+  },
+];
+
+const shortlistStats = [
+  { value: 3, suffix: "x", label: "faster shortlist" },
+  { value: 0, suffix: "%", label: "brokerage" },
+  { value: 24, suffix: "h", label: "lead window" },
 ];
 
 const roommateCards = [
@@ -261,42 +309,14 @@ export default function Home() {
                 </button>
               ))}
             </div>
+
+            <InfiniteTicker
+              items={heroSignals}
+              duration={18}
+              className="mx-auto mt-8 max-w-3xl"
+              itemClassName="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm"
+            />
           </motion.div>
-        </section>
-
-        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-          <div className="mb-7 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-            <div>
-              <span className="mb-3 inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
-                Find your fit
-              </span>
-              <h2 className="text-3xl font-black tracking-normal text-ink">
-                Start with the stay type that matches your move.
-              </h2>
-            </div>
-            <p className="max-w-md text-sm font-medium leading-6 text-slate-500">
-              Whether you are joining college, starting a job, or shifting cities, RoomRadar keeps
-              the first decision simple.
-            </p>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-4">
-            {discoveryCards.map((card) => (
-              <article
-                key={card.title}
-                className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm"
-              >
-                <span className="mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
-                  <card.icon className="size-5" />
-                </span>
-                <h3 className="font-black text-ink">{card.title}</h3>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{card.body}</p>
-                <p className="mt-5 text-xs font-black uppercase tracking-wide text-slate-400">
-                  {card.meta}
-                </p>
-              </article>
-            ))}
-          </div>
         </section>
 
         <section id="listings" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6">
@@ -466,6 +486,114 @@ export default function Home() {
             </Link>
           </div>
         </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
+          <div className="mb-7 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <div>
+              <span className="mb-3 inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
+                Find your fit
+              </span>
+              <h2 className="text-3xl font-black tracking-normal text-ink">
+                Start with the stay type that matches your move.
+              </h2>
+            </div>
+            <p className="max-w-md text-sm font-medium leading-6 text-slate-500">
+              Whether you are joining college, starting a job, or shifting cities, RoomRadar keeps
+              the first decision simple.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-4">
+            {discoveryCards.map((card, index) => (
+              <TiltCard
+                key={card.title}
+                delay={index * 0.06}
+                className="p-6 transition-shadow hover:shadow-[var(--shadow-card)]"
+              >
+                <span className="mb-7 flex size-11 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <card.icon className="size-5" />
+                </span>
+                <h3 className="font-black text-ink">{card.title}</h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{card.body}</p>
+                <p className="mt-5 text-xs font-black uppercase tracking-wide text-slate-400">
+                  {card.meta}
+                </p>
+              </TiltCard>
+            ))}
+          </div>
+        </section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.45 }}
+          className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16"
+        >
+          <SpotlightPanel className="border-0 bg-[#07111f] text-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.8)]">
+            <div className="grid overflow-hidden rounded-[28px] md:grid-cols-[0.9fr_1.1fr]">
+              <div className="p-7 md:p-10">
+                <span className="inline-flex rounded-full bg-emerald-400/15 px-4 py-1 text-xs font-black uppercase tracking-wide text-emerald-200">
+                  Live city pulse
+                </span>
+                <h2 className="mt-5 max-w-md text-3xl font-black leading-tight tracking-normal md:text-4xl">
+                  See where rooms are moving fastest.
+                </h2>
+                <p className="mt-4 max-w-md text-sm font-medium leading-7 text-slate-300">
+                  Use quick city signals to jump into areas with fresh PGs, flats, hostels, and
+                  owner-posted rooms.
+                </p>
+                <a
+                  href="#listings"
+                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-7 text-sm font-black text-ink transition-colors hover:bg-slate-100"
+                >
+                  Find Room
+                  <ArrowRight className="size-4" />
+                </a>
+                <InfiniteTicker
+                  items={neighborhoodTicker}
+                  duration={20}
+                  className="mt-8 max-w-sm"
+                  itemClassName="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[11px] font-black text-slate-200"
+                />
+              </div>
+
+              <div className="grid gap-4 bg-white/5 p-5 md:p-8">
+                {cityPulse.map((city, index) => (
+                  <motion.article
+                    key={city.city}
+                    initial={{ opacity: 0, x: 24 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.45 }}
+                    transition={{ duration: 0.35, delay: index * 0.08 }}
+                    className="rounded-[20px] border border-white/10 bg-white/10 p-5 backdrop-blur"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-black text-white">{city.city}</h3>
+                        <p className="mt-1 text-xs font-bold leading-5 text-slate-400">
+                          {city.area}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-black text-emerald-200">
+                        <AnimatedCounter value={city.rooms} suffix="+" /> rooms
+                      </span>
+                    </div>
+                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${city.fill}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.9, delay: 0.2 + index * 0.12 }}
+                        className="h-full rounded-full bg-emerald-300"
+                      />
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
+            </div>
+          </SpotlightPanel>
+        </motion.section>
 
         <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
           <div className="grid overflow-hidden rounded-[28px] bg-[#07111f] px-6 py-10 text-white md:min-h-[360px] md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-14 md:py-14">

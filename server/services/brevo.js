@@ -1,4 +1,4 @@
-export async function sendOtpEmail({ email, otp }) {
+export async function sendOtpEmail({ email, otp, purpose = "login" }) {
   const apiKey = process.env.BREVO_API_KEY;
   const senderEmail = process.env.BREVO_SENDER_EMAIL;
   const senderName = process.env.BREVO_SENDER_NAME || "RoomRadar";
@@ -8,6 +8,10 @@ export async function sendOtpEmail({ email, otp }) {
     return { delivered: false, devOtp: otp };
   }
 
+  const isSignup = purpose === "signup";
+  const title = isSignup ? "Verify your RoomRadar email" : "Your RoomRadar OTP";
+
+  // Brevo calls this Transactional Email REST route /smtp/email, but this uses API-key HTTP.
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -18,16 +22,16 @@ export async function sendOtpEmail({ email, otp }) {
     body: JSON.stringify({
       sender: { name: senderName, email: senderEmail },
       to: [{ email }],
-      subject: "Your RoomRadar login OTP",
+      subject: title,
       htmlContent: `
         <div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">
-          <h2>Your RoomRadar OTP</h2>
-          <p>Use this code to continue:</p>
+          <h2>${title}</h2>
+          <p>Use this code ${isSignup ? "to verify your email and create your account" : "to continue"}:</p>
           <div style="font-size:28px;font-weight:800;letter-spacing:8px">${otp}</div>
           <p style="color:#64748b">This code expires in 10 minutes.</p>
         </div>
       `,
-      textContent: `Your RoomRadar OTP is ${otp}. It expires in 10 minutes.`,
+      textContent: `${title}: ${otp}. It expires in 10 minutes.`,
     }),
   });
 
