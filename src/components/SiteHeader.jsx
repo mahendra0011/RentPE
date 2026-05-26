@@ -1,4 +1,4 @@
-import { LogOut, MapPin, Menu, X } from "lucide-react";
+import { Heart, LogOut, MapPin, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, NavLink } from "react-router-dom";
@@ -53,6 +53,7 @@ export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const wishlistCount = useSelector((state) => state.rooms.savedIds.length);
   const isOwner = user?.role === "owner";
 
   function closeMenu() {
@@ -69,7 +70,7 @@ export default function SiteHeader() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Logo />
 
-        <div className="hidden items-center gap-10 text-sm font-black text-slate-500 md:flex">
+        <div className="hidden items-center gap-7 text-sm font-black text-slate-500 md:flex">
           <NavLink
             to="/"
             end
@@ -94,6 +95,22 @@ export default function SiteHeader() {
             }
           >
             Find Roommate
+          </NavLink>
+          <NavLink
+            to="/wishlist"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-1.5 transition-colors hover:text-ink ${
+                isActive ? "text-ink" : ""
+              }`
+            }
+          >
+            <Heart className="size-4" />
+            Wishlist
+            {wishlistCount > 0 && (
+              <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] leading-none text-white">
+                {wishlistCount}
+              </span>
+            )}
           </NavLink>
         </div>
 
@@ -164,6 +181,25 @@ export default function SiteHeader() {
               }
             >
               Find Roommate
+            </NavLink>
+            <NavLink
+              to="/wishlist"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                `flex items-center justify-between rounded-xl px-3 py-2 text-sm font-black ${
+                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
+                }`
+              }
+            >
+              <span className="inline-flex items-center gap-2">
+                <Heart className="size-4" />
+                Wishlist
+              </span>
+              {wishlistCount > 0 && (
+                <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] leading-none text-white">
+                  {wishlistCount}
+                </span>
+              )}
             </NavLink>
             {user ? (
               <>

@@ -47,7 +47,7 @@ export default function Dashboard() {
         </div>
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
-          <Metric icon={Heart} label="Saved rooms" value={savedIds.length} tone="brand" />
+          <Metric icon={Heart} label="Wishlist" value={savedIds.length} tone="brand" />
           <Metric
             icon={MessageCircle}
             label="Contacted owners"
@@ -61,8 +61,8 @@ export default function Dashboard() {
         <section className="grid gap-8 lg:grid-cols-[1fr_360px]">
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black">Saved rooms</h2>
-              <Link to="/#listings" className="text-sm font-black text-brand">
+              <h2 className="text-xl font-black">Wishlist rooms</h2>
+              <Link to="/find-room" className="text-sm font-black text-brand">
                 Find more
               </Link>
             </div>
@@ -75,9 +75,9 @@ export default function Dashboard() {
             ) : (
               <EmptyState
                 title="No saved rooms yet"
-                body="Tap the heart icon on any listing to keep it here for quick comparison."
+                body="Tap Wishlist on any listing to keep it here for quick comparison."
                 cta="Browse rooms"
-                to="/#listings"
+                to="/find-room"
               />
             )}
           </div>

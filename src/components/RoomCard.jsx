@@ -1,14 +1,30 @@
 import { motion } from "framer-motion";
-import { Heart, MapPin, MessageCircle } from "lucide-react";
+import { Check, Heart, MapPin, MessageCircle, Share2 } from "lucide-react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import { formatPrice } from "@/lib/format.js";
+import { shareRoom } from "@/lib/share.js";
 import { markContacted, toggleSavedRoom } from "@/store/roomsSlice.js";
 
 export default function RoomCard({ room, index = 0, onHover, highlighted = false }) {
   const dispatch = useDispatch();
   const saved = useSelector((state) => state.rooms.savedIds.includes(room.id));
+  const [shareState, setShareState] = useState("");
+
+  async function handleShare() {
+    try {
+      const result = await shareRoom(room);
+      setShareState(result === "copied" ? "Copied" : "Shared");
+      window.setTimeout(() => setShareState(""), 1600);
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        setShareState("Try again");
+        window.setTimeout(() => setShareState(""), 1600);
+      }
+    }
+  }
 
   return (
     <motion.article
@@ -76,30 +92,47 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
         </div>
       </Link>
 
-      <div className="mt-4 flex gap-2 px-1 pb-1">
+      <div className="mt-4 grid gap-2 px-1 pb-1">
         <a
           href={`https://wa.me/${room.owner.phone}`}
           target="_blank"
           rel="noreferrer"
           onClick={() => dispatch(markContacted(room.id))}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-success px-3 py-2.5 text-xs font-black text-success-foreground transition-colors hover:bg-success/90"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-success px-3 py-2.5 text-xs font-black text-success-foreground transition-colors hover:bg-success/90"
         >
           <MessageCircle className="size-3.5" />
           WhatsApp Owner
         </a>
-        <motion.button
-          type="button"
-          onClick={() => dispatch(toggleSavedRoom(room.id))}
-          aria-label="Save room"
-          whileTap={{ scale: 0.86 }}
-          animate={saved ? { scale: [1, 1.16, 1] } : { scale: 1 }}
-          transition={{ duration: 0.24 }}
-          className={`inline-flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-slate-50 ${
-            saved ? "border-brand bg-brand-soft" : "border-slate-200"
-          }`}
-        >
-          <Heart className={`size-4 ${saved ? "fill-brand text-brand" : "text-slate-500"}`} />
-        </motion.button>
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button
+            type="button"
+            onClick={handleShare}
+            aria-label={`Share ${room.title}`}
+            whileTap={{ scale: 0.92 }}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+          >
+            {shareState ? <Check className="size-3.5" /> : <Share2 className="size-3.5" />}
+            {shareState || "Share"}
+          </motion.button>
+          <motion.button
+            type="button"
+            onClick={() => dispatch(toggleSavedRoom(room.id))}
+            aria-label={
+              saved ? `Remove ${room.title} from wishlist` : `Add ${room.title} to wishlist`
+            }
+            whileTap={{ scale: 0.9 }}
+            animate={saved ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+            transition={{ duration: 0.24 }}
+            className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-black transition-colors ${
+              saved
+                ? "border-brand bg-brand-soft text-brand"
+                : "border-slate-200 bg-white text-slate-600 hover:border-brand hover:text-brand"
+            }`}
+          >
+            <Heart className={`size-3.5 ${saved ? "fill-brand" : ""}`} />
+            {saved ? "Saved" : "Wishlist"}
+          </motion.button>
+        </div>
       </div>
     </motion.article>
   );

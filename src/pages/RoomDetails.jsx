@@ -26,6 +26,7 @@ import SiteHeader from "@/components/SiteHeader.jsx";
 import { getRoom, rooms } from "@/data/rooms.js";
 import { formatPrice } from "@/lib/format.js";
 import { normalizeRoom, normalizeRooms } from "@/lib/roomAdapter.js";
+import { shareRoom } from "@/lib/share.js";
 import { fetchRoom, markContacted, reportRoom, toggleSavedRoom } from "@/store/roomsSlice.js";
 
 const amenityIcons = {
@@ -53,6 +54,7 @@ export default function RoomDetails() {
       : itemRoom || (staticRoom ? normalizeRoom(staticRoom) : null);
   const [active, setActive] = useState(0);
   const [reported, setReported] = useState(false);
+  const [shareState, setShareState] = useState("");
 
   useEffect(() => {
     dispatch(fetchRoom(id));
@@ -88,6 +90,19 @@ export default function RoomDetails() {
     );
   }
 
+  async function handleShare() {
+    try {
+      const result = await shareRoom(room);
+      setShareState(result === "copied" ? "Link copied" : "Shared");
+      window.setTimeout(() => setShareState(""), 1600);
+    } catch (shareError) {
+      if (shareError?.name !== "AbortError") {
+        setShareState("Try again");
+        window.setTimeout(() => setShareState(""), 1600);
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background font-sans text-ink">
       <SiteHeader />
@@ -117,13 +132,21 @@ export default function RoomDetails() {
               {room.tag}
             </span>
             <div className="absolute right-3 top-3 flex gap-2">
-              <button className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card"
+                aria-label={`Share ${room.title}`}
+                title="Share"
+              >
                 <Share2 className="size-4" />
               </button>
               <button
                 type="button"
                 onClick={() => dispatch(toggleSavedRoom(room.id))}
                 className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card"
+                aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+                title="Wishlist"
               >
                 <Heart className={`size-4 ${saved ? "fill-brand text-brand" : ""}`} />
               </button>
@@ -294,6 +317,29 @@ export default function RoomDetails() {
                 <Phone className="size-4" />
                 Call +91 {room.owner.phone.slice(2, 7)} {room.owner.phone.slice(7)}
               </a>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => dispatch(toggleSavedRoom(room.id))}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl border py-3 text-sm font-black transition-colors ${
+                    saved
+                      ? "border-brand bg-brand-soft text-brand"
+                      : "border-slate-200 text-ink hover:border-brand hover:text-brand"
+                  }`}
+                >
+                  <Heart className={`size-4 ${saved ? "fill-brand" : ""}`} />
+                  {saved ? "Saved" : "Wishlist"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 text-sm font-black text-ink transition-colors hover:border-brand hover:text-brand"
+                >
+                  <Share2 className="size-4" />
+                  {shareState || "Share"}
+                </button>
+              </div>
 
               <button
                 type="button"

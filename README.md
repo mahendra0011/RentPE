@@ -14,6 +14,8 @@ The frontend intentionally does not include a map screen. Location is still stor
 - Home `Filter` and `See all` open the dedicated find room page.
 - The dedicated find room page uses the same room-card layout as the home room section, with a top search bar and inline filters instead of a side filter column.
 - Find room filters include location search, quick location chips, city chips, distance, budget, tenant, property type, furnished, availability, and amenities.
+- Room cards include WhatsApp owner contact, Wishlist, and Share actions.
+- Wishlist has its own navbar link and page for saved rooms.
 - Old `/search` URLs redirect to the find room page.
 - Room cards show photos, room type, distance, price, amenities, WhatsApp owner CTA, and save action.
 - Signup uses name, email, mobile number, password, owner checkbox, and email OTP verification.
@@ -29,7 +31,9 @@ The frontend intentionally does not include a map screen. Location is still stor
 - Nearby search using city, area, college, office, or landmark
 - Room details page with gallery, owner card, amenities, nearby essentials, report action, and WhatsApp contact
 - Roommate finder with budget, city, area, college or office, and move-in fields
-- User dashboard for saved rooms, contacted owners, and posted listings
+- Wishlist page for saved rooms
+- Shareable room links from cards and room details
+- User dashboard for wishlist rooms, contacted owners, and posted listings
 - Password login/signup with owner role support
 - Signup email verification with OTP delivered through the Brevo Transactional Email REST API using `BREVO_API_KEY`
 - ReactBits-style UI components for electric borders, spotlight panels, infinite tickers, tilt cards, and animated counters
@@ -153,6 +157,7 @@ Notes:
 - `/rooms/:id` - Room details
 - `/list-room` - Owner room posting flow
 - `/roommates` - Roommate finder
+- `/wishlist` - Saved room wishlist
 - `/dashboard` - User dashboard
 
 ## API Routes

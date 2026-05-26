@@ -8,6 +8,7 @@ import ListRoom from "@/pages/ListRoom.jsx";
 import NotFound from "@/pages/NotFound.jsx";
 import RoomDetails from "@/pages/RoomDetails.jsx";
 import Roommates from "@/pages/Roommates.jsx";
+import Wishlist from "@/pages/Wishlist.jsx";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/search" element={<Navigate to="/find-room" replace />} />
       <Route path="/list-room" element={<ListRoom />} />
       <Route path="/roommates" element={<Roommates />} />
+      <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/rooms/:id" element={<RoomDetails />} />
       <Route path="*" element={<NotFound />} />
