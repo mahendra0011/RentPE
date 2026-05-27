@@ -391,6 +391,42 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
   }
 });
 
+router.delete("/:slug", async (request, response, next) => {
+  try {
+    const ownerEmail = requireOwner(request, response);
+    if (!ownerEmail) return;
+
+    if (isMongoConnected()) {
+      const room = await Room.findOneAndDelete({
+        slug: request.params.slug,
+        ownerEmail,
+      }).lean();
+
+      if (!room) {
+        response.status(404).json({ message: "Listing not found for this owner." });
+        return;
+      }
+
+      response.json({ ok: true, slug: room.slug });
+      return;
+    }
+
+    const index = memoryRooms.findIndex(
+      (room) => room.slug === request.params.slug && normalizeEmail(room.ownerEmail) === ownerEmail,
+    );
+
+    if (index === -1) {
+      response.status(404).json({ message: "Listing not found for this owner." });
+      return;
+    }
+
+    const [room] = memoryRooms.splice(index, 1);
+    response.json({ ok: true, slug: room.slug });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.patch("/:slug/availability", async (request, response, next) => {
   try {
     const availability = request.body.availability === "occupied" ? "occupied" : "available";

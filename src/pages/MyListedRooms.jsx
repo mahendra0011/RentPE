@@ -1,4 +1,4 @@
-import { Building2, Camera, Check, Edit3, Eye, ImagePlus, Save, X } from "lucide-react";
+import { Building2, Camera, Check, Edit3, Eye, ImagePlus, Save, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -47,8 +47,11 @@ export default function MyListedRooms() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
+  const [deleteNotice, setDeleteNotice] = useState("");
 
   const selectedRoom = rooms.find((room) => room.id === selectedId || room.slug === selectedId);
   const photoPreviews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos]);
@@ -64,6 +67,7 @@ export default function MyListedRooms() {
       setForm(roomToForm(selectedRoom));
       setPhotos([]);
       setSaved("");
+      setDeleteConfirmId("");
     }
   }, [selectedRoom]);
 
@@ -86,6 +90,8 @@ export default function MyListedRooms() {
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
     setSaved("");
+    setDeleteNotice("");
+    setDeleteConfirmId("");
   }
 
   function toggleAmenity(amenity) {
@@ -101,6 +107,8 @@ export default function MyListedRooms() {
     if (!files) return;
     setPhotos(Array.from(files).slice(0, 8));
     setSaved("");
+    setDeleteNotice("");
+    setDeleteConfirmId("");
   }
 
   async function saveListing(event) {
@@ -110,6 +118,7 @@ export default function MyListedRooms() {
     setSaving(true);
     setError("");
     setSaved("");
+    setDeleteNotice("");
 
     try {
       const payload = new FormData();
@@ -137,6 +146,46 @@ export default function MyListedRooms() {
       setError(saveError.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteListing() {
+    if (!selectedRoom) return;
+
+    const listingId = selectedRoom.slug || selectedRoom.id;
+    if (deleteConfirmId !== listingId) {
+      setDeleteConfirmId(listingId);
+      setError("");
+      setSaved("");
+      setDeleteNotice("");
+      return;
+    }
+
+    setDeletingId(listingId);
+    setError("");
+    setSaved("");
+    setDeleteNotice("");
+
+    try {
+      await apiRequest(`/api/rooms/${listingId}`, { method: "DELETE" });
+
+      const selectedIndex = rooms.findIndex(
+        (room) => room.id === selectedRoom.id || room.slug === selectedRoom.slug,
+      );
+      const nextRooms = rooms.filter(
+        (room) => room.id !== selectedRoom.id && room.slug !== selectedRoom.slug,
+      );
+      const nextSelectedRoom = nextRooms[Math.min(selectedIndex, nextRooms.length - 1)];
+
+      setRooms(nextRooms);
+      setSelectedId(nextSelectedRoom?.id || "");
+      setPhotos([]);
+      setDeleteConfirmId("");
+      setDeleteNotice("Listing deleted successfully.");
+    } catch (deleteError) {
+      setError(deleteError.message);
+    } finally {
+      setDeletingId("");
     }
   }
 
@@ -203,6 +252,12 @@ export default function MyListedRooms() {
           </div>
         )}
 
+        {deleteNotice && (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+            {deleteNotice}
+          </div>
+        )}
+
         {loading ? (
           <div className="rounded-3xl border border-slate-200 bg-card p-10 text-center font-black">
             Loading your listings...
@@ -262,13 +317,32 @@ export default function MyListedRooms() {
                   </p>
                 </div>
                 {selectedRoom && (
-                  <Link
-                    to={`/rooms/${selectedRoom.slug || selectedRoom.id}`}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-5 text-sm font-black text-ink hover:border-brand hover:text-brand"
-                  >
-                    <Eye className="size-4" />
-                    View
-                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to={`/rooms/${selectedRoom.slug || selectedRoom.id}`}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-5 text-sm font-black text-ink hover:border-brand hover:text-brand"
+                    >
+                      <Eye className="size-4" />
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={deleteListing}
+                      disabled={Boolean(deletingId)}
+                      className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition-colors disabled:cursor-wait disabled:opacity-70 ${
+                        deleteConfirmId === (selectedRoom.slug || selectedRoom.id)
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : "border-red-200 text-red-600 hover:bg-red-50"
+                      }`}
+                    >
+                      <Trash2 className="size-4" />
+                      {deletingId === (selectedRoom.slug || selectedRoom.id)
+                        ? "Deleting..."
+                        : deleteConfirmId === (selectedRoom.slug || selectedRoom.id)
+                          ? "Confirm delete"
+                          : "Delete"}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -440,7 +514,7 @@ export default function MyListedRooms() {
                 </div>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || Boolean(deletingId)}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 disabled:cursor-wait disabled:opacity-70"
                 >
                   {saving ? <Edit3 className="size-4" /> : <Save className="size-4" />}
