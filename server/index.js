@@ -12,14 +12,31 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const clientUrl = process.env.CLIENT_URL || "http://localhost:5180";
+const normalizeOrigin = (value) =>
+  value
+    ?.trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\/$/, "");
+const allowedOrigins = new Set(
+  [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    process.env.RENDER_EXTERNAL_URL,
+    ...(process.env.CORS_ORIGINS || "").split(","),
+    "http://localhost:5180",
+  ]
+    .map(normalizeOrigin)
+    .filter(Boolean),
+);
 
 app.use(
   cors({
     origin(origin, callback) {
-      const localDevOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin || "");
+      const requestOrigin = normalizeOrigin(origin);
+      const localDevOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(requestOrigin || "");
+      const renderOrigin = /^https:\/\/[a-z0-9-]+\.onrender\.com$/i.test(requestOrigin || "");
 
-      if (!origin || origin === clientUrl || localDevOrigin) {
+      if (!requestOrigin || allowedOrigins.has(requestOrigin) || localDevOrigin || renderOrigin) {
         callback(null, true);
         return;
       }

@@ -132,6 +132,7 @@ Vite uses `strictPort`, so it fails instead of silently opening another project 
 ```env
 PORT=5000
 CLIENT_URL=http://localhost:5180
+CORS_ORIGINS=http://localhost:5180
 VITE_API_URL=http://localhost:5000
 MONGODB_URI=mongodb://127.0.0.1:27017/rentPE
 MONGODB_DB_NAME=rentPE
@@ -152,6 +153,7 @@ Notes:
 - If Cloudinary keys are missing, room posting still works, but uploaded images are not sent to Cloudinary.
 - If Brevo keys are missing, OTP routes return a local development OTP in the response.
 - Geocoding has built-in known locations for common demo searches such as `Bhopal`, `LNCT`, `MP Nagar`, and `Arera Colony`.
+- In production, set `CLIENT_URL` and `CORS_ORIGINS` to your deployed frontend URL, for example `https://rentpe-j7bq.onrender.com`.
 
 ## App Routes
 
@@ -206,6 +208,7 @@ GET    /api/health
 ## Useful Commands
 
 ```bash
+npm start          # Start Express backend for production
 npm run dev        # Start Vite frontend
 npm run server     # Start Express backend
 npm run server:dev # Start Express backend with nodemon
@@ -214,6 +217,25 @@ npm run build      # Build frontend
 npm run preview    # Preview production build
 npm run format     # Format project files
 ```
+
+## Render Deploy Notes
+
+Backend Web Service:
+
+- Runtime: Node
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Required env: `MONGODB_URI`, `MONGODB_DB_NAME=rentPE`, `CLIENT_URL`, `CORS_ORIGINS`, Cloudinary keys, and Brevo keys.
+- `CLIENT_URL` and `CORS_ORIGINS` should be your frontend URL, for example `https://rentpe-j7bq.onrender.com`.
+
+Frontend Static Site:
+
+- Build Command: `npm install && npm run build`
+- Publish Directory: `dist`
+- Env: `VITE_API_URL=https://your-backend-service.onrender.com`
+- Add rewrite: `/*` to `/index.html`.
+
+If the backend URL says `Blocked request. This host is not allowed. add ... to vite.config.js`, the backend Render service is running Vite instead of Express. Change that backend Start Command to `npm start` and redeploy.
 
 ## MongoDB Location Model
 
