@@ -1,50 +1,28 @@
 # RentPE
 
-RentPE is a room rental marketplace for students, interns, job seekers, and people moving to a new city. Owners can list rooms, PGs, hostels, and flats. Seekers can compare rooms, apply filters, and connect directly with owners on WhatsApp.
+RentPE is a room rental marketplace for students, interns, job seekers, and people shifting to a new city. Room owners can list PGs, hostels, flats, and private rooms. Room seekers can search by keyword, compare listings, save rooms, share links, and contact owners directly on WhatsApp.
 
-The frontend intentionally does not include a map screen. Rooms are searched by owner-entered city, area, landmark, address, title, and description keywords.
-
-## Current UI Flow
-
-- Home page opens with hero search, ReactBits-style trust ticker, room card preview, `How it Works` with one electric border around the full section, then the tilt discovery cards, smart shortlist board, roommate CTA, owner CTA, stats, and footer.
-- Header navigation uses `Home`, `Find Room`, and `Find Roommate`.
-- Logged-out users see `Login` and `Signup` buttons in the navbar.
-- `List Your Room` appears in the navbar only after logging in or signing up as a room owner.
-- Owners also get a `My Rooms` page to edit their posted listings and replace photos.
-- Header `Find Room` opens the dedicated find room page.
-- Home `Filter` and `See all` open the dedicated find room page.
-- The dedicated find room page uses the same room-card layout as the home room section, with a top search bar and inline filters instead of a side filter column.
-- Find room filters include keyword search, budget, tenant, property type, furnished, availability, and amenities.
-- Room cards include WhatsApp owner contact, Wishlist, and Share actions.
-- Wishlist has its own navbar link and page for saved rooms.
-- Old `/search` URLs redirect to the find room page.
-- Room cards show photos, room type, area, price, amenities, WhatsApp owner CTA, and save action.
-- Signup uses name, email, mobile number, password, owner checkbox, and email OTP verification.
-- Login uses only email, password, and owner checkbox.
-- If a user continues as owner, `List Your Room` appears in the navbar and opens the room posting flow.
-- Forgot password uses email OTP verification before setting a new password.
-- Header includes a dark mode toggle, saved locally in the browser.
+RentPE intentionally does not use maps or geocoding. Search is based on owner-entered text such as city, area, landmark, address, title, and description, so any location can be listed without latitude or longitude.
 
 ## Features
 
 - Room, PG, hostel, and flat listings
-- Owner room posting flow with photos, price, amenities, address, and contact
-- Owner listing management page for editing details, availability, contact info, and photos
-- Dedicated find room page with all listings and filter controls
-- Keyword search for city, area, college, office, address, title, description, and landmarks
-- Search using owner-entered city, area, address, title, description, or landmark text
-- Room details page with gallery, owner card, amenities, local essentials, report action, and WhatsApp contact
-- Roommate finder with budget, city, area, college or office, and move-in fields
+- Keyword-based room search
+- Inline filters for budget, property type, tenant type, amenities, furnished status, and availability
+- Owner signup/login with role-based navbar actions
+- Email OTP verification through the Brevo Transactional Email API
+- Forgot password flow with email OTP
+- Owner room posting with photos, rent, address, amenities, and contact details
+- Owner `My Rooms` page to edit listed rooms and replace photos
+- Room details page with gallery, amenities, owner details, report action, call, and WhatsApp CTA
 - Wishlist page for saved rooms
-- Shareable room links from cards and room details
-- User dashboard for wishlist rooms, contacted owners, and posted listings
-- Password login/signup with owner role support
-- Signup email verification with OTP delivered through the Brevo Transactional Email REST API using `BREVO_API_KEY`
-- Forgot-password OTP reset flow
-- Dark mode with a persistent header toggle
-- ReactBits-style UI components for electric borders, spotlight panels, infinite tickers, tilt cards, and animated counters
+- Share buttons for room links
+- Roommate finder page
+- User dashboard for saved rooms and contacted owners
+- Dark mode with local browser persistence
 - Cloudinary-ready image upload
-- MongoDB geospatial-ready room schema
+- MongoDB Atlas support with Mongoose
+- Render deployment friendly frontend and backend setup
 
 ## Tech Stack
 
@@ -55,41 +33,57 @@ Frontend:
 - Redux Toolkit
 - Tailwind CSS
 - Framer Motion
-- Lucide icons
+- Lucide React icons
+- ReactBits-style animated UI components
 
 Backend:
 
 - Node.js
 - Express.js
 - MongoDB with Mongoose
-- Cloudinary
-- Multer
-- Brevo transactional email support
+- Multer for image upload handling
+- Cloudinary for image storage
+- Brevo Transactional Email REST API for OTP email
 
 ## Project Structure
 
 ```txt
 RentPE/
   server/
-    config/          Cloudinary and MongoDB setup
-    data/            Local seed data for development fallback
+    config/          MongoDB and Cloudinary configuration
+    data/            Seed data used when MongoDB is unavailable
     models/          Mongoose models
     routes/          Express API routes
     services/        Brevo email service
-    utils/           Shared backend helpers
   src/
-    assets/          Room images
+    assets/          Static room images
     components/      Shared React components
       reactbits/     Animated UI primitives
-    lib/             API, formatting, and room normalization helpers
+    lib/             API client, format helpers, room adapters
     pages/           App pages
-    store/           Redux Toolkit slices and store
+    store/           Redux Toolkit store and slices
   index.html
   vite.config.js
   package.json
 ```
 
-## Getting Started
+## Core User Flows
+
+Room seeker:
+
+1. Open home or `Find Room`.
+2. Search by keyword like `LNCT`, `MP Nagar`, `PG`, `WiFi`, or any owner-entered address text.
+3. Apply filters for price, type, tenant, amenities, furnished status, and availability.
+4. Open room details, save to wishlist, share the room, call owner, or message on WhatsApp.
+
+Room owner:
+
+1. Sign up or log in with the owner checkbox selected.
+2. Use `List Your Room` to publish a listing.
+3. After posting, RentPE redirects to `My Rooms`.
+4. Edit details, price, availability, address, amenities, contact number, WhatsApp status, and photos from `My Rooms`.
+
+## Local Setup
 
 Install dependencies:
 
@@ -97,7 +91,7 @@ Install dependencies:
 npm install
 ```
 
-Create a local env file:
+Create a local environment file:
 
 ```bash
 cp .env.example .env
@@ -115,33 +109,32 @@ Start the frontend in another terminal:
 npm run dev
 ```
 
-Default URLs:
+Default local URLs:
 
 - Frontend: `http://localhost:5180`
 - Backend: `http://localhost:5000`
 - Health check: `http://localhost:5000/api/health`
 
-If you run the backend on another port, point Vite at it:
-
-```bash
-API_PROXY_TARGET=http://localhost:5001 npm run dev
-```
-
-Vite uses `strictPort`, so it fails instead of silently opening another project on a different frontend port.
+Vite uses a fixed frontend port. If `5180` is already busy, stop the old process or change `vite.config.js`.
 
 ## Environment Variables
+
+Create `.env` from `.env.example` and fill these values.
 
 ```env
 PORT=5000
 CLIENT_URL=http://localhost:5180
 CORS_ORIGINS=http://localhost:5180
 VITE_API_URL=http://localhost:5000
+
 MONGODB_URI=mongodb://127.0.0.1:27017/rentPE
 MONGODB_DB_NAME=rentPE
+
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 CLOUDINARY_FOLDER=rentpe/rooms
+
 BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=verified-sender@example.com
 BREVO_SENDER_NAME=RentPE
@@ -149,27 +142,47 @@ BREVO_SENDER_NAME=RentPE
 
 Notes:
 
-- If `MONGODB_URI` is missing, the API uses in-memory seed data.
-- If Cloudinary keys are missing, room posting still works, but uploaded images are not sent to Cloudinary.
-- If Brevo keys are missing, OTP routes return a local development OTP in the response.
-- In production, set `CLIENT_URL` and `CORS_ORIGINS` to your deployed frontend URL, for example `https://rentpe-j7bq.onrender.com`.
+- Do not commit `.env`.
+- `VITE_API_URL` is used by the frontend in production.
+- `CLIENT_URL` and `CORS_ORIGINS` are used by the backend for CORS.
+- If `MONGODB_URI` is missing or invalid, the API falls back to in-memory seed rooms.
+- If Cloudinary keys are missing, the app can still run, but uploaded listing photos are not sent to Cloudinary.
+- If Brevo keys are missing, OTP routes return a development OTP in the API response.
 
 ## App Routes
 
-- `/` - Home page with search, room preview, and owner/roommate sections
-- `/find-room` - Dedicated find room page with all rooms and location filters
-- `/login` - Password login
-- `/signup` - Password signup
-- `/forgot-password` - Email OTP password reset
-- `/search` - Redirects to `/find-room` for old links
-- `/rooms/:id` - Room details
-- `/list-room` - Owner room posting flow
-- `/my-rooms` - Owner page for editing listed rooms and replacing photos
-- `/roommates` - Roommate finder
-- `/wishlist` - Saved room wishlist
-- `/dashboard` - User dashboard
+```txt
+/                 Home
+/find-room        Find rooms with keyword search and filters
+/rooms/:id        Room details
+/list-room        Owner room posting form
+/my-rooms         Owner listing management and edit page
+/roommates        Roommate finder
+/wishlist         Saved rooms
+/dashboard        User dashboard
+/login            Login
+/signup           Signup
+/forgot-password  OTP password reset
+/search           Redirects to /find-room
+```
 
 ## API Routes
+
+System:
+
+```txt
+GET    /api/health
+```
+
+Auth:
+
+```txt
+POST   /api/auth/request-otp
+POST   /api/auth/signup
+POST   /api/auth/login
+POST   /api/auth/reset-password
+POST   /api/auth/verify-otp
+```
 
 Rooms:
 
@@ -190,21 +203,31 @@ GET    /api/roommates
 POST   /api/roommates
 ```
 
-Auth:
+Owner-only room routes use the logged-in user's bearer token from local auth storage. Frontend API calls attach it automatically.
 
-```txt
-POST   /api/auth/signup
-POST   /api/auth/login
-POST   /api/auth/request-otp
-POST   /api/auth/verify-otp
-POST   /api/auth/reset-password
-```
+## MongoDB Model Notes
 
-System:
+Rooms store searchable owner-entered text:
 
-```txt
-GET    /api/health
-```
+- `title`
+- `description`
+- `address`
+- `city`
+- `landmark`
+- `locationLabel`
+
+There is no required map coordinate, no geocoding step, and no `2dsphere` index requirement. This lets owners list any real address or local area text immediately.
+
+Owner listings are connected to `ownerEmail`, which powers the `My Rooms` management page.
+
+## Image Upload Notes
+
+Room photos are submitted as multipart form data through Multer.
+
+- New listings upload images through `POST /api/rooms`.
+- Owner edits can replace listing photos through `PATCH /api/rooms/:slug`.
+- Cloudinary folder defaults to `rentpe/rooms`.
+- If no new photos are uploaded during edit, existing photos stay unchanged.
 
 ## Useful Commands
 
@@ -215,29 +238,95 @@ npm run server     # Start Express backend
 npm run server:dev # Start Express backend with nodemon
 npm run lint       # Run ESLint
 npm run build      # Build frontend
-npm run preview    # Preview production build
+npm run preview    # Preview production frontend build
 npm run format     # Format project files
 ```
 
-## Render Deploy Notes
+## Deploying On Render
 
-Backend Web Service:
+Use two Render services:
 
-- Runtime: Node
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Required env: `MONGODB_URI`, `MONGODB_DB_NAME=rentPE`, `CLIENT_URL`, `CORS_ORIGINS`, Cloudinary keys, and Brevo keys.
-- `CLIENT_URL` and `CORS_ORIGINS` should be your frontend URL, for example `https://rentpe-j7bq.onrender.com`.
+1. Backend as a Web Service
+2. Frontend as a Static Site
 
-Frontend Static Site:
+### Backend Web Service
 
-- Build Command: `npm install && npm run build`
-- Publish Directory: `dist`
-- Env: `VITE_API_URL=https://your-backend-service.onrender.com`
-- Add rewrite: `/*` to `/index.html`.
+Recommended settings:
 
-If the backend URL says `Blocked request. This host is not allowed. add ... to vite.config.js`, the backend Render service is running Vite instead of Express. Change that backend Start Command to `npm start` and redeploy.
+```txt
+Runtime: Node
+Build Command: npm install
+Start Command: npm start
+```
 
-## MongoDB Search Model
+Required backend environment variables:
 
-Rooms store the owner-entered `address`, `city`, `landmark`, and `locationLabel` text. Search is keyword-based, so new listings publish even if there is no map coordinate or geocoding result.
+```env
+CLIENT_URL=https://your-frontend.onrender.com
+CORS_ORIGINS=https://your-frontend.onrender.com
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/rentPE?retryWrites=true&w=majority
+MONGODB_DB_NAME=rentPE
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=rentpe/rooms
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=verified-sender@example.com
+BREVO_SENDER_NAME=RentPE
+```
+
+After deploy, this URL should return JSON:
+
+```txt
+https://your-backend.onrender.com/api/health
+```
+
+If the backend URL shows a Vite `Blocked request. This host is not allowed` message, the backend service is running the wrong command. Change Render backend `Start Command` to:
+
+```txt
+npm start
+```
+
+### Frontend Static Site
+
+Recommended settings:
+
+```txt
+Build Command: npm install && npm run build
+Publish Directory: dist
+```
+
+Required frontend environment variable:
+
+```env
+VITE_API_URL=https://your-backend.onrender.com
+```
+
+Add this rewrite in Render Static Site settings:
+
+```txt
+Source: /*
+Destination: /index.html
+Action: Rewrite
+```
+
+## Security Notes
+
+- Never expose `CLOUDINARY_API_SECRET`, `BREVO_API_KEY`, or MongoDB passwords in frontend code.
+- Keep all secrets in Render backend environment variables.
+- Rotate any secret that was shared publicly or committed by mistake.
+- Use the owner checkbox only for owner accounts, because it unlocks listing management actions.
+
+## Development Status
+
+RentPE currently supports the complete MVP flow:
+
+- seeker search and filters
+- room details
+- owner signup/login
+- room listing creation
+- owner listing edits
+- Cloudinary-ready uploads
+- Brevo OTP email
+- MongoDB Atlas storage
+- Render deployment setup
