@@ -1,5 +1,7 @@
+const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(path, options);
+  const response = await fetch(resolveApiUrl(path), options);
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json") ? await response.json() : null;
 
@@ -8,6 +10,11 @@ export async function apiRequest(path, options = {}) {
   }
 
   return payload;
+}
+
+function resolveApiUrl(path) {
+  if (/^https?:\/\//.test(path)) return path;
+  return `${apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export function toQueryString(params) {

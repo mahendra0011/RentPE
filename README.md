@@ -115,7 +115,7 @@ npm run dev
 
 Default URLs:
 
-- Frontend: `http://localhost:5173`
+- Frontend: `http://localhost:5180`
 - Backend: `http://localhost:5000`
 - Health check: `http://localhost:5000/api/health`
 
@@ -131,8 +131,10 @@ Vite uses `strictPort`, so it fails instead of silently opening another project 
 
 ```env
 PORT=5000
-CLIENT_URL=http://localhost:5173
-MONGODB_URI=mongodb://127.0.0.1:27017/rentpe
+CLIENT_URL=http://localhost:5180
+VITE_API_URL=http://localhost:5000
+MONGODB_URI=mongodb://127.0.0.1:27017/rentPE
+MONGODB_DB_NAME=rentPE
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
