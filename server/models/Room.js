@@ -12,6 +12,23 @@ const ownerSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const locationSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ["Point"], required: true },
+    coordinates: {
+      type: [Number],
+      required: true,
+      validate: {
+        validator(value) {
+          return value.length === 2 && value.every(Number.isFinite);
+        },
+        message: "Coordinates must be [longitude, latitude].",
+      },
+    },
+  },
+  { _id: false },
+);
+
 const roomSchema = new mongoose.Schema(
   {
     slug: { type: String, required: true, unique: true, index: true },
@@ -27,18 +44,8 @@ const roomSchema = new mongoose.Schema(
     city: { type: String, required: true, trim: true },
     landmark: { type: String, trim: true },
     locationLabel: { type: String, trim: true },
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number],
-        required: true,
-      },
-    },
-    nearbyEssentials: [
+    location: { type: locationSchema, default: undefined },
+    localEssentials: [
       {
         name: { type: String, trim: true },
         type: { type: String, trim: true },
@@ -54,7 +61,6 @@ const roomSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-roomSchema.index({ location: "2dsphere" });
 roomSchema.index({ title: "text", address: "text", city: "text", landmark: "text" });
 
 const Room = mongoose.models.Room || mongoose.model("Room", roomSchema);

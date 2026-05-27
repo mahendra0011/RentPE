@@ -5,7 +5,6 @@ import { uploadBuffer } from "../config/cloudinary.js";
 import { isMongoConnected } from "../config/db.js";
 import { seedRooms } from "../data/seedRooms.js";
 import Room from "../models/Room.js";
-import { distanceLabel, geocodeAddress, haversineDistanceMeters } from "../utils/geo.js";
 
 const router = Router();
 const upload = multer({
@@ -46,11 +45,49 @@ function parseList(value) {
     .filter(Boolean);
 }
 
+const ignoredKeywordTerms = new Set(["near", "room", "rooms", "pg", "flat", "hostel", "in", "at"]);
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getKeywordTerms(query) {
+  const value = String(query.q || query.query || query.location || query.search || "").trim();
+
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((term) => term.length > 1 && !ignoredKeywordTerms.has(term));
+}
+
+function keywordMatches(room, terms) {
+  if (!terms.length) return true;
+
+  const haystack = [
+    room.title,
+    room.tag,
+    room.type,
+    room.gender,
+    room.description,
+    room.address,
+    room.city,
+    room.landmark,
+    room.locationLabel,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return terms.some((term) => haystack.includes(term));
+}
+
 function buildRoomFilter(query) {
   const filter = { status: "live" };
   const types = parseList(query.types);
   const genders = parseList(query.genders);
   const amenities = parseList(query.amenities);
+  const keywordTerms = getKeywordTerms(query);
 
   if (query.priceMax) filter.price = { $lte: Number(query.priceMax) };
   if (types.length) filter.type = { $in: types };
@@ -58,11 +95,30 @@ function buildRoomFilter(query) {
   if (amenities.length) filter.amenities = { $all: amenities };
   if (query.furnishedOnly === "true") filter.furnished = true;
   if (query.availableOnly === "true") filter.availability = "available";
+  if (keywordTerms.length) {
+    const keywordRegexes = keywordTerms.map((term) => new RegExp(escapeRegExp(term), "i"));
+    const fields = [
+      "title",
+      "tag",
+      "type",
+      "gender",
+      "description",
+      "address",
+      "city",
+      "landmark",
+      "locationLabel",
+    ];
+
+    filter.$or = keywordRegexes.flatMap((keywordRegex) =>
+      fields.map((field) => ({ [field]: keywordRegex })),
+    );
+  }
 
   return filter;
 }
 
 function memoryMatches(room, query) {
+  if (!keywordMatches(room, getKeywordTerms(query))) return false;
   if (query.priceMax && room.price > Number(query.priceMax)) return false;
   if (query.furnishedOnly === "true" && !room.furnished) return false;
   if (query.availableOnly === "true" && room.availability !== "available") return false;
@@ -95,16 +151,8 @@ async function normalizeRoom(body, images) {
     throw error;
   }
 
-  const geocoded = await geocodeAddress(`${landmark} ${address} ${city}`);
-  if (!geocoded) {
-    const error = new Error(
-      "Location could not be geocoded. Try a known city, landmark, or enable GEOCODER_PROVIDER=nominatim.",
-    );
-    error.status = 400;
-    throw error;
-  }
-
   const slugBase = slugify(title);
+  const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
 
   return {
     slug: `${slugBase}-${Date.now().toString(36)}`,
@@ -119,12 +167,8 @@ async function normalizeRoom(body, images) {
     address,
     city,
     landmark,
-    locationLabel: geocoded.label,
-    location: {
-      type: "Point",
-      coordinates: geocoded.coordinates,
-    },
-    nearbyEssentials: [],
+    locationLabel,
+    localEssentials: [],
     furnished: body.furnished !== "false",
     availability: body.availability || "available",
     status: "live",
@@ -150,68 +194,6 @@ router.get("/", async (request, response, next) => {
     }
 
     response.json(memoryRooms.filter((room) => memoryMatches(room, request.query)));
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get("/nearby", async (request, response, next) => {
-  try {
-    const maxDistance = Number(request.query.maxDistance || 5000);
-    const lat = Number(request.query.lat);
-    const lng = Number(request.query.lng);
-    const searchText = request.query.query || request.query.q || request.query.city || "Bhopal";
-    const origin =
-      Number.isFinite(lat) && Number.isFinite(lng)
-        ? { label: "Selected location", coordinates: [lng, lat] }
-        : await geocodeAddress(searchText);
-
-    if (!origin) {
-      response.status(400).json({
-        message: "Search location not found. Try Bhopal, LNCT, MP Nagar, Arera Colony, or Indore.",
-      });
-      return;
-    }
-
-    if (isMongoConnected()) {
-      const filter = buildRoomFilter(request.query);
-      const rooms = await Room.find({
-        ...filter,
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: origin.coordinates,
-            },
-            $maxDistance: maxDistance,
-          },
-        },
-      })
-        .limit(60)
-        .lean();
-
-      response.json({ origin, rooms });
-      return;
-    }
-
-    const rooms = memoryRooms
-      .filter((room) => memoryMatches(room, request.query))
-      .map((room) => {
-        const distanceMeters = haversineDistanceMeters(
-          origin.coordinates,
-          room.location.coordinates,
-        );
-
-        return {
-          ...room,
-          distanceMeters,
-          distance: distanceLabel(distanceMeters),
-        };
-      })
-      .filter((room) => room.distanceMeters <= maxDistance)
-      .sort((a, b) => a.distanceMeters - b.distanceMeters);
-
-    response.json({ origin, rooms });
   } catch (error) {
     next(error);
   }

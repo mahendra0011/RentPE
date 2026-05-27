@@ -15,7 +15,7 @@ export const seedRooms = [
     landmark: "LNCT College",
     locationLabel: "Gulmohar Colony, Bhopal",
     location: { type: "Point", coordinates: [77.4924, 23.2515] },
-    nearbyEssentials: [
+    localEssentials: [
       { name: "LNCT College", type: "college", distance: "1.2 km" },
       { name: "DB Mall", type: "mall", distance: "7.1 km" },
       { name: "Bus Stop", type: "transit", distance: "350 m" },
@@ -48,7 +48,7 @@ export const seedRooms = [
     landmark: "Indrapuri",
     locationLabel: "Indrapuri Sector C, Bhopal",
     location: { type: "Point", coordinates: [77.4845, 23.2486] },
-    nearbyEssentials: [
+    localEssentials: [
       { name: "Indrapuri Market", type: "market", distance: "400 m" },
       { name: "Rani Kamlapati Station", type: "transit", distance: "5.3 km" },
     ],
@@ -80,7 +80,7 @@ export const seedRooms = [
     landmark: "Arera Colony",
     locationLabel: "Arera Colony, Bhopal",
     location: { type: "Point", coordinates: [77.4264, 23.2077] },
-    nearbyEssentials: [
+    localEssentials: [
       { name: "10 Number Market", type: "market", distance: "900 m" },
       { name: "Hospital", type: "hospital", distance: "1.4 km" },
     ],
@@ -112,7 +112,7 @@ export const seedRooms = [
     landmark: "Kolar Road",
     locationLabel: "Kolar Road, Bhopal",
     location: { type: "Point", coordinates: [77.4122, 23.1699] },
-    nearbyEssentials: [
+    localEssentials: [
       { name: "Kolar Market", type: "market", distance: "600 m" },
       { name: "Bus Stop", type: "transit", distance: "300 m" },
     ],
@@ -144,7 +144,7 @@ export const seedRooms = [
     landmark: "MP Nagar Zone 2",
     locationLabel: "MP Nagar Zone 2, Bhopal",
     location: { type: "Point", coordinates: [77.4335, 23.2336] },
-    nearbyEssentials: [
+    localEssentials: [
       { name: "DB Mall", type: "mall", distance: "800 m" },
       { name: "Rani Kamlapati Station", type: "transit", distance: "1.8 km" },
     ],
@@ -176,7 +176,7 @@ export const seedRooms = [
     landmark: "Habibganj",
     locationLabel: "Habibganj, Bhopal",
     location: { type: "Point", coordinates: [77.4394, 23.2214] },
-    nearbyEssentials: [
+    localEssentials: [
       { name: "Rani Kamlapati Station", type: "transit", distance: "600 m" },
       { name: "Coaching Zone", type: "education", distance: "1.2 km" },
     ],

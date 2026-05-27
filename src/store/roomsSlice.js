@@ -30,15 +30,6 @@ export const fetchRooms = createAsyncThunk("rooms/fetchRooms", async (filters = 
   return normalizeRooms(rooms);
 });
 
-export const searchNearbyRooms = createAsyncThunk("rooms/searchNearby", async (filters = {}) => {
-  const query = toQueryString(filters);
-  const payload = await apiRequest(`/api/rooms/nearby${query ? `?${query}` : ""}`);
-  return {
-    origin: payload.origin,
-    rooms: normalizeRooms(payload.rooms),
-  };
-});
-
 export const fetchRoom = createAsyncThunk("rooms/fetchRoom", async (id) => {
   const room = await apiRequest(`/api/rooms/${id}`);
   return normalizeRoom(room);
@@ -104,19 +95,6 @@ const roomsSlice = createSlice({
         state.origin = null;
       })
       .addCase(fetchRooms.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.error.message;
-      })
-      .addCase(searchNearbyRooms.pending, (state) => {
-        state.status = "loading";
-        state.error = "";
-      })
-      .addCase(searchNearbyRooms.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        state.origin = action.payload.origin;
-        state.items = action.payload.rooms;
-      })
-      .addCase(searchNearbyRooms.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message;
       })

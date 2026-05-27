@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { LocateFixed, MapPin, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { MapPin, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -52,7 +52,6 @@ export default function FindRoom() {
       Boolean(searchParams.get("location")),
   );
   const [priceMax, setPriceMax] = useState(() => Number(searchParams.get("budget") || 20000));
-  const [distanceMax, setDistanceMax] = useState(5);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedGenders, setSelectedGenders] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
@@ -96,7 +95,6 @@ export default function FindRoom() {
 
         if (!queryMatch) return false;
         if (room.price > priceMax) return false;
-        if (room.distanceKm && room.distanceKm > distanceMax) return false;
         if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
         if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
         if (furnishedOnly && !room.furnished) return false;
@@ -112,7 +110,6 @@ export default function FindRoom() {
       }),
     [
       availableOnly,
-      distanceMax,
       furnishedOnly,
       locationQuery,
       priceMax,
@@ -130,7 +127,6 @@ export default function FindRoom() {
     Number(furnishedOnly) +
     Number(!availableOnly) +
     Number(priceMax !== 20000) +
-    Number(distanceMax !== 5) +
     Number(Boolean(locationQuery));
 
   function onLocationSubmit(event) {
@@ -164,7 +160,6 @@ export default function FindRoom() {
   function resetFilters() {
     setLocationQuery("");
     setPriceMax(20000);
-    setDistanceMax(5);
     setSelectedTypes([]);
     setSelectedGenders([]);
     setSelectedAmenities([]);
@@ -258,9 +253,8 @@ export default function FindRoom() {
                 <h1 className="text-3xl font-black tracking-normal text-ink">Rooms near you</h1>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   Showing{" "}
-                  <span className="font-black text-ink">{filteredRooms.length} properties</span>{" "}
-                  within {distanceMax} km
-                  {locationQuery ? ` of ${locationQuery}` : " of your search"}
+                  <span className="font-black text-ink">{filteredRooms.length} properties</span>
+                  {locationQuery ? ` matching "${locationQuery}"` : " from RentPE listings"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -294,7 +288,7 @@ export default function FindRoom() {
                   <div>
                     <h2 className="font-black text-ink">Filters</h2>
                     <p className="mt-1 text-xs font-bold text-slate-500">
-                      Location, budget, distance and room preferences apply instantly
+                      Keyword, budget and room preferences apply instantly
                     </p>
                   </div>
                   <button
@@ -306,7 +300,7 @@ export default function FindRoom() {
                   </button>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-4">
+                <div className="grid gap-5 md:grid-cols-3">
                   <FilterBlock label="Location">
                     <ChipRow
                       items={quickLocations}
@@ -325,21 +319,6 @@ export default function FindRoom() {
                       onChange={(event) => setPriceMax(Number(event.target.value))}
                       className="w-full accent-brand"
                     />
-                  </FilterBlock>
-
-                  <FilterBlock label={`${distanceMax} km from location`}>
-                    <div className="flex items-center gap-3">
-                      <LocateFixed className="size-4 text-slate-400" />
-                      <input
-                        type="range"
-                        min={1}
-                        max={15}
-                        step={1}
-                        value={distanceMax}
-                        onChange={(event) => setDistanceMax(Number(event.target.value))}
-                        className="w-full accent-brand"
-                      />
-                    </div>
                   </FilterBlock>
 
                   <FilterBlock label="Property type">

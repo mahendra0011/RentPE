@@ -307,7 +307,7 @@ export default function ListRoom() {
                       value={data.description}
                       onChange={(event) => update("description", event.target.value)}
                       rows={4}
-                      placeholder="Mention nearby colleges, food options, safety, and house rules."
+                      placeholder="Mention college, office, area, food options, safety, and house rules."
                       className="form-input resize-none"
                     />
                   </Field>
@@ -412,8 +412,8 @@ export default function ListRoom() {
                     </Field>
                   </div>
                   <div className="rounded-xl bg-brand-soft p-4 text-xs font-bold leading-5 text-slate-700">
-                    RentPE uses this address and landmark for nearby search. Users will see the
-                    area, distance, price, photos, and owner contact.
+                    RentPE uses this address, city, and landmark as searchable keywords. Users will
+                    see the area, price, photos, and owner contact.
                   </div>
                 </div>
               )}

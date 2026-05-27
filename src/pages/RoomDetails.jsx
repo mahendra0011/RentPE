@@ -244,14 +244,14 @@ export default function RoomDetails() {
             </section>
 
             <section className="border-t border-slate-200 py-6">
-              <h2 className="mb-4 text-lg font-black">Nearby essentials</h2>
+              <h2 className="mb-4 text-lg font-black">Local essentials</h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {(room.nearbyEssentials?.length
-                  ? room.nearbyEssentials
+                {(room.localEssentials?.length
+                  ? room.localEssentials
                   : [
-                      { name: "College / Office", type: "landmark", distance: "Nearby" },
+                      { name: "College / Office", type: "landmark", distance: "Area detail" },
                       { name: "Bus stop", type: "transit", distance: "Walkable" },
-                      { name: "Market", type: "daily needs", distance: "Nearby" },
+                      { name: "Market", type: "daily needs", distance: "Area detail" },
                     ]
                 ).map((item) => (
                   <div
@@ -370,7 +370,7 @@ export default function RoomDetails() {
         </div>
 
         <section className="mt-16 border-t border-slate-200 pt-10">
-          <h2 className="mb-5 text-xl font-black">Similar rooms nearby</h2>
+          <h2 className="mb-5 text-xl font-black">Similar rooms</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {similar.map((item, index) => (
               <RoomCard key={item.id} room={item} index={index} />

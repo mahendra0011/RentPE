@@ -2,7 +2,7 @@
 
 RentPE is a room rental marketplace for students, interns, job seekers, and people moving to a new city. Owners can list rooms, PGs, hostels, and flats. Seekers can compare rooms, apply filters, and connect directly with owners on WhatsApp.
 
-The frontend intentionally does not include a map screen. Location is still stored in the backend for nearby search and distance-based results.
+The frontend intentionally does not include a map screen. Rooms are searched by owner-entered city, area, landmark, address, title, and description keywords.
 
 ## Current UI Flow
 
@@ -13,11 +13,11 @@ The frontend intentionally does not include a map screen. Location is still stor
 - Header `Find Room` opens the dedicated find room page.
 - Home `Filter` and `See all` open the dedicated find room page.
 - The dedicated find room page uses the same room-card layout as the home room section, with a top search bar and inline filters instead of a side filter column.
-- Find room filters include location search, quick location chips, city chips, distance, budget, tenant, property type, furnished, availability, and amenities.
+- Find room filters include keyword search, quick location chips, city chips, budget, tenant, property type, furnished, availability, and amenities.
 - Room cards include WhatsApp owner contact, Wishlist, and Share actions.
 - Wishlist has its own navbar link and page for saved rooms.
 - Old `/search` URLs redirect to the find room page.
-- Room cards show photos, room type, distance, price, amenities, WhatsApp owner CTA, and save action.
+- Room cards show photos, room type, area, price, amenities, WhatsApp owner CTA, and save action.
 - Signup uses name, email, mobile number, password, owner checkbox, and email OTP verification.
 - Login uses only email, password, and owner checkbox.
 - If a user continues as owner, `List Your Room` appears in the navbar and opens the room posting flow.
@@ -29,9 +29,9 @@ The frontend intentionally does not include a map screen. Location is still stor
 - Room, PG, hostel, and flat listings
 - Owner room posting flow with photos, price, amenities, address, and contact
 - Dedicated find room page with all listings and filter controls
-- Location filters for city, area, college, office, quick locations, and distance
-- Nearby search using city, area, college, office, or landmark
-- Room details page with gallery, owner card, amenities, nearby essentials, report action, and WhatsApp contact
+- Keyword filters for city, area, college, office, quick locations, and landmarks
+- Search using owner-entered city, area, address, title, description, or landmark text
+- Room details page with gallery, owner card, amenities, local essentials, report action, and WhatsApp contact
 - Roommate finder with budget, city, area, college or office, and move-in fields
 - Wishlist page for saved rooms
 - Shareable room links from cards and room details
@@ -74,7 +74,7 @@ RentPE/
     models/          Mongoose models
     routes/          Express API routes
     services/        Brevo email service
-    utils/           Geocoding and distance helpers
+    utils/           Shared backend helpers
   src/
     assets/          Room images
     components/      Shared React components
@@ -143,8 +143,6 @@ CLOUDINARY_FOLDER=rentpe/rooms
 BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=verified-sender@example.com
 BREVO_SENDER_NAME=RentPE
-GEOCODER_PROVIDER=nominatim
-GEOCODER_USER_AGENT=RentPE local development
 ```
 
 Notes:
@@ -152,7 +150,6 @@ Notes:
 - If `MONGODB_URI` is missing, the API uses in-memory seed data.
 - If Cloudinary keys are missing, room posting still works, but uploaded images are not sent to Cloudinary.
 - If Brevo keys are missing, OTP routes return a local development OTP in the response.
-- Geocoding has built-in known locations for common demo searches such as `Bhopal`, `LNCT`, `MP Nagar`, and `Arera Colony`.
 - In production, set `CLIENT_URL` and `CORS_ORIGINS` to your deployed frontend URL, for example `https://rentpe-j7bq.onrender.com`.
 
 ## App Routes
@@ -175,7 +172,6 @@ Rooms:
 
 ```txt
 GET    /api/rooms
-GET    /api/rooms/nearby?query=LNCT&maxDistance=5000
 GET    /api/rooms/:slug
 POST   /api/rooms
 PATCH  /api/rooms/:slug/availability
@@ -237,21 +233,6 @@ Frontend Static Site:
 
 If the backend URL says `Blocked request. This host is not allowed. add ... to vite.config.js`, the backend Render service is running Vite instead of Express. Change that backend Start Command to `npm start` and redeploy.
 
-## MongoDB Location Model
+## MongoDB Search Model
 
-Rooms store a GeoJSON point for nearby search:
-
-```js
-location: {
-  type: "Point",
-  coordinates: [77.4126, 23.2599]
-}
-```
-
-The room model includes:
-
-```js
-roomSchema.index({ location: "2dsphere" });
-```
-
-This supports distance-based search while keeping the frontend simple and list-focused.
+Rooms store the owner-entered `address`, `city`, `landmark`, and `locationLabel` text. Search is keyword-based, so new listings publish even if there is no map coordinate or geocoding result.

@@ -54,7 +54,7 @@ const steps = [
   {
     icon: Search,
     title: "Search by location",
-    body: "Type your college, office or area. We show verified rooms within walking distance.",
+    body: "Type any city, area, college, office, or landmark keyword and compare matching rooms.",
   },
   {
     icon: ShieldCheck,
@@ -292,10 +292,11 @@ export default function Home() {
         >
           <motion.div variants={fadeUp} className="mb-7 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-black tracking-normal text-ink">Rooms near you</h2>
+              <h2 className="text-3xl font-black tracking-normal text-ink">
+                Rooms matching your move
+              </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                Showing <span className="font-black text-ink">142 properties</span> within 5 km of
-                your search
+                Search by city, area, landmark, title, or owner-posted address
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -353,8 +354,8 @@ export default function Home() {
                   Find or list a room in <span className="text-brand">three simple steps.</span>
                 </h2>
                 <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-slate-600">
-                  Search near your college or office, compare verified listings, and connect
-                  directly with owners. No brokers. No spam.
+                  Search by keyword, compare verified listings, and connect directly with owners. No
+                  brokers. No spam.
                 </p>
               </div>
 

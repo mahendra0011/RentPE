@@ -16,8 +16,7 @@ export function normalizeRoom(room, index = 0) {
       : null;
   const [fallbackImage] = rotateImages(index);
   const images = room.images?.length ? room.images : rotateImages(index);
-  const distanceKm =
-    room.distanceKm || (room.distanceMeters ? Number((room.distanceMeters / 1000).toFixed(1)) : 0);
+  const areaBadge = room.landmark || displayLocation || room.city || "Location listed";
 
   return {
     ...room,
@@ -27,8 +26,8 @@ export function normalizeRoom(room, index = 0) {
     images,
     coverImage: images[0] || fallbackImage,
     location: displayLocation || room.address || room.city || "Location pending",
-    distance: room.distance || (distanceKm ? `${distanceKm} km away` : "Nearby"),
-    distanceKm,
+    distance: areaBadge,
+    distanceKm: 0,
     owner: {
       verified: false,
       rating: 0,
@@ -37,7 +36,7 @@ export function normalizeRoom(room, index = 0) {
     },
     geoCoordinates,
     availability: room.availability || "available",
-    nearbyEssentials: room.nearbyEssentials || [],
+    localEssentials: room.localEssentials || [],
   };
 }
 
