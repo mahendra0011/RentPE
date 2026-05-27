@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 
@@ -14,6 +14,8 @@ import { fetchRooms } from "@/store/roomsSlice.js";
 const filterTypes = ["PG", "Hostel", "Flat"];
 const filterGenders = ["Girls", "Boys", "Co-ed"];
 const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
+const initialVisibleRooms = 48;
+const visibleRoomStep = 48;
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -49,6 +51,8 @@ export default function FindRoom() {
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [furnishedOnly, setFurnishedOnly] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(initialVisibleRooms);
+  const deferredKeywordQuery = useDeferredValue(keywordQuery);
 
   useEffect(() => {
     dispatch(fetchRooms());
@@ -73,7 +77,7 @@ export default function FindRoom() {
   }, [searchParams]);
 
   const filteredRooms = useMemo(() => {
-    const matchedRoomIds = searchRoomIds(roomSearchIndex, keywordQuery, rooms.length);
+    const matchedRoomIds = searchRoomIds(roomSearchIndex, deferredKeywordQuery, rooms.length);
     const matchRank = matchedRoomIds
       ? new Map(matchedRoomIds.map((id, index) => [String(id), index]))
       : null;
@@ -102,8 +106,8 @@ export default function FindRoom() {
     });
   }, [
     availableOnly,
+    deferredKeywordQuery,
     furnishedOnly,
-    keywordQuery,
     priceMax,
     roomSearchIndex,
     rooms,
@@ -111,6 +115,24 @@ export default function FindRoom() {
     selectedGenders,
     selectedTypes,
   ]);
+
+  useEffect(() => {
+    setVisibleCount(initialVisibleRooms);
+  }, [
+    availableOnly,
+    deferredKeywordQuery,
+    furnishedOnly,
+    priceMax,
+    selectedAmenities,
+    selectedGenders,
+    selectedTypes,
+  ]);
+
+  const visibleRooms = useMemo(
+    () => filteredRooms.slice(0, visibleCount),
+    [filteredRooms, visibleCount],
+  );
+  const hasMoreRooms = visibleRooms.length < filteredRooms.length;
 
   const activeFilterCount =
     selectedTypes.length +
@@ -208,8 +230,13 @@ export default function FindRoom() {
                 <h1 className="text-3xl font-black tracking-normal text-ink">Find rooms</h1>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   Showing{" "}
-                  <span className="font-black text-ink">{filteredRooms.length} properties</span>
-                  {keywordQuery ? ` matching "${keywordQuery}"` : " from RentPE listings"}
+                  <span className="font-black text-ink">
+                    {visibleRooms.length}
+                    {hasMoreRooms ? ` of ${filteredRooms.length}` : ""} properties
+                  </span>
+                  {deferredKeywordQuery
+                    ? ` matching "${deferredKeywordQuery}"`
+                    : " from RentPE listings"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -313,8 +340,8 @@ export default function FindRoom() {
             )}
 
             <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
-              {filteredRooms.map((room, index) => (
-                <RoomCard key={room.id} room={room} index={index} />
+              {visibleRooms.map((room, index) => (
+                <RoomCard key={room.id} room={room} index={index % visibleRoomStep} />
               ))}
               {filteredRooms.length === 0 && (
                 <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center">
@@ -329,6 +356,18 @@ export default function FindRoom() {
                 </div>
               )}
             </motion.div>
+
+            {hasMoreRooms && (
+              <div className="mt-10 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((count) => count + visibleRoomStep)}
+                  className="inline-flex items-center justify-center rounded-full bg-ink px-7 py-3 text-sm font-black text-white shadow-sm transition-colors hover:bg-slate-800"
+                >
+                  Load more rooms
+                </button>
+              </div>
+            )}
           </motion.div>
         </motion.section>
       </main>
