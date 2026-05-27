@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -13,8 +13,8 @@ import { fetchRooms } from "@/store/roomsSlice.js";
 const filterTypes = ["PG", "Hostel", "Flat"];
 const filterGenders = ["Girls", "Boys", "Co-ed"];
 const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
-const quickLocations = [
-  "Near LNCT",
+const keywordSuggestions = [
+  "LNCT",
   "MP Nagar",
   "Arera Colony",
   "Gulmohar Colony",
@@ -22,7 +22,6 @@ const quickLocations = [
   "Kolar Road",
   "Habibganj",
 ];
-const cityFilters = ["Bhopal", "Indore", "Pune", "Bangalore", "Delhi NCR"];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -44,11 +43,14 @@ export default function FindRoom() {
   const [searchParams, setSearchParams] = useSearchParams();
   const apiRooms = useSelector((state) => state.rooms.items);
   const rooms = apiRooms.length ? apiRooms : normalizeRooms(staticRooms);
-  const [locationQuery, setLocationQuery] = useState(() => searchParams.get("location") || "");
+  const [keywordQuery, setKeywordQuery] = useState(
+    () => searchParams.get("q") || searchParams.get("location") || "",
+  );
   const [showFilters, setShowFilters] = useState(
     () =>
       searchParams.get("filters") === "1" ||
       searchParams.get("all") === "1" ||
+      Boolean(searchParams.get("q")) ||
       Boolean(searchParams.get("location")),
   );
   const [priceMax, setPriceMax] = useState(() => Number(searchParams.get("budget") || 20000));
@@ -63,11 +65,11 @@ export default function FindRoom() {
   }, [dispatch]);
 
   useEffect(() => {
-    const nextLocation = searchParams.get("location");
+    const nextKeyword = searchParams.get("q") || searchParams.get("location");
     const nextBudget = searchParams.get("budget");
 
-    if (nextLocation !== null) {
-      setLocationQuery(nextLocation);
+    if (nextKeyword !== null) {
+      setKeywordQuery(nextKeyword);
       setShowFilters(true);
     }
 
@@ -83,10 +85,21 @@ export default function FindRoom() {
   const filteredRooms = useMemo(
     () =>
       rooms.filter((room) => {
-        const haystack = `${room.city} ${room.location} ${room.address} ${room.title}`
+        const haystack = [
+          room.city,
+          room.location,
+          room.address,
+          room.landmark,
+          room.title,
+          room.description,
+          room.type,
+          room.gender,
+        ]
+          .filter(Boolean)
+          .join(" ")
           .toLowerCase()
           .replace(/[^a-z0-9\s]/g, " ");
-        const queryTerms = locationQuery
+        const queryTerms = keywordQuery
           .toLowerCase()
           .replace(/[^a-z0-9\s]/g, " ")
           .split(/\s+/)
@@ -111,7 +124,7 @@ export default function FindRoom() {
     [
       availableOnly,
       furnishedOnly,
-      locationQuery,
+      keywordQuery,
       priceMax,
       rooms,
       selectedAmenities,
@@ -127,27 +140,28 @@ export default function FindRoom() {
     Number(furnishedOnly) +
     Number(!availableOnly) +
     Number(priceMax !== 20000) +
-    Number(Boolean(locationQuery));
+    Number(Boolean(keywordQuery));
 
-  function onLocationSubmit(event) {
+  function onKeywordSubmit(event) {
     event.preventDefault();
     const params = new URLSearchParams();
-    if (locationQuery.trim()) params.set("location", locationQuery.trim());
+    if (keywordQuery.trim()) params.set("q", keywordQuery.trim());
     if (priceMax !== 20000) params.set("budget", String(priceMax));
     if (showFilters) params.set("filters", "1");
     setSearchParams(params);
   }
 
-  function chooseLocation(location) {
-    const nextLocation = locationQuery === location ? "" : location;
-    setLocationQuery(nextLocation);
+  function chooseKeyword(keyword) {
+    const nextKeyword = keywordQuery === keyword ? "" : keyword;
+    setKeywordQuery(nextKeyword);
     setShowFilters(true);
 
     const params = new URLSearchParams(searchParams);
-    if (nextLocation) {
-      params.set("location", nextLocation);
+    params.delete("location");
+    if (nextKeyword) {
+      params.set("q", nextKeyword);
     } else {
-      params.delete("location");
+      params.delete("q");
     }
     params.set("filters", "1");
     setSearchParams(params);
@@ -158,7 +172,7 @@ export default function FindRoom() {
   }
 
   function resetFilters() {
-    setLocationQuery("");
+    setKeywordQuery("");
     setPriceMax(20000);
     setSelectedTypes([]);
     setSelectedGenders([]);
@@ -180,7 +194,7 @@ export default function FindRoom() {
           className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 md:pb-20 md:pt-16"
         >
           <motion.form
-            onSubmit={onLocationSubmit}
+            onSubmit={onKeywordSubmit}
             variants={fadeUp}
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
@@ -188,12 +202,12 @@ export default function FindRoom() {
           >
             <div className="flex flex-col gap-2 md:h-14 md:flex-row md:items-center">
               <label className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 md:px-5 md:py-0">
-                <MapPin className="size-5 shrink-0 text-slate-400" />
+                <Search className="size-5 shrink-0 text-slate-400" />
                 <input
-                  value={locationQuery}
-                  onChange={(event) => setLocationQuery(event.target.value)}
+                  value={keywordQuery}
+                  onChange={(event) => setKeywordQuery(event.target.value)}
                   type="text"
-                  placeholder="Near LNCT College, Bhopal"
+                  placeholder="Search keyword: LNCT, MP Nagar, PG, WiFi"
                   className="w-full bg-transparent text-sm font-black text-ink outline-none placeholder:text-slate-400"
                 />
               </label>
@@ -227,19 +241,19 @@ export default function FindRoom() {
             className="mt-7 flex flex-wrap items-center justify-center gap-2"
           >
             <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
-              Popular:
+              Keywords:
             </span>
-            {cityFilters.map((city) => (
+            {keywordSuggestions.map((keyword) => (
               <motion.button
-                key={city}
+                key={keyword}
                 type="button"
-                onClick={() => chooseLocation(city)}
+                onClick={() => chooseKeyword(keyword)}
                 variants={chipMotion}
                 whileHover={{ y: -2, scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-brand hover:text-brand"
               >
-                {city}
+                {keyword}
               </motion.button>
             ))}
           </motion.div>
@@ -250,11 +264,11 @@ export default function FindRoom() {
               className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
             >
               <div>
-                <h1 className="text-3xl font-black tracking-normal text-ink">Rooms near you</h1>
+                <h1 className="text-3xl font-black tracking-normal text-ink">Find rooms</h1>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   Showing{" "}
                   <span className="font-black text-ink">{filteredRooms.length} properties</span>
-                  {locationQuery ? ` matching "${locationQuery}"` : " from RentPE listings"}
+                  {keywordQuery ? ` matching "${keywordQuery}"` : " from RentPE listings"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -301,14 +315,6 @@ export default function FindRoom() {
                 </div>
 
                 <div className="grid gap-5 md:grid-cols-3">
-                  <FilterBlock label="Location">
-                    <ChipRow
-                      items={quickLocations}
-                      selected={[locationQuery]}
-                      onToggle={chooseLocation}
-                    />
-                  </FilterBlock>
-
                   <FilterBlock label={`Max price - Rs. ${priceMax.toLocaleString("en-IN")}`}>
                     <input
                       type="range"
@@ -344,14 +350,6 @@ export default function FindRoom() {
                       onToggle={(value) =>
                         toggleFilter(selectedAmenities, value, setSelectedAmenities)
                       }
-                    />
-                  </FilterBlock>
-
-                  <FilterBlock label="City">
-                    <ChipRow
-                      items={cityFilters}
-                      selected={[locationQuery]}
-                      onToggle={chooseLocation}
                     />
                   </FilterBlock>
 

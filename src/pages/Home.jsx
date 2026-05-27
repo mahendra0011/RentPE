@@ -4,7 +4,6 @@ import {
   BriefcaseBusiness,
   Building2,
   GraduationCap,
-  MapPin,
   MessageCircle,
   Search,
   ShieldCheck,
@@ -25,7 +24,7 @@ import { rooms as staticRooms } from "@/data/rooms.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
-const popularCities = ["Bhopal", "Indore", "Pune", "Bangalore", "Delhi NCR"];
+const popularKeywords = ["LNCT", "MP Nagar", "Arera Colony", "Indrapuri", "Kolar Road"];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -53,7 +52,7 @@ const heroSignals = [
 const steps = [
   {
     icon: Search,
-    title: "Search by location",
+    title: "Search by keyword",
     body: "Type any city, area, college, office, or landmark keyword and compare matching rooms.",
   },
   {
@@ -177,13 +176,13 @@ export default function Home() {
     const query = String(form.get("query") || "").trim();
     const budget = form.get("budget");
     const params = new URLSearchParams();
-    if (query) params.set("location", query);
+    if (query) params.set("q", query);
     if (budget) params.set("budget", String(budget));
     navigate(`/find-room${params.toString() ? `?${params}` : ""}`);
   }
 
-  function chooseCity(city) {
-    navigate(`/find-room?location=${encodeURIComponent(city)}`);
+  function chooseKeyword(keyword) {
+    navigate(`/find-room?q=${encodeURIComponent(keyword)}`);
   }
 
   return (
@@ -216,12 +215,12 @@ export default function Home() {
             >
               <div className="flex flex-col gap-2 md:h-14 md:flex-row md:items-center">
                 <label className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 md:px-5 md:py-0">
-                  <MapPin className="size-5 shrink-0 text-slate-400" />
+                  <Search className="size-5 shrink-0 text-slate-400" />
                   <input
                     name="query"
                     type="text"
-                    placeholder="Near LNCT College, Bhopal"
-                    defaultValue="Near LNCT College, Bhopal"
+                    placeholder="Search LNCT, MP Nagar, PG, WiFi"
+                    defaultValue="LNCT"
                     className="w-full bg-transparent text-sm font-black text-ink outline-none placeholder:text-slate-400"
                   />
                 </label>
@@ -254,19 +253,19 @@ export default function Home() {
               className="mt-7 flex flex-wrap items-center justify-center gap-2"
             >
               <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
-                Popular:
+                Keywords:
               </span>
-              {popularCities.map((city) => (
+              {popularKeywords.map((keyword) => (
                 <motion.button
-                  key={city}
+                  key={keyword}
                   type="button"
-                  onClick={() => chooseCity(city)}
+                  onClick={() => chooseKeyword(keyword)}
                   variants={chipMotion}
                   whileHover={{ y: -2, scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
                   className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-brand hover:text-brand"
                 >
-                  {city}
+                  {keyword}
                 </motion.button>
               ))}
             </motion.div>
