@@ -8,6 +8,7 @@ import ListRoom from "@/pages/ListRoom.jsx";
 import MyListedRooms from "@/pages/MyListedRooms.jsx";
 import NotFound from "@/pages/NotFound.jsx";
 import RoomDetails from "@/pages/RoomDetails.jsx";
+import RoommateDetails from "@/pages/RoommateDetails.jsx";
 import Roommates from "@/pages/Roommates.jsx";
 import Wishlist from "@/pages/Wishlist.jsx";
 
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/list-room" element={<ListRoom />} />
       <Route path="/my-rooms" element={<MyListedRooms />} />
       <Route path="/roommates" element={<Roommates />} />
+      <Route path="/roommates/:id" element={<RoommateDetails />} />
       <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/rooms/:id" element={<RoomDetails />} />

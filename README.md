@@ -18,6 +18,7 @@ RentPE intentionally does not use maps or geocoding. Search is based on owner-en
 - Wishlist page for saved rooms
 - Share buttons for room links
 - Roommate finder page
+- Roommate request detail page with profile, preferences, budget, safety notes, WhatsApp, call, and share
 - User dashboard for saved rooms and contacted owners
 - Dark mode with local browser persistence
 - Cloudinary-ready image upload
@@ -158,6 +159,7 @@ Notes:
 /list-room        Owner room posting form
 /my-rooms         Owner listing management and edit page
 /roommates        Roommate finder
+/roommates/:id    Roommate request details
 /wishlist         Saved rooms
 /dashboard        User dashboard
 /login            Login
@@ -200,6 +202,7 @@ Roommates:
 
 ```txt
 GET    /api/roommates
+GET    /api/roommates/:slug
 POST   /api/roommates
 ```
 
