@@ -8,6 +8,7 @@ import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
+import { createRoomSearchIndex, searchRoomIds } from "@/lib/roomSearch.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
 const filterTypes = ["PG", "Hostel", "Flat"];
@@ -29,7 +30,9 @@ export default function FindRoom() {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const apiRooms = useSelector((state) => state.rooms.items);
-  const rooms = apiRooms.length ? apiRooms : normalizeRooms(staticRooms);
+  const fallbackRooms = useMemo(() => normalizeRooms(staticRooms), []);
+  const rooms = apiRooms.length ? apiRooms : fallbackRooms;
+  const roomSearchIndex = useMemo(() => createRoomSearchIndex(rooms), [rooms]);
   const [keywordQuery, setKeywordQuery] = useState(
     () => searchParams.get("q") || searchParams.get("location") || "",
   );
@@ -69,56 +72,45 @@ export default function FindRoom() {
     }
   }, [searchParams]);
 
-  const filteredRooms = useMemo(
-    () =>
-      rooms.filter((room) => {
-        const haystack = [
-          room.city,
-          room.location,
-          room.address,
-          room.landmark,
-          room.title,
-          room.description,
-          room.type,
-          room.gender,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, " ");
-        const queryTerms = keywordQuery
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, " ")
-          .split(/\s+/)
-          .filter((term) => term.length > 2 && !["near", "room", "rooms"].includes(term));
-        const queryMatch = !queryTerms.length || queryTerms.some((term) => haystack.includes(term));
+  const filteredRooms = useMemo(() => {
+    const matchedRoomIds = searchRoomIds(roomSearchIndex, keywordQuery, rooms.length);
+    const matchRank = matchedRoomIds
+      ? new Map(matchedRoomIds.map((id, index) => [String(id), index]))
+      : null;
 
-        if (!queryMatch) return false;
-        if (room.price > priceMax) return false;
-        if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
-        if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
-        if (furnishedOnly && !room.furnished) return false;
-        if (availableOnly && room.availability === "occupied") return false;
-        if (
-          selectedAmenities.length &&
-          !selectedAmenities.every((amenity) => room.amenities.includes(amenity))
-        ) {
-          return false;
-        }
+    const nextRooms = rooms.filter((room) => {
+      if (matchRank && !matchRank.has(String(room.id))) return false;
+      if (room.price > priceMax) return false;
+      if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
+      if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
+      if (furnishedOnly && !room.furnished) return false;
+      if (availableOnly && room.availability === "occupied") return false;
+      if (
+        selectedAmenities.length &&
+        !selectedAmenities.every((amenity) => room.amenities.includes(amenity))
+      ) {
+        return false;
+      }
 
-        return true;
-      }),
-    [
-      availableOnly,
-      furnishedOnly,
-      keywordQuery,
-      priceMax,
-      rooms,
-      selectedAmenities,
-      selectedGenders,
-      selectedTypes,
-    ],
-  );
+      return true;
+    });
+
+    if (!matchRank) return nextRooms;
+
+    return nextRooms.sort((firstRoom, secondRoom) => {
+      return matchRank.get(String(firstRoom.id)) - matchRank.get(String(secondRoom.id));
+    });
+  }, [
+    availableOnly,
+    furnishedOnly,
+    keywordQuery,
+    priceMax,
+    roomSearchIndex,
+    rooms,
+    selectedAmenities,
+    selectedGenders,
+    selectedTypes,
+  ]);
 
   const activeFilterCount =
     selectedTypes.length +
