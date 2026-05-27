@@ -23,6 +23,7 @@ export function normalizeRoom(room, index = 0) {
     id,
     slug: room.slug || id,
     tag: room.tag || `${room.gender || "Co-ed"} ${room.type || "Room"}`,
+    rules: Array.isArray(room.rules) ? room.rules : [],
     images,
     coverImage: images[0] || fallbackImage,
     location: displayLocation || room.address || room.city || "Location pending",

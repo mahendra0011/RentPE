@@ -27,6 +27,7 @@ const emptyForm = {
   gender: "Co-ed",
   price: "",
   description: "",
+  rules: "",
   amenities: [],
   address: "",
   city: "",
@@ -464,6 +465,16 @@ export default function MyListedRooms() {
                 />
               </Field>
 
+              <Field label="House rules" className="mt-5">
+                <textarea
+                  value={form.rules}
+                  onChange={(event) => update("rules", event.target.value)}
+                  rows={3}
+                  placeholder="One rule per line"
+                  className="form-input resize-none"
+                />
+              </Field>
+
               <div className="mt-5 grid gap-5 md:grid-cols-[1fr_260px]">
                 <Field label="Amenities">
                   <div className="flex flex-wrap gap-2">
@@ -536,6 +547,7 @@ function roomToForm(room) {
     gender: room.gender || "Co-ed",
     price: room.price || "",
     description: room.description || "",
+    rules: (room.rules || []).join("\n"),
     amenities: room.amenities || [],
     address: room.address || "",
     city: room.city || "",

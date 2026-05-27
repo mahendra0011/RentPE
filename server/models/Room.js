@@ -38,6 +38,7 @@ const roomSchema = new mongoose.Schema(
     gender: { type: String, enum: ["Girls", "Boys", "Co-ed"], required: true },
     price: { type: Number, required: true, min: 0 },
     description: { type: String, trim: true },
+    rules: [{ type: String, trim: true }],
     amenities: [{ type: String, trim: true }],
     images: [{ type: String }],
     address: { type: String, required: true, trim: true },
@@ -62,7 +63,13 @@ const roomSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-roomSchema.index({ title: "text", address: "text", city: "text", landmark: "text" });
+roomSchema.index({
+  title: "text",
+  address: "text",
+  city: "text",
+  landmark: "text",
+  rules: "text",
+});
 
 const Room = mongoose.models.Room || mongoose.model("Room", roomSchema);
 

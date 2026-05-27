@@ -73,6 +73,25 @@ function parseAmenities(value) {
   }
 }
 
+function parseRules(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item).trim()).filter(Boolean);
+    }
+  } catch {
+    // Fall through to plain text parsing.
+  }
+
+  return String(value)
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function parseList(value) {
   if (!value) return [];
   return String(value)
@@ -106,6 +125,7 @@ function keywordMatches(room, terms) {
     room.type,
     room.gender,
     room.description,
+    ...(room.rules || []),
     room.address,
     room.city,
     room.landmark,
@@ -139,6 +159,7 @@ function buildRoomFilter(query) {
       "type",
       "gender",
       "description",
+      "rules",
       "address",
       "city",
       "landmark",
@@ -198,6 +219,7 @@ async function normalizeRoom(body, images, ownerEmail = "") {
     gender: body.gender || "Co-ed",
     price,
     description: body.description || "",
+    rules: parseRules(body.rules),
     amenities: parseAmenities(body.amenities),
     images,
     address,
@@ -246,6 +268,7 @@ function buildRoomUpdates(body, images, existingRoom) {
     gender,
     price,
     description: body.description ?? existingRoom.description ?? "",
+    rules: body.rules === undefined ? existingRoom.rules || [] : parseRules(body.rules),
     amenities: body.amenities ? parseAmenities(body.amenities) : existingRoom.amenities || [],
     images: images.length ? images : existingRoom.images || [],
     address,

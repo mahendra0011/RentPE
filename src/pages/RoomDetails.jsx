@@ -209,6 +209,20 @@ export default function RoomDetails() {
               <p className="leading-7 text-slate-600">{room.description}</p>
             </section>
 
+            {room.rules?.length > 0 && (
+              <section className="border-t border-slate-200 py-6">
+                <h2 className="mb-4 text-lg font-black">House rules</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {room.rules.map((rule) => (
+                    <div key={rule} className="flex items-start gap-2.5 text-sm font-semibold">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" />
+                      <span>{rule}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="border-t border-slate-200 py-6">
               <h2 className="mb-4 text-lg font-black">What this place offers</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

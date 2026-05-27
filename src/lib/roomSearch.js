@@ -41,6 +41,7 @@ function buildSearchText(room) {
     room.type,
     room.gender,
     room.description,
+    ...(room.rules || []),
     room.address,
     room.city,
     room.landmark,

@@ -44,6 +44,7 @@ const initialData = {
   gender: "Co-ed",
   price: "",
   description: "",
+  rules: "",
   amenities: [],
   photos: [],
   address: "",
@@ -270,7 +271,16 @@ export default function ListRoom() {
                       value={data.description}
                       onChange={(event) => update("description", event.target.value)}
                       rows={4}
-                      placeholder="Mention college, office, area, food options, safety, and house rules."
+                      placeholder="Mention college, office, area, food options, and safety."
+                      className="form-input resize-none"
+                    />
+                  </Field>
+                  <Field label="House rules">
+                    <textarea
+                      value={data.rules}
+                      onChange={(event) => update("rules", event.target.value)}
+                      rows={3}
+                      placeholder="One rule per line, e.g. no smoking, ID proof required"
                       className="form-input resize-none"
                     />
                   </Field>
