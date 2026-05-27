@@ -4,6 +4,7 @@ import {
   BriefcaseBusiness,
   Building2,
   GraduationCap,
+  MapPin,
   MessageCircle,
   Search,
   ShieldCheck,

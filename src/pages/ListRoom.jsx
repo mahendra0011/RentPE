@@ -5,7 +5,6 @@ import {
   ChevronRight,
   Home,
   MapPin,
-  PartyPopper,
   Phone,
   ShieldCheck,
   Upload,
@@ -13,7 +12,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
@@ -57,9 +56,9 @@ const initialData = {
 
 export default function ListRoom() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const [step, setStep] = useState(1);
-  const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState(initialData);
@@ -155,48 +154,12 @@ export default function ListRoom() {
       }
 
       dispatch(markPosted(createdRoom.slug || createdRoom.id));
-      setDone(true);
+      navigate("/my-rooms");
     } catch (publishError) {
       setError(publishError.message);
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (done) {
-    return (
-      <div className="min-h-screen bg-background font-sans text-ink">
-        <SiteHeader />
-        <div className="mx-auto max-w-xl px-6 py-24 text-center">
-          <motion.div
-            initial={{ scale: 0.7, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 16 }}
-            className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-success"
-          >
-            <PartyPopper className="size-9 text-success-foreground" />
-          </motion.div>
-          <h1 className="mb-3 text-3xl font-black tracking-normal">Your listing is live.</h1>
-          <p className="mb-8 text-slate-600">
-            It has been sent to the RentPE API and is ready for verified tenants.
-          </p>
-          <div className="flex justify-center gap-3">
-            <Link
-              to="/"
-              className="rounded-full bg-ink px-6 py-3 text-sm font-black text-background"
-            >
-              Back home
-            </Link>
-            <Link
-              to="/#listings"
-              className="rounded-full border border-slate-200 px-6 py-3 text-sm font-black"
-            >
-              Browse listings
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (

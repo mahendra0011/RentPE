@@ -1,7 +1,7 @@
 const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(resolveApiUrl(path), options);
+  const response = await fetch(resolveApiUrl(path), withAuthHeaders(options));
   const payload = await parseApiResponse(response);
 
   if (!response.ok) {
@@ -9,6 +9,25 @@ export async function apiRequest(path, options = {}) {
   }
 
   return payload;
+}
+
+function withAuthHeaders(options) {
+  const headers = new Headers(options.headers || {});
+  const token = getStoredToken();
+
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return { ...options, headers };
+}
+
+function getStoredToken() {
+  try {
+    return JSON.parse(localStorage.getItem("RentPE:auth"))?.token || "";
+  } catch {
+    return "";
+  }
 }
 
 async function parseApiResponse(response) {

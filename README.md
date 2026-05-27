@@ -10,6 +10,7 @@ The frontend intentionally does not include a map screen. Rooms are searched by 
 - Header navigation uses `Home`, `Find Room`, and `Find Roommate`.
 - Logged-out users see `Login` and `Signup` buttons in the navbar.
 - `List Your Room` appears in the navbar only after logging in or signing up as a room owner.
+- Owners also get a `My Rooms` page to edit their posted listings and replace photos.
 - Header `Find Room` opens the dedicated find room page.
 - Home `Filter` and `See all` open the dedicated find room page.
 - The dedicated find room page uses the same room-card layout as the home room section, with a top search bar and inline filters instead of a side filter column.
@@ -28,6 +29,7 @@ The frontend intentionally does not include a map screen. Rooms are searched by 
 
 - Room, PG, hostel, and flat listings
 - Owner room posting flow with photos, price, amenities, address, and contact
+- Owner listing management page for editing details, availability, contact info, and photos
 - Dedicated find room page with all listings and filter controls
 - Keyword search for city, area, college, office, address, title, description, and landmarks
 - Search using owner-entered city, area, address, title, description, or landmark text
@@ -162,6 +164,7 @@ Notes:
 - `/search` - Redirects to `/find-room` for old links
 - `/rooms/:id` - Room details
 - `/list-room` - Owner room posting flow
+- `/my-rooms` - Owner page for editing listed rooms and replacing photos
 - `/roommates` - Roommate finder
 - `/wishlist` - Saved room wishlist
 - `/dashboard` - User dashboard
@@ -172,8 +175,10 @@ Rooms:
 
 ```txt
 GET    /api/rooms
+GET    /api/rooms/mine
 GET    /api/rooms/:slug
 POST   /api/rooms
+PATCH  /api/rooms/:slug
 PATCH  /api/rooms/:slug/availability
 POST   /api/rooms/:slug/report
 ```

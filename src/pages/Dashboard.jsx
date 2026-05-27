@@ -38,11 +38,11 @@ export default function Dashboard() {
             </p>
           </div>
           <Link
-            to="/list-room"
+            to="/my-rooms"
             className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-black text-background"
           >
             <Building2 className="size-4" />
-            Post room
+            My listed rooms
           </Link>
         </div>
 
@@ -107,7 +107,7 @@ export default function Dashboard() {
             <Panel title="Owner checklist">
               <ul className="space-y-3 text-sm font-bold text-slate-600">
                 <li>Upload 3+ clear photos</li>
-                <li>Use exact landmark for geocoding</li>
+                <li>Keep city, address, and landmark searchable</li>
                 <li>Keep availability updated</li>
                 <li>Verify identity for trust badge</li>
               </ul>

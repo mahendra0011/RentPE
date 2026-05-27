@@ -14,6 +14,42 @@ const upload = multer({
 
 const memoryRooms = [...seedRooms];
 
+function normalizeEmail(email) {
+  return String(email || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getAuthUser(request) {
+  const header = request.get("authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+
+  if (!token) return null;
+
+  try {
+    return JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function getOwnerEmail(request) {
+  return normalizeEmail(
+    getAuthUser(request)?.email || request.body.ownerEmail || request.query.ownerEmail,
+  );
+}
+
+function requireOwner(request, response) {
+  const ownerEmail = getOwnerEmail(request);
+
+  if (!ownerEmail || !ownerEmail.includes("@")) {
+    response.status(401).json({ message: "Owner login required." });
+    return "";
+  }
+
+  return ownerEmail;
+}
+
 function slugify(value) {
   return value
     .toLowerCase()
@@ -136,7 +172,7 @@ function memoryMatches(room, query) {
   return true;
 }
 
-async function normalizeRoom(body, images) {
+async function normalizeRoom(body, images, ownerEmail = "") {
   const title = String(body.title || "").trim();
   const price = Number(body.price || 0);
   const city = String(body.city || "").trim();
@@ -169,6 +205,7 @@ async function normalizeRoom(body, images) {
     landmark,
     locationLabel,
     localEssentials: [],
+    ownerEmail,
     furnished: body.furnished !== "false",
     availability: body.availability || "available",
     status: "live",
@@ -179,6 +216,53 @@ async function normalizeRoom(body, images) {
       verified: false,
       rating: 0,
       since: String(new Date().getFullYear()),
+    },
+  };
+}
+
+function buildRoomUpdates(body, images, existingRoom) {
+  const title = String(body.title || existingRoom.title || "").trim();
+  const price = Number(body.price || existingRoom.price || 0);
+  const city = String(body.city || existingRoom.city || "").trim();
+  const address = String(body.address || existingRoom.address || "").trim();
+  const landmark = String(body.landmark ?? existingRoom.landmark ?? "").trim();
+  const ownerName = String(body.ownerName || existingRoom.owner?.name || "").trim();
+  const phone = String(body.phone || existingRoom.owner?.phone || "").replace(/\D/g, "");
+
+  if (!title || !price || !city || !address || !ownerName || phone.length < 10) {
+    const error = new Error("Title, price, city, address, owner name, and phone are required.");
+    error.status = 400;
+    throw error;
+  }
+
+  const type = body.type || existingRoom.type || "PG";
+  const gender = body.gender || existingRoom.gender || "Co-ed";
+  const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
+
+  return {
+    title,
+    tag: `${gender} ${type}`,
+    type,
+    gender,
+    price,
+    description: body.description ?? existingRoom.description ?? "",
+    amenities: body.amenities ? parseAmenities(body.amenities) : existingRoom.amenities || [],
+    images: images.length ? images : existingRoom.images || [],
+    address,
+    city,
+    landmark,
+    locationLabel,
+    furnished:
+      body.furnished === undefined ? existingRoom.furnished !== false : body.furnished !== "false",
+    availability: body.availability || existingRoom.availability || "available",
+    owner: {
+      ...existingRoom.owner,
+      name: ownerName,
+      phone: phone.startsWith("91") ? phone : `91${phone}`,
+      whatsapp:
+        body.whatsapp === undefined
+          ? existingRoom.owner?.whatsapp !== false
+          : body.whatsapp !== "false",
     },
   };
 }
@@ -194,6 +278,23 @@ router.get("/", async (request, response, next) => {
     }
 
     response.json(memoryRooms.filter((room) => memoryMatches(room, request.query)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/mine", async (request, response, next) => {
+  try {
+    const ownerEmail = requireOwner(request, response);
+    if (!ownerEmail) return;
+
+    if (isMongoConnected()) {
+      const rooms = await Room.find({ ownerEmail }).sort({ updatedAt: -1 }).lean();
+      response.json(rooms);
+      return;
+    }
+
+    response.json(memoryRooms.filter((room) => normalizeEmail(room.ownerEmail) === ownerEmail));
   } catch (error) {
     next(error);
   }
@@ -226,8 +327,11 @@ router.get("/:slug", async (request, response, next) => {
 
 router.post("/", upload.array("photos", 8), async (request, response, next) => {
   try {
+    const ownerEmail = requireOwner(request, response);
+    if (!ownerEmail) return;
+
     const images = (await Promise.all((request.files || []).map(uploadBuffer))).filter(Boolean);
-    const roomInput = await normalizeRoom(request.body, images);
+    const roomInput = await normalizeRoom(request.body, images, ownerEmail);
 
     if (isMongoConnected()) {
       const room = await Room.create(roomInput);
@@ -237,6 +341,51 @@ router.post("/", upload.array("photos", 8), async (request, response, next) => {
 
     memoryRooms.unshift(roomInput);
     response.status(201).json(roomInput);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/:slug", upload.array("photos", 8), async (request, response, next) => {
+  try {
+    const ownerEmail = requireOwner(request, response);
+    if (!ownerEmail) return;
+
+    const images = (await Promise.all((request.files || []).map(uploadBuffer))).filter(Boolean);
+
+    if (isMongoConnected()) {
+      const existingRoom = await Room.findOne({
+        slug: request.params.slug,
+        ownerEmail,
+      }).lean();
+
+      if (!existingRoom) {
+        response.status(404).json({ message: "Listing not found for this owner." });
+        return;
+      }
+
+      const updates = buildRoomUpdates(request.body, images, existingRoom);
+      const room = await Room.findOneAndUpdate(
+        { slug: request.params.slug, ownerEmail },
+        { $set: updates },
+        { new: true },
+      ).lean();
+      response.json(room);
+      return;
+    }
+
+    const index = memoryRooms.findIndex(
+      (room) => room.slug === request.params.slug && normalizeEmail(room.ownerEmail) === ownerEmail,
+    );
+
+    if (index === -1) {
+      response.status(404).json({ message: "Listing not found for this owner." });
+      return;
+    }
+
+    const updates = buildRoomUpdates(request.body, images, memoryRooms[index]);
+    memoryRooms[index] = { ...memoryRooms[index], ...updates };
+    response.json(memoryRooms[index]);
   } catch (error) {
     next(error);
   }

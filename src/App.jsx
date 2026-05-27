@@ -5,6 +5,7 @@ import Dashboard from "@/pages/Dashboard.jsx";
 import FindRoom from "@/pages/FindRoom.jsx";
 import Home from "@/pages/Home.jsx";
 import ListRoom from "@/pages/ListRoom.jsx";
+import MyListedRooms from "@/pages/MyListedRooms.jsx";
 import NotFound from "@/pages/NotFound.jsx";
 import RoomDetails from "@/pages/RoomDetails.jsx";
 import Roommates from "@/pages/Roommates.jsx";
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/forgot-password" element={<Auth />} />
       <Route path="/search" element={<Navigate to="/find-room" replace />} />
       <Route path="/list-room" element={<ListRoom />} />
+      <Route path="/my-rooms" element={<MyListedRooms />} />
       <Route path="/roommates" element={<Roommates />} />
       <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/dashboard" element={<Dashboard />} />

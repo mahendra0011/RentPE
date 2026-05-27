@@ -1,4 +1,4 @@
-import { Heart, LogOut, MapPin, Menu, Moon, Sun, X } from "lucide-react";
+import { Building2, Heart, LogOut, MapPin, Menu, Moon, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, NavLink } from "react-router-dom";
@@ -24,6 +24,19 @@ function ListRoomCta({ onClick }) {
       className="inline-flex min-h-10 items-center justify-center rounded-full bg-ink px-5 text-sm font-black text-white shadow-sm transition-colors hover:bg-slate-800"
     >
       List Your Room
+    </Link>
+  );
+}
+
+function MyRoomsLink({ onClick }) {
+  return (
+    <Link
+      to="/my-rooms"
+      onClick={onClick}
+      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
+    >
+      <Building2 className="size-4" />
+      My Rooms
     </Link>
   );
 }
@@ -158,7 +171,12 @@ export default function SiteHeader() {
           ) : (
             <AuthLinks />
           )}
-          {isOwner && <ListRoomCta />}
+          {isOwner && (
+            <>
+              <MyRoomsLink />
+              <ListRoomCta />
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -265,7 +283,12 @@ export default function SiteHeader() {
                 <AuthLinks onClick={closeMenu} />
               </div>
             )}
-            {isOwner && <ListRoomCta onClick={closeMenu} />}
+            {isOwner && (
+              <>
+                <MyRoomsLink onClick={closeMenu} />
+                <ListRoomCta onClick={closeMenu} />
+              </>
+            )}
           </div>
         </div>
       )}

@@ -52,6 +52,7 @@ const roomSchema = new mongoose.Schema(
         distance: { type: String, trim: true },
       },
     ],
+    ownerEmail: { type: String, lowercase: true, trim: true, index: true },
     furnished: { type: Boolean, default: true },
     availability: { type: String, enum: ["available", "occupied"], default: "available" },
     reports: { type: Number, default: 0 },
