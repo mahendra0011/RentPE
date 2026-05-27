@@ -82,6 +82,7 @@ export default function RoomDetails() {
     .filter((item) => item.id !== room.id)
     .slice(0, 3);
   const saved = savedIds.includes(room.id);
+  const houseRules = room.rules || [];
 
   async function onReport() {
     setReported(true);
@@ -209,19 +210,23 @@ export default function RoomDetails() {
               <p className="leading-7 text-slate-600">{room.description}</p>
             </section>
 
-            {room.rules?.length > 0 && (
-              <section className="border-t border-slate-200 py-6">
-                <h2 className="mb-4 text-lg font-black">House rules</h2>
+            <section className="border-t border-slate-200 py-6">
+              <h2 className="mb-4 text-lg font-black">House rules</h2>
+              {houseRules.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {room.rules.map((rule) => (
+                  {houseRules.map((rule) => (
                     <div key={rule} className="flex items-start gap-2.5 text-sm font-semibold">
                       <Check className="mt-0.5 size-4 shrink-0 text-success" />
                       <span>{rule}</span>
                     </div>
                   ))}
                 </div>
-              </section>
-            )}
+              ) : (
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-card p-4 text-sm font-bold text-slate-500">
+                  Owner has not added house rules yet.
+                </p>
+              )}
+            </section>
 
             <section className="border-t border-slate-200 py-6">
               <h2 className="mb-4 text-lg font-black">What this place offers</h2>

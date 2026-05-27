@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
+  ListChecks,
   MapPin,
   Phone,
   ShieldCheck,
@@ -16,13 +17,15 @@ import { Link, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
+import { addRuleLine, roomRuleSuggestions } from "@/lib/rules.js";
 import { markPosted } from "@/store/roomsSlice.js";
 
 const steps = [
   { id: 1, label: "Details", icon: Home },
-  { id: 2, label: "Photos", icon: Upload },
-  { id: 3, label: "Location", icon: MapPin },
-  { id: 4, label: "Contact", icon: Phone },
+  { id: 2, label: "Rules", icon: ListChecks },
+  { id: 3, label: "Photos", icon: Upload },
+  { id: 4, label: "Location", icon: MapPin },
+  { id: 5, label: "Contact", icon: Phone },
 ];
 
 const amenities = [
@@ -257,7 +260,7 @@ export default function ListRoom() {
                       </select>
                     </Field>
                   </div>
-                  <Field label="Monthly rent (₹)">
+                  <Field label="Monthly rent (Rs.)">
                     <input
                       type="number"
                       value={data.price}
@@ -272,15 +275,6 @@ export default function ListRoom() {
                       onChange={(event) => update("description", event.target.value)}
                       rows={4}
                       placeholder="Mention college, office, area, food options, and safety."
-                      className="form-input resize-none"
-                    />
-                  </Field>
-                  <Field label="House rules">
-                    <textarea
-                      value={data.rules}
-                      onChange={(event) => update("rules", event.target.value)}
-                      rows={3}
-                      placeholder="One rule per line, e.g. no smoking, ID proof required"
                       className="form-input resize-none"
                     />
                   </Field>
@@ -310,6 +304,40 @@ export default function ListRoom() {
               )}
 
               {step === 2 && (
+                <div className="space-y-5">
+                  <h2 className="text-xl font-black">Set house rules</h2>
+                  <p className="-mt-3 text-sm text-slate-500">
+                    These rules will be visible on the room details page.
+                  </p>
+                  <Field label="House rules">
+                    <textarea
+                      value={data.rules}
+                      onChange={(event) => update("rules", event.target.value)}
+                      rows={3}
+                      placeholder="One rule per line, e.g. no smoking, ID proof required"
+                      className="form-input resize-none"
+                    />
+                  </Field>
+                  <div className="flex flex-wrap gap-2">
+                    {roomRuleSuggestions.map((rule) => (
+                      <button
+                        type="button"
+                        key={rule}
+                        onClick={() => update("rules", addRuleLine(data.rules, rule))}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                      >
+                        {rule}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="rounded-xl bg-brand-soft p-4 text-xs font-bold leading-5 text-slate-700">
+                    Add clear rules like visitor timing, rent date, smoking, pets, gate timing, and
+                    ID proof requirement.
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
                 <div className="space-y-5">
                   <h2 className="text-xl font-black">Add photos</h2>
                   <p className="-mt-3 text-sm text-slate-500">
@@ -355,7 +383,7 @@ export default function ListRoom() {
                 </div>
               )}
 
-              {step === 3 && (
+              {step === 4 && (
                 <div className="space-y-5">
                   <h2 className="text-xl font-black">Where is it located?</h2>
                   <Field label="Full address">
@@ -391,7 +419,7 @@ export default function ListRoom() {
                 </div>
               )}
 
-              {step === 4 && (
+              {step === 5 && (
                 <div className="space-y-5">
                   <h2 className="text-xl font-black">How can seekers reach you?</h2>
                   <Field label="Your name">
@@ -456,10 +484,10 @@ export default function ListRoom() {
             <span className="text-xs font-bold text-slate-400">
               Step {step} of {steps.length}
             </span>
-            {step < 4 ? (
+            {step < steps.length ? (
               <button
                 type="button"
-                onClick={() => setStep((current) => Math.min(4, current + 1))}
+                onClick={() => setStep((current) => Math.min(steps.length, current + 1))}
                 className="inline-flex items-center gap-1 rounded-full bg-brand px-6 py-2.5 text-sm font-black text-brand-foreground shadow-md shadow-brand/25"
               >
                 Continue

@@ -7,6 +7,7 @@ import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
 import { formatPrice } from "@/lib/format.js";
 import { normalizeRoom, normalizeRooms } from "@/lib/roomAdapter.js";
+import { addRuleLine, roomRuleSuggestions } from "@/lib/rules.js";
 
 const amenityOptions = [
   "WiFi",
@@ -235,7 +236,7 @@ export default function MyListedRooms() {
             </span>
             <h1 className="text-3xl font-black tracking-normal md:text-4xl">My Listed Rooms</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Update rent, address, amenities, availability, contact number, and listing photos.
+              Update rent, address, rules, amenities, availability, contact number, and photos.
             </p>
           </div>
           <Link
@@ -473,6 +474,18 @@ export default function MyListedRooms() {
                   placeholder="One rule per line"
                   className="form-input resize-none"
                 />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {roomRuleSuggestions.map((rule) => (
+                    <button
+                      type="button"
+                      key={rule}
+                      onClick={() => update("rules", addRuleLine(form.rules, rule))}
+                      className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                    >
+                      {rule}
+                    </button>
+                  ))}
+                </div>
               </Field>
 
               <div className="mt-5 grid gap-5 md:grid-cols-[1fr_260px]">

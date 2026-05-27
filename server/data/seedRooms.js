@@ -8,6 +8,7 @@ export const seedRooms = [
     price: 6500,
     description:
       "Bright, fully furnished single room in a quiet residential lane near City College and DB Mall.",
+    rules: ["No smoking", "ID proof required", "Gate closes at 10 PM"],
     amenities: ["WiFi", "AC", "CCTV", "Hot Water", "Laundry", "Power Backup"],
     images: [],
     address: "12, Gulmohar Colony, Near City College, Bhopal - 462042",
@@ -41,6 +42,7 @@ export const seedRooms = [
     price: 4200,
     description:
       "Affordable shared accommodation for students with mess facility, study desks, and storage.",
+    rules: ["No loud music after 10 PM", "Mess timing is fixed", "Visitors allowed in common area"],
     amenities: ["Mess Included", "Parking", "WiFi", "Study Room", "Common TV"],
     images: [],
     address: "Sector C, Bhopal - 462022",
@@ -73,6 +75,7 @@ export const seedRooms = [
     price: 12000,
     description:
       "Premium studio in E-8 Extension with modular kitchen, work desk, balcony, lift, and 24/7 security.",
+    rules: ["Security deposit required", "No subletting", "Society rules must be followed"],
     amenities: ["Kitchen", "Lift", "No Broker", "AC", "Geyser", "Parking", "Balcony"],
     images: [],
     address: "E-8 Extension, Bhopal - 462016",
@@ -105,6 +108,7 @@ export const seedRooms = [
     price: 5500,
     description:
       "Twin-sharing rooms with attached bath, hot water, AC, and simple house rules for students.",
+    rules: ["ID proof required", "No smoking", "Visitors allowed with permission"],
     amenities: ["WiFi", "AC", "Attached Bath", "Mess"],
     images: [],
     address: "Lakeview Road, Bhopal - 462042",
@@ -137,6 +141,11 @@ export const seedRooms = [
     price: 18000,
     description:
       "Spacious 2BHK in central Bhopal with modular kitchen, two balconies, and family-friendly society.",
+    rules: [
+      "Family or working professionals preferred",
+      "Pets allowed with approval",
+      "Maintenance paid monthly",
+    ],
     amenities: ["Kitchen", "Lift", "Parking", "Pet Friendly", "Gym"],
     images: [],
     address: "Central Business District, Bhopal - 462011",
@@ -169,6 +178,7 @@ export const seedRooms = [
     price: 3800,
     description:
       "Budget-friendly hostel for students. Triple sharing with locker, study table, WiFi, and clean common spaces.",
+    rules: ["Study hours after 9 PM", "Keep common spaces clean", "Rent due by 5th of every month"],
     amenities: ["WiFi", "Mess", "Study Room", "CCTV"],
     images: [],
     address: "Habibganj, Bhopal - 462024",

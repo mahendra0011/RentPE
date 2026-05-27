@@ -17,6 +17,7 @@ export const rooms = [
     address: "12, Gulmohar Colony, Near City College, Bhopal - 462042",
     description:
       "Bright, fully furnished single room in a quiet residential lane. Walking distance from City College and DB Mall. Home-cooked meals, hot water 24/7, and a friendly warden.",
+    rules: ["No smoking", "ID proof required", "Gate closes at 10 PM"],
     furnished: true,
     amenities: ["WiFi", "AC", "CCTV", "Hot Water", "Laundry", "Power Backup"],
     images: [room1, room3, room2],
@@ -43,6 +44,7 @@ export const rooms = [
     address: "Sector C, Bhopal - 462022",
     description:
       "Affordable shared accommodation for students with mess facility. Four-bed dorm rooms include personal storage, a study desk, and daily meals.",
+    rules: ["No loud music after 10 PM", "Mess timing is fixed", "Visitors allowed in common area"],
     furnished: true,
     amenities: ["Mess Included", "Parking", "WiFi", "Study Room", "Common TV"],
     images: [room2, room1, room3],
@@ -69,6 +71,7 @@ export const rooms = [
     address: "E-8 Extension, Bhopal - 462016",
     description:
       "Premium studio in Bhopal's most desirable neighbourhood. Open-plan kitchen, queen bed, work desk, and a balcony with skyline views.",
+    rules: ["Security deposit required", "No subletting", "Society rules must be followed"],
     furnished: true,
     amenities: ["Kitchen", "Lift", "No Broker", "AC", "Geyser", "Parking", "Balcony"],
     images: [room3, room1, room2],
@@ -95,6 +98,7 @@ export const rooms = [
     address: "Lakeview Road, Bhopal - 462042",
     description:
       "Twin-sharing rooms with attached bath, hot water, and AC. Close to colleges and bus stops. Owner stays on premises.",
+    rules: ["ID proof required", "No smoking", "Visitors allowed with permission"],
     furnished: true,
     amenities: ["WiFi", "AC", "Attached Bath", "Mess"],
     images: [room1, room2, room3],
@@ -121,6 +125,11 @@ export const rooms = [
     address: "Central Business District, Bhopal - 462011",
     description:
       "Spacious 2BHK in central Bhopal. Modular kitchen, two balconies, family-friendly society, and flexible move-in dates.",
+    rules: [
+      "Family or working professionals preferred",
+      "Pets allowed with approval",
+      "Maintenance paid monthly",
+    ],
     furnished: false,
     amenities: ["Kitchen", "Lift", "Parking", "Pet Friendly", "Gym"],
     images: [room3, room2, room1],
@@ -147,6 +156,7 @@ export const rooms = [
     address: "Habibganj, Bhopal - 462024",
     description:
       "Budget-friendly hostel for students. Triple sharing with locker, study table, WiFi, and clean common spaces.",
+    rules: ["Study hours after 9 PM", "Keep common spaces clean", "Rent due by 5th of every month"],
     furnished: true,
     amenities: ["WiFi", "Mess", "Study Room", "CCTV"],
     images: [room2, room3, room1],
