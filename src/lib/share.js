@@ -16,24 +16,6 @@ export async function shareRoom(room) {
   return "copied";
 }
 
-export async function shareRoommatePost(post) {
-  const slug = post.slug || post.id || post._id;
-  const url = `${window.location.origin}/roommates/${slug}`;
-  const shareData = {
-    title: `${post.name}'s roommate request on RentPE`,
-    text: `Check this roommate request in ${post.area || post.city} on RentPE.`,
-    url,
-  };
-
-  if (navigator.share) {
-    await navigator.share(shareData);
-    return "shared";
-  }
-
-  await copyText(url);
-  return "copied";
-}
-
 async function copyText(text) {
   if (navigator.clipboard?.writeText) {
     try {

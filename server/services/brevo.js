@@ -126,7 +126,7 @@ function buildOtpEmailHtml({ title, intro, action, otp }) {
                 <tr>
                   <td style="padding:22px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;">
                     <p style="margin:0;color:#64748b;font-size:12px;line-height:1.6;font-weight:600;">If you did not request this email, you can safely ignore it. Your account stays protected.</p>
-                    <p style="margin:14px 0 0;color:#94a3b8;font-size:11px;font-weight:700;">RentPE - Direct rooms, PGs, flats, and roommate search.</p>
+                    <p style="margin:14px 0 0;color:#94a3b8;font-size:11px;font-weight:700;">RentPE - Direct rooms, PGs, and flats.</p>
                   </td>
                 </tr>
               </table>

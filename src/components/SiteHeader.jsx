@@ -120,14 +120,6 @@ export default function SiteHeader() {
             Find Room
           </NavLink>
           <NavLink
-            to="/roommates"
-            className={({ isActive }) =>
-              `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
-            }
-          >
-            Find Roommate
-          </NavLink>
-          <NavLink
             to="/wishlist"
             className={({ isActive }) =>
               `inline-flex items-center gap-1.5 transition-colors hover:text-ink ${
@@ -224,17 +216,6 @@ export default function SiteHeader() {
               }
             >
               Find Room
-            </NavLink>
-            <NavLink
-              to="/roommates"
-              onClick={closeMenu}
-              className={({ isActive }) =>
-                `rounded-xl px-3 py-2 text-sm font-black ${
-                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
-                }`
-              }
-            >
-              Find Roommate
             </NavLink>
             <NavLink
               to="/wishlist"

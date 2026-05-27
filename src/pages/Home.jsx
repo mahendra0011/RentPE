@@ -131,19 +131,6 @@ const shortlistStats = [
   { value: 24, suffix: "h", label: "lead window" },
 ];
 
-const roommateCards = [
-  {
-    icon: GraduationCap,
-    name: "Aarav, 21",
-    detail: "B.Tech CSE - LNCT - Rs. 5k budget",
-  },
-  {
-    icon: BriefcaseBusiness,
-    name: "Riya, 24",
-    detail: "TCS Intern - Powai - Rs. 10k budget",
-  },
-];
-
 export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -203,7 +190,7 @@ export default function Home() {
               variants={fadeUp}
               className="mx-auto mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600"
             >
-              The smartest way for students and migrants to find PG, flats, and roommates near
+              The smartest way for students and migrants to find PGs, flats, and private rooms near
               colleges or offices. Zero brokerage, direct owner contact.
             </motion.p>
 
@@ -538,58 +525,6 @@ export default function Home() {
               </div>
             </div>
           </SpotlightPanel>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 28 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.22 }}
-          transition={{ duration: 0.48 }}
-          className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16"
-        >
-          <div className="grid overflow-hidden rounded-[28px] bg-[#07111f] px-6 py-10 text-white md:min-h-[360px] md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-14 md:py-14">
-            <div>
-              <span className="inline-flex rounded-full bg-brand/25 px-4 py-1 text-xs font-black uppercase tracking-wide text-indigo-100">
-                New Feature
-              </span>
-              <h2 className="mt-5 max-w-md text-4xl font-black leading-tight tracking-normal">
-                Find a Roommate first.
-              </h2>
-              <p className="mt-4 max-w-md text-base font-medium leading-7 text-slate-400">
-                Found a great 2BHK but it's too expensive? Post a roommate request and split the
-                rent. Match with students from the same college.
-              </p>
-              <Link
-                to="/roommates"
-                className="mt-8 inline-flex h-14 items-center gap-3 rounded-full bg-white px-8 text-sm font-black text-ink transition-colors hover:bg-slate-100"
-              >
-                Find Roommate
-                <ArrowRight className="size-4" />
-              </Link>
-            </div>
-
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 md:mt-0 md:pl-6">
-              {roommateCards.map((person, index) => (
-                <motion.div
-                  key={person.name}
-                  initial={{ opacity: 0, y: 18 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.45 }}
-                  whileHover={{ y: -5, scale: 1.02 }}
-                  transition={{ delay: index * 0.1, duration: 0.36 }}
-                  className={`rounded-[20px] border border-white/10 bg-white/10 p-6 backdrop-blur ${
-                    index === 1 ? "md:translate-y-8" : ""
-                  }`}
-                >
-                  <span className="mb-8 flex size-10 items-center justify-center rounded-full bg-brand/20 text-indigo-200">
-                    <person.icon className="size-5" />
-                  </span>
-                  <p className="font-black text-white">{person.name}</p>
-                  <p className="mt-1 text-xs font-bold text-slate-400">{person.detail}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
         </motion.section>
 
         <motion.section

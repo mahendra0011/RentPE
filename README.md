@@ -17,8 +17,6 @@ RentPE intentionally does not use maps or geocoding. Search is based on owner-en
 - Room details page with gallery, amenities, owner details, report action, call, and WhatsApp CTA
 - Wishlist page for saved rooms
 - Share buttons for room links
-- Roommate finder page
-- Roommate request detail page with profile, preferences, budget, safety notes, WhatsApp, call, and share
 - User dashboard for saved rooms and contacted owners
 - Dark mode with local browser persistence
 - Cloudinary-ready image upload
@@ -158,8 +156,6 @@ Notes:
 /rooms/:id        Room details
 /list-room        Owner room posting form
 /my-rooms         Owner listing management and edit page
-/roommates        Roommate finder
-/roommates/:id    Roommate request details
 /wishlist         Saved rooms
 /dashboard        User dashboard
 /login            Login
@@ -196,14 +192,6 @@ POST   /api/rooms
 PATCH  /api/rooms/:slug
 PATCH  /api/rooms/:slug/availability
 POST   /api/rooms/:slug/report
-```
-
-Roommates:
-
-```txt
-GET    /api/roommates
-GET    /api/roommates/:slug
-POST   /api/roommates
 ```
 
 Owner-only room routes use the logged-in user's bearer token from local auth storage. Frontend API calls attach it automatically.

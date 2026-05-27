@@ -5,7 +5,6 @@ import express from "express";
 import { isCloudinaryReady } from "./config/cloudinary.js";
 import { connectDB, isMongoConnected } from "./config/db.js";
 import authRouter from "./routes/auth.js";
-import roommatesRouter from "./routes/roommates.js";
 import roomsRouter from "./routes/rooms.js";
 
 dotenv.config();
@@ -60,7 +59,6 @@ app.get("/api/health", (_request, response) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/rooms", roomsRouter);
-app.use("/api/roommates", roommatesRouter);
 
 app.use((error, _request, response, _next) => {
   console.error(error);
