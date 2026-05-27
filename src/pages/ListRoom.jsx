@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
+import { apiRequest } from "@/lib/api.js";
 import { markPosted } from "@/store/roomsSlice.js";
 
 const steps = [
@@ -144,17 +145,15 @@ export default function ListRoom() {
       });
       data.photos.forEach((file) => payload.append("photos", file));
 
-      const response = await fetch("/api/rooms", {
+      const createdRoom = await apiRequest("/api/rooms", {
         method: "POST",
         body: payload,
       });
 
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw new Error(result.message || "Unable to publish listing");
+      if (!createdRoom?.slug && !createdRoom?.id) {
+        throw new Error("Listing was saved, but the API did not return room details.");
       }
 
-      const createdRoom = await response.json();
       dispatch(markPosted(createdRoom.slug || createdRoom.id));
       setDone(true);
     } catch (publishError) {

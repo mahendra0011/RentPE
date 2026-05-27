@@ -2,14 +2,41 @@ const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export async function apiRequest(path, options = {}) {
   const response = await fetch(resolveApiUrl(path), options);
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json") ? await response.json() : null;
+  const payload = await parseApiResponse(response);
 
   if (!response.ok) {
-    throw new Error(payload?.message || "Request failed");
+    throw new Error(getErrorMessage(payload, response));
   }
 
   return payload;
+}
+
+async function parseApiResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (!text.trim()) return null;
+
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("API returned invalid JSON. Check the backend response.");
+    }
+  }
+
+  return text;
+}
+
+function getErrorMessage(payload, response) {
+  if (payload?.message) return payload.message;
+  if (typeof payload === "string" && payload.trim()) {
+    if (payload.trim().startsWith("<")) {
+      return "API returned an HTML page. Check VITE_API_URL and backend deployment.";
+    }
+    return payload.trim();
+  }
+  return response.statusText || "Request failed";
 }
 
 function resolveApiUrl(path) {
