@@ -228,7 +228,7 @@ export default function ListRoom() {
                     <input
                       value={data.title}
                       onChange={(event) => update("title", event.target.value)}
-                      placeholder="Sunny single PG room near LNCT"
+                      placeholder="Sunny single PG room near City College"
                       className="form-input"
                     />
                   </Field>
@@ -369,7 +369,7 @@ export default function ListRoom() {
                       <input
                         value={data.landmark}
                         onChange={(event) => update("landmark", event.target.value)}
-                        placeholder="LNCT, DB Mall"
+                        placeholder="City College, DB Mall"
                         className="form-input"
                       />
                     </Field>

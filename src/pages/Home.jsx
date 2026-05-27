@@ -25,7 +25,6 @@ import { rooms as staticRooms } from "@/data/rooms.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
-const popularKeywords = ["LNCT", "MP Nagar", "Arera Colony", "Indrapuri", "Kolar Road"];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -36,10 +35,6 @@ const heroStagger = {
     opacity: 1,
     transition: { staggerChildren: 0.08, delayChildren: 0.06 },
   },
-};
-const chipMotion = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0 },
 };
 const heroSignals = [
   "0% brokerage",
@@ -169,10 +164,6 @@ export default function Home() {
     navigate(`/find-room${params.toString() ? `?${params}` : ""}`);
   }
 
-  function chooseKeyword(keyword) {
-    navigate(`/find-room?q=${encodeURIComponent(keyword)}`);
-  }
-
   return (
     <div className="min-h-screen bg-background font-sans text-ink antialiased">
       <SiteHeader />
@@ -207,8 +198,7 @@ export default function Home() {
                   <input
                     name="query"
                     type="text"
-                    placeholder="Search LNCT, MP Nagar, PG, WiFi"
-                    defaultValue="LNCT"
+                    placeholder="Search PG, hostel, flat, WiFi"
                     className="w-full bg-transparent text-sm font-black text-ink outline-none placeholder:text-slate-400"
                   />
                 </label>
@@ -235,28 +225,6 @@ export default function Home() {
                 </motion.button>
               </div>
             </motion.form>
-
-            <motion.div
-              variants={heroStagger}
-              className="mt-7 flex flex-wrap items-center justify-center gap-2"
-            >
-              <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
-                Keywords:
-              </span>
-              {popularKeywords.map((keyword) => (
-                <motion.button
-                  key={keyword}
-                  type="button"
-                  onClick={() => chooseKeyword(keyword)}
-                  variants={chipMotion}
-                  whileHover={{ y: -2, scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-brand hover:text-brand"
-                >
-                  {keyword}
-                </motion.button>
-              ))}
-            </motion.div>
 
             <motion.div variants={fadeUp}>
               <InfiniteTicker

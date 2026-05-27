@@ -13,15 +13,6 @@ import { fetchRooms } from "@/store/roomsSlice.js";
 const filterTypes = ["PG", "Hostel", "Flat"];
 const filterGenders = ["Girls", "Boys", "Co-ed"];
 const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
-const keywordSuggestions = [
-  "LNCT",
-  "MP Nagar",
-  "Arera Colony",
-  "Gulmohar Colony",
-  "Indrapuri",
-  "Kolar Road",
-  "Habibganj",
-];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -32,10 +23,6 @@ const quickStagger = {
     opacity: 1,
     transition: { staggerChildren: 0.045, delayChildren: 0.08 },
   },
-};
-const chipMotion = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0 },
 };
 
 export default function FindRoom() {
@@ -151,22 +138,6 @@ export default function FindRoom() {
     setSearchParams(params);
   }
 
-  function chooseKeyword(keyword) {
-    const nextKeyword = keywordQuery === keyword ? "" : keyword;
-    setKeywordQuery(nextKeyword);
-    setShowFilters(true);
-
-    const params = new URLSearchParams(searchParams);
-    params.delete("location");
-    if (nextKeyword) {
-      params.set("q", nextKeyword);
-    } else {
-      params.delete("q");
-    }
-    params.set("filters", "1");
-    setSearchParams(params);
-  }
-
   function toggleFilter(list, value, setter) {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   }
@@ -207,7 +178,7 @@ export default function FindRoom() {
                   value={keywordQuery}
                   onChange={(event) => setKeywordQuery(event.target.value)}
                   type="text"
-                  placeholder="Search keyword: LNCT, MP Nagar, PG, WiFi"
+                  placeholder="Search keyword: PG, hostel, flat, WiFi"
                   className="w-full bg-transparent text-sm font-black text-ink outline-none placeholder:text-slate-400"
                 />
               </label>
@@ -235,28 +206,6 @@ export default function FindRoom() {
               </motion.button>
             </div>
           </motion.form>
-
-          <motion.div
-            variants={quickStagger}
-            className="mt-7 flex flex-wrap items-center justify-center gap-2"
-          >
-            <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
-              Keywords:
-            </span>
-            {keywordSuggestions.map((keyword) => (
-              <motion.button
-                key={keyword}
-                type="button"
-                onClick={() => chooseKeyword(keyword)}
-                variants={chipMotion}
-                whileHover={{ y: -2, scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-brand hover:text-brand"
-              >
-                {keyword}
-              </motion.button>
-            ))}
-          </motion.div>
 
           <motion.div variants={fadeUp} className="mt-14">
             <motion.div
