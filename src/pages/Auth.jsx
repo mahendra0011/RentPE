@@ -10,7 +10,10 @@ import {
   requestOtp,
   resetPassword,
   signupUser,
+  verifyResetOtp,
 } from "@/store/authSlice.js";
+
+const resetSessionStorageKey = "RentPE:reset-session";
 
 export default function Auth() {
   const location = useLocation();
@@ -19,49 +22,72 @@ export default function Auth() {
   const { status, error, devOtp } = useSelector((state) => state.auth);
   const isSignup = location.pathname.includes("signup");
   const isForgot = location.pathname.includes("forgot-password");
+  const isResetPassword = location.pathname.includes("reset-password");
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const ownerFromUrl = query.get("owner") === "1";
+  const loginNotice = !isSignup && !isForgot && !isResetPassword ? location.state?.notice : "";
   const [form, setForm] = useState({
     name: "",
     email: "",
     mobile: "",
     password: "",
+    confirmPassword: "",
     isOwner: ownerFromUrl,
   });
   const [otp, setOtp] = useState("");
   const [otpEmail, setOtpEmail] = useState("");
-  const [resetDone, setResetDone] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [resetSession, setResetSession] = useState({});
   const loading = status === "loading";
   const normalizedEmail = form.email.trim().toLowerCase();
   const otpReady = isSignup && otpEmail && otpEmail === normalizedEmail;
   const resetOtpReady = isForgot && otpEmail && otpEmail === normalizedEmail;
   const submitLabel = loading
     ? "Please wait..."
-    : isForgot
-      ? resetOtpReady
-        ? "Reset password"
-        : "Send reset OTP"
-      : isSignup
-        ? otpReady
-          ? "Verify email & create account"
-          : "Send email OTP"
-        : "Login";
+    : isResetPassword
+      ? "Update password"
+      : isForgot
+        ? resetOtpReady
+          ? "Verify OTP"
+          : "Send reset OTP"
+        : isSignup
+          ? otpReady
+            ? "Verify email & create account"
+            : "Send email OTP"
+          : "Login";
 
   useEffect(() => {
-    setForm((current) => ({ ...current, isOwner: ownerFromUrl }));
+    const nextResetSession = isResetPassword
+      ? location.state?.resetSession || readResetSession()
+      : {};
+
+    if (isResetPassword && nextResetSession?.email && nextResetSession?.resetToken) {
+      setResetSession(nextResetSession);
+      saveResetSession(nextResetSession);
+    } else if (isResetPassword) {
+      setResetSession({});
+    }
+
+    setForm((current) => ({
+      ...current,
+      email: isResetPassword ? nextResetSession?.email || "" : current.email,
+      password: "",
+      confirmPassword: "",
+      isOwner: ownerFromUrl,
+    }));
     setOtp("");
     setOtpEmail("");
-    setResetDone(false);
+    setFormError("");
     dispatch(clearAuthError());
-  }, [dispatch, ownerFromUrl, isSignup, isForgot]);
+  }, [dispatch, ownerFromUrl, isSignup, isForgot, isResetPassword, location.state]);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
+    setFormError("");
 
     if ((isSignup || isForgot) && (key === "email" || key === "isOwner")) {
       setOtp("");
       setOtpEmail("");
-      setResetDone(false);
     }
   }
 
@@ -77,6 +103,8 @@ export default function Auth() {
   }
 
   async function sendResetOtp() {
+    clearResetSession();
+    setResetSession({});
     await dispatch(
       requestOtp({
         email: normalizedEmail,
@@ -89,8 +117,35 @@ export default function Auth() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setFormError("");
 
     try {
+      if (isResetPassword) {
+        if (!resetSession?.email || !resetSession?.resetToken) {
+          setFormError("Reset session expired. Please request a new OTP.");
+          return;
+        }
+
+        if (form.password !== form.confirmPassword) {
+          setFormError("New password and confirm password must match.");
+          return;
+        }
+
+        await dispatch(
+          resetPassword({
+            email: resetSession.email,
+            resetToken: resetSession.resetToken,
+            password: form.password,
+          }),
+        ).unwrap();
+        clearResetSession();
+        navigate("/login", {
+          replace: true,
+          state: { notice: "Password reset successfully. Please login." },
+        });
+        return;
+      }
+
       if (isSignup && !otpReady) {
         await sendSignupOtp();
         return;
@@ -102,11 +157,14 @@ export default function Auth() {
       }
 
       if (isForgot) {
-        await dispatch(
-          resetPassword({ email: normalizedEmail, otp, password: form.password }),
-        ).unwrap();
-        setResetDone(true);
-        setOtp("");
+        const verified = await dispatch(verifyResetOtp({ email: normalizedEmail, otp })).unwrap();
+        const nextResetSession = {
+          email: verified.email || normalizedEmail,
+          resetToken: verified.resetToken,
+        };
+        saveResetSession(nextResetSession);
+        setResetSession(nextResetSession);
+        navigate("/reset-password", { state: { resetSession: nextResetSession } });
         return;
       }
 
@@ -131,17 +189,21 @@ export default function Auth() {
           </span>
           <h1 className="mt-5 max-w-xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl">
             {isForgot
-              ? "Reset your RentPE password."
-              : isSignup
-                ? "Create your RentPE account."
-                : "Login to RentPE."}
+              ? "Verify your reset OTP."
+              : isResetPassword
+                ? "Set a new password."
+                : isSignup
+                  ? "Create your RentPE account."
+                  : "Login to RentPE."}
           </h1>
           <p className="mt-4 max-w-lg text-base font-medium leading-7 text-slate-600">
             {isForgot
-              ? "Enter your email, verify the OTP, and set a fresh password."
-              : isSignup
-                ? "Add your details, verify your email with an OTP, and start using RentPE."
-                : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
+              ? "Enter your email first, then verify the OTP we send you."
+              : isResetPassword
+                ? "Choose a new password and confirm it before returning to login."
+                : isSignup
+                  ? "Add your details, verify your email with an OTP, and start using RentPE."
+                  : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <InfoPill title="Room seekers" body="Save rooms and contact owners directly." />
@@ -153,14 +215,22 @@ export default function Auth() {
           <div className="mb-7 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-black tracking-normal">
-                {isForgot ? "Forgot password" : isSignup ? "Sign up" : "Login"}
+                {isForgot
+                  ? "Forgot password"
+                  : isResetPassword
+                    ? "New password"
+                    : isSignup
+                      ? "Sign up"
+                      : "Login"}
               </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
                 {isForgot
-                  ? "We will email an OTP before changing your password."
-                  : isSignup
-                    ? "We will email an OTP before creating your account."
-                    : "Email, password, and owner mode only."}
+                  ? "We will email an OTP before opening the reset page."
+                  : isResetPassword
+                    ? "Enter and confirm your new password."
+                    : isSignup
+                      ? "We will email an OTP before creating your account."
+                      : "Email, password, and owner mode only."}
               </p>
             </div>
             <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
@@ -196,30 +266,69 @@ export default function Auth() {
               </div>
             )}
 
-            <Field label="Email" icon={Mail}>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => update("email", event.target.value)}
-                placeholder="you@example.com"
-                className="form-input pl-11"
-                required
-              />
-            </Field>
+            {!isResetPassword && (
+              <Field label="Email" icon={Mail}>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => update("email", event.target.value)}
+                  placeholder="you@example.com"
+                  className="form-input pl-11"
+                  required
+                />
+              </Field>
+            )}
 
-            <Field label={isForgot ? "New password" : "Password"} icon={Lock}>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(event) => update("password", event.target.value)}
-                placeholder="Minimum 6 characters"
-                className="form-input pl-11"
-                minLength={6}
-                required
-              />
-            </Field>
+            {isResetPassword && (
+              <div
+                className={`rounded-[18px] border p-4 text-sm font-bold leading-6 ${
+                  resetSession?.resetToken
+                    ? "border-emerald-100 bg-emerald-50 text-emerald-800"
+                    : "border-amber-100 bg-amber-50 text-amber-800"
+                }`}
+              >
+                {resetSession?.resetToken ? (
+                  <>OTP verified for {resetSession.email}.</>
+                ) : (
+                  <>
+                    Reset session expired.{" "}
+                    <Link to="/forgot-password" className="font-black text-brand">
+                      Verify email again
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
 
             {!isForgot && (
+              <Field label={isResetPassword ? "New password" : "Password"} icon={Lock}>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => update("password", event.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="form-input pl-11"
+                  minLength={6}
+                  required
+                />
+              </Field>
+            )}
+
+            {isResetPassword && (
+              <Field label="Confirm password" icon={Lock}>
+                <input
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={(event) => update("confirmPassword", event.target.value)}
+                  placeholder="Re-enter new password"
+                  className="form-input pl-11"
+                  minLength={6}
+                  required
+                />
+              </Field>
+            )}
+
+            {!isForgot && !isResetPassword && (
               <label className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
                 <input
                   type="checkbox"
@@ -270,18 +379,15 @@ export default function Auth() {
               </div>
             ) : null}
 
-            {resetDone && (
+            {loginNotice && (
               <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
-                Password reset successfully.{" "}
-                <Link to="/login" className="font-black text-brand">
-                  Login now
-                </Link>
+                {loginNotice}
               </div>
             )}
 
-            {error && (
+            {(formError || error) && (
               <div className="rounded-[18px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-                {error}
+                {formError || error}
               </div>
             )}
 
@@ -296,15 +402,19 @@ export default function Auth() {
           </form>
 
           <p className="mt-6 text-center text-sm font-bold text-slate-500">
-            {isForgot ? "Remembered it?" : isSignup ? "Already have an account?" : "New here?"}{" "}
+            {isForgot || isResetPassword
+              ? "Remembered it?"
+              : isSignup
+                ? "Already have an account?"
+                : "New here?"}{" "}
             <Link
-              to={isForgot || isSignup ? "/login" : "/signup"}
+              to={isForgot || isResetPassword || isSignup ? "/login" : "/signup"}
               className="font-black text-brand hover:text-brand/80"
             >
-              {isForgot || isSignup ? "Login" : "Create account"}
+              {isForgot || isResetPassword || isSignup ? "Login" : "Create account"}
             </Link>
           </p>
-          {!isSignup && !isForgot && (
+          {!isSignup && !isForgot && !isResetPassword && (
             <p className="mt-3 text-center text-sm font-bold">
               <Link to="/forgot-password" className="text-brand hover:text-brand/80">
                 Forgot password?
@@ -315,6 +425,22 @@ export default function Auth() {
       </main>
     </div>
   );
+}
+
+function readResetSession() {
+  try {
+    return JSON.parse(sessionStorage.getItem(resetSessionStorageKey)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveResetSession(session) {
+  sessionStorage.setItem(resetSessionStorageKey, JSON.stringify(session));
+}
+
+function clearResetSession() {
+  sessionStorage.removeItem(resetSessionStorageKey);
 }
 
 function Field({ label, icon: Icon, children }) {

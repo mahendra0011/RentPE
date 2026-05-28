@@ -18,6 +18,7 @@ export default function App() {
       <Route path="/login" element={<Auth />} />
       <Route path="/signup" element={<Auth />} />
       <Route path="/forgot-password" element={<Auth />} />
+      <Route path="/reset-password" element={<Auth />} />
       <Route path="/search" element={<Navigate to="/find-room" replace />} />
       <Route path="/list-room" element={<ListRoom />} />
       <Route path="/my-rooms" element={<MyListedRooms />} />

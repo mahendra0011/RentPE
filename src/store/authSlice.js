@@ -59,14 +59,22 @@ export const loginUser = createAsyncThunk(
 
 export const resetPassword = createAsyncThunk(
   "auth/resetPassword",
-  async ({ email, otp, password }) => {
+  async ({ email, otp, password, resetToken }) => {
     return apiRequest("/api/auth/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp, password }),
+      body: JSON.stringify({ email, otp, password, resetToken }),
     });
   },
 );
+
+export const verifyResetOtp = createAsyncThunk("auth/verifyResetOtp", async ({ email, otp }) => {
+  return apiRequest("/api/auth/verify-reset-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp }),
+  });
+});
 
 const persisted = readAuth();
 
@@ -166,6 +174,19 @@ const authSlice = createSlice({
         state.devOtp = "";
       })
       .addCase(resetPassword.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
+      })
+      .addCase(verifyResetOtp.pending, (state) => {
+        state.status = "loading";
+        state.error = "";
+      })
+      .addCase(verifyResetOtp.fulfilled, (state) => {
+        state.status = "reset-verified";
+        state.otpSent = false;
+        state.devOtp = "";
+      })
+      .addCase(verifyResetOtp.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message;
       });

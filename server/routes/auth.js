@@ -7,6 +7,7 @@ import { sendOtpEmail } from "../services/brevo.js";
 
 const router = Router();
 const otpStore = new Map();
+const resetTokenStore = new Map();
 const memoryUsers = new Map();
 
 function normalizeEmail(email) {
@@ -17,6 +18,27 @@ function normalizeEmail(email) {
 
 function createOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function createResetToken(email) {
+  const token = crypto.randomBytes(32).toString("hex");
+  resetTokenStore.set(token, {
+    email,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  });
+  return token;
+}
+
+function consumeResetToken(token, email) {
+  const stored = resetTokenStore.get(token);
+
+  if (!stored || stored.expiresAt < Date.now() || stored.email !== email) {
+    resetTokenStore.delete(token);
+    return false;
+  }
+
+  resetTokenStore.delete(token);
+  return true;
 }
 
 function createToken(user) {
@@ -323,6 +345,7 @@ router.post("/reset-password", async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const otp = String(request.body.otp || "").trim();
+    const resetToken = String(request.body.resetToken || "").trim();
     const password = String(request.body.password || "");
 
     if (!email || !email.includes("@")) {
@@ -332,6 +355,62 @@ router.post("/reset-password", async (request, response, next) => {
 
     if (password.length < 6) {
       response.status(400).json({ message: "Password must be at least 6 characters." });
+      return;
+    }
+
+    if (!otp && !resetToken) {
+      response.status(400).json({ message: "Reset verification is required." });
+      return;
+    }
+
+    const existing = isMongoConnected()
+      ? await User.findOne({ email }).lean()
+      : memoryUsers.get(email) || null;
+
+    if (!existing?.passwordHash) {
+      response.status(404).json({ message: "No account found with this email." });
+      return;
+    }
+
+    if (resetToken) {
+      if (!consumeResetToken(resetToken, email)) {
+        response.status(400).json({ message: "Reset session expired. Request a new OTP." });
+        return;
+      }
+    } else {
+      const verifiedOtp = consumeOtp({ email, otp, purpose: "reset" });
+      if (!verifiedOtp.ok) {
+        response.status(400).json({ message: verifiedOtp.message });
+        return;
+      }
+    }
+
+    const { hash, salt } = hashPassword(password);
+    const updates = {
+      passwordHash: hash,
+      passwordSalt: salt,
+      emailVerifiedAt: existing.emailVerifiedAt || new Date(),
+    };
+
+    if (isMongoConnected()) {
+      await User.findOneAndUpdate({ email }, { $set: updates });
+    } else {
+      memoryUsers.set(email, { ...existing, ...updates });
+    }
+
+    response.json({ ok: true, message: "Password reset successfully. Please login." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/verify-reset-otp", async (request, response, next) => {
+  try {
+    const email = normalizeEmail(request.body.email);
+    const otp = String(request.body.otp || "").trim();
+
+    if (!email || !email.includes("@")) {
+      response.status(400).json({ message: "Valid email is required." });
       return;
     }
 
@@ -355,20 +434,11 @@ router.post("/reset-password", async (request, response, next) => {
       return;
     }
 
-    const { hash, salt } = hashPassword(password);
-    const updates = {
-      passwordHash: hash,
-      passwordSalt: salt,
-      emailVerifiedAt: existing.emailVerifiedAt || new Date(),
-    };
-
-    if (isMongoConnected()) {
-      await User.findOneAndUpdate({ email }, { $set: updates });
-    } else {
-      memoryUsers.set(email, { ...existing, ...updates });
-    }
-
-    response.json({ ok: true, message: "Password reset successfully. Please login." });
+    response.json({
+      ok: true,
+      email,
+      resetToken: createResetToken(email),
+    });
   } catch (error) {
     next(error);
   }
