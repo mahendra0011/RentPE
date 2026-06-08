@@ -1,24 +1,60 @@
 import { Building2, Heart, MessageCircle, ShieldCheck } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
+import { apiRequest } from "@/lib/api.js";
+import { formatPrice } from "@/lib/format.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
 export default function Dashboard() {
   const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
   const { items, savedIds, contactedIds, postedIds } = useSelector((state) => state.rooms);
   const rooms = items.length ? items : normalizeRooms(staticRooms);
   const savedRooms = rooms.filter((room) => savedIds.includes(room.id));
   const contactedRooms = rooms.filter((room) => contactedIds.includes(room.id));
+  const [ownerRooms, setOwnerRooms] = useState([]);
+  const isOwner = user?.role === "owner";
+  const ownerAvailableCount = ownerRooms.filter((room) => room.availability === "available").length;
+  const ownerOccupiedCount = ownerRooms.filter((room) => room.availability === "occupied").length;
+  const averageOwnerRent = ownerRooms.length
+    ? Math.round(
+        ownerRooms.reduce((sum, room) => sum + Number(room.price || 0), 0) / ownerRooms.length,
+      )
+    : 0;
 
   useEffect(() => {
     dispatch(fetchRooms());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!isOwner) {
+      setOwnerRooms([]);
+      return;
+    }
+
+    let active = true;
+
+    async function loadOwnerRooms() {
+      try {
+        const payload = await apiRequest("/api/rooms/mine");
+        if (active) setOwnerRooms(normalizeRooms(payload));
+      } catch {
+        if (active) setOwnerRooms([]);
+      }
+    }
+
+    loadOwnerRooms();
+
+    return () => {
+      active = false;
+    };
+  }, [isOwner]);
 
   return (
     <div className="min-h-screen bg-background font-sans text-ink">
