@@ -57,6 +57,8 @@ const initialData = {
   city: "",
   state: "",
   landmark: "",
+  longitude: "",
+  latitude: "",
   ownerName: "",
   phone: "",
   whatsapp: true,
@@ -68,7 +70,9 @@ export default function ListRoom() {
   const user = useSelector((state) => state.auth.user);
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState("");
+  const [locationMessage, setLocationMessage] = useState("");
   const [data, setData] = useState(initialData);
 
   const previews = useMemo(
@@ -78,6 +82,14 @@ export default function ListRoom() {
 
   function update(key, value) {
     setData((current) => ({ ...current, [key]: value }));
+    if (["address", "city", "landmark", "longitude", "latitude"].includes(key)) {
+      setLocationMessage("");
+    }
+  }
+
+  function updateCity(value) {
+    const option = getCityOption(value);
+    setData((current) => ({ ...current, city: option.city, state: option.state }));
   }
 
   function toggleAmenity(amenity) {
@@ -99,6 +111,50 @@ export default function ListRoom() {
     update(
       "photos",
       data.photos.filter((_, photoIndex) => photoIndex !== index),
+    );
+  }
+
+  async function findCoordinates() {
+    setGeocoding(true);
+    setError("");
+    setLocationMessage("");
+
+    try {
+      const result = await geocodeAddress(
+        [data.address, data.landmark, data.city, data.state].filter(Boolean).join(", "),
+      );
+      setData((current) => ({
+        ...current,
+        longitude: String(result.longitude),
+        latitude: String(result.latitude),
+      }));
+      setLocationMessage(result.label);
+    } catch (geocodeError) {
+      setLocationMessage(geocodeError.message);
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
+  function useCurrentLocation() {
+    setLocationMessage("");
+
+    if (!navigator.geolocation) {
+      setLocationMessage("Current location is not supported by this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setData((current) => ({
+          ...current,
+          longitude: String(position.coords.longitude),
+          latitude: String(position.coords.latitude),
+        }));
+        setLocationMessage("Current location added.");
+      },
+      () => setLocationMessage("Location permission was not allowed."),
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
