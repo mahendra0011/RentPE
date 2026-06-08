@@ -303,9 +303,9 @@ export default function ListRoom() {
                         onChange={(event) => update("type", event.target.value)}
                         className="form-input"
                       >
-                        <option>PG</option>
-                        <option>Hostel</option>
-                        <option>Flat</option>
+                        {roomTypeOptions.map((type) => (
+                          <option key={type}>{type}</option>
+                        ))}
                       </select>
                     </Field>
                     <Field label="Tenant gender">
@@ -456,12 +456,18 @@ export default function ListRoom() {
                   </Field>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="City">
-                      <input
+                      <select
                         value={data.city}
-                        onChange={(event) => update("city", event.target.value)}
-                        placeholder="Bhopal"
+                        onChange={(event) => updateCity(event.target.value)}
                         className="form-input"
-                      />
+                      >
+                        <option value="">Select city and state</option>
+                        {listingCityOptions.map((option) => (
+                          <option key={option.label} value={option.city}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </Field>
                     <Field label="Nearest landmark">
                       <input
@@ -476,6 +482,35 @@ export default function ListRoom() {
                     RentPE uses this address, city, and landmark as searchable keywords. Users will
                     see the area, price, photos, and owner contact.
                   </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={findCoordinates}
+                      disabled={geocoding}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-70"
+                    >
+                      <MapPin className="size-4" />
+                      {geocoding ? "Finding..." : "Find coordinates"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={useCurrentLocation}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-slate-200 px-5 text-sm font-black text-ink hover:border-brand hover:text-brand"
+                    >
+                      <Crosshair className="size-4" />
+                      Use current location
+                    </button>
+                  </div>
+                  {(data.longitude && data.latitude) || locationMessage ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold leading-5 text-slate-600">
+                      {data.longitude && data.latitude ? (
+                        <span className="block text-ink">
+                          {formatCoordinate(data.latitude)}, {formatCoordinate(data.longitude)}
+                        </span>
+                      ) : null}
+                      {locationMessage && <span className="mt-1 block">{locationMessage}</span>}
+                    </div>
+                  ) : null}
                 </div>
               )}
 
