@@ -44,6 +44,8 @@ function buildSearchText(room) {
     ...(room.rules || []),
     room.address,
     room.city,
+    room.state,
+    room.cityLabel,
     room.landmark,
     room.location,
     room.locationLabel,
