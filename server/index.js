@@ -1,13 +1,13 @@
+import "dotenv/config";
+
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 
 import { isCloudinaryReady } from "./config/cloudinary.js";
 import { connectDB, isMongoConnected } from "./config/db.js";
 import authRouter from "./routes/auth.js";
+import geoRouter from "./routes/geo.js";
 import roomsRouter from "./routes/rooms.js";
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -58,6 +58,7 @@ app.get("/api/health", (_request, response) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/geo", geoRouter);
 app.use("/api/rooms", roomsRouter);
 
 app.use((error, _request, response, _next) => {

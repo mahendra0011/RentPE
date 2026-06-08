@@ -1,14 +1,58 @@
 const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
+export class ApiResponseError extends Error {
+  constructor(message, details = {}) {
+    super(message);
+    this.name = "ApiResponseError";
+    this.status = details.status || 0;
+    this.url = details.url || "";
+    this.htmlResponse = Boolean(details.htmlResponse);
+    this.networkError = Boolean(details.networkError);
+  }
+}
+
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(resolveApiUrl(path), withAuthHeaders(options));
+  const url = resolveApiUrl(path);
+  let response;
+
+  try {
+    response = await fetch(url, withAuthHeaders(options));
+  } catch {
+    throw new ApiResponseError(
+      "Backend API is not reachable. Check VITE_API_URL and backend deployment.",
+      {
+        networkError: true,
+        url,
+      },
+    );
+  }
+
   const payload = await parseApiResponse(response);
+  const htmlResponse = isHtmlPayload(payload, response);
+
+  if (htmlResponse) {
+    throw new ApiResponseError(
+      "Backend API returned an HTML page. Set VITE_API_URL to the Express backend URL, not the frontend URL.",
+      {
+        status: response.status,
+        url: response.url || url,
+        htmlResponse: true,
+      },
+    );
+  }
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, response));
+    throw new ApiResponseError(getErrorMessage(payload, response), {
+      status: response.status,
+      url: response.url || url,
+    });
   }
 
   return payload;
+}
+
+export function isApiFallbackError(error) {
+  return Boolean(error?.htmlResponse || error?.networkError);
 }
 
 function withAuthHeaders(options) {
@@ -40,7 +84,10 @@ async function parseApiResponse(response) {
     try {
       return JSON.parse(text);
     } catch {
-      throw new Error("API returned invalid JSON. Check the backend response.");
+      throw new ApiResponseError("API returned invalid JSON. Check the backend response.", {
+        status: response.status,
+        url: response.url,
+      });
     }
   }
 
@@ -56,6 +103,14 @@ function getErrorMessage(payload, response) {
     return payload.trim();
   }
   return response.statusText || "Request failed";
+}
+
+function isHtmlPayload(payload, response) {
+  const contentType = response.headers.get("content-type") || "";
+  return (
+    contentType.includes("text/html") ||
+    (typeof payload === "string" && payload.trim().startsWith("<"))
+  );
 }
 
 function resolveApiUrl(path) {

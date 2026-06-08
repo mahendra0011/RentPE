@@ -57,6 +57,17 @@ export const loginUser = createAsyncThunk(
   },
 );
 
+export const loginWithGoogle = createAsyncThunk(
+  "auth/loginWithGoogle",
+  async ({ credential, isOwner }) => {
+    return apiRequest("/api/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential, isOwner }),
+    });
+  },
+);
+
 export const resetPassword = createAsyncThunk(
   "auth/resetPassword",
   async ({ email, otp, password, resetToken }) => {
@@ -161,6 +172,22 @@ const authSlice = createSlice({
         saveAuth({ user: action.payload.user, token: action.payload.token });
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
+      })
+      .addCase(loginWithGoogle.pending, (state) => {
+        state.status = "loading";
+        state.error = "";
+      })
+      .addCase(loginWithGoogle.fulfilled, (state, action) => {
+        state.status = "authenticated";
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.otpSent = false;
+        state.devOtp = "";
+        saveAuth({ user: action.payload.user, token: action.payload.token });
+      })
+      .addCase(loginWithGoogle.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message;
       })

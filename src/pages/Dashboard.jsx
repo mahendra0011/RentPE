@@ -1,24 +1,60 @@
 import { Building2, Heart, MessageCircle, ShieldCheck } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
+import { apiRequest } from "@/lib/api.js";
+import { formatPrice } from "@/lib/format.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
 export default function Dashboard() {
   const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
   const { items, savedIds, contactedIds, postedIds } = useSelector((state) => state.rooms);
   const rooms = items.length ? items : normalizeRooms(staticRooms);
   const savedRooms = rooms.filter((room) => savedIds.includes(room.id));
   const contactedRooms = rooms.filter((room) => contactedIds.includes(room.id));
+  const [ownerRooms, setOwnerRooms] = useState([]);
+  const isOwner = user?.role === "owner";
+  const ownerAvailableCount = ownerRooms.filter((room) => room.availability === "available").length;
+  const ownerOccupiedCount = ownerRooms.filter((room) => room.availability === "occupied").length;
+  const averageOwnerRent = ownerRooms.length
+    ? Math.round(
+        ownerRooms.reduce((sum, room) => sum + Number(room.price || 0), 0) / ownerRooms.length,
+      )
+    : 0;
 
   useEffect(() => {
     dispatch(fetchRooms());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!isOwner) {
+      setOwnerRooms([]);
+      return;
+    }
+
+    let active = true;
+
+    async function loadOwnerRooms() {
+      try {
+        const payload = await apiRequest("/api/rooms/mine");
+        if (active) setOwnerRooms(normalizeRooms(payload));
+      } catch {
+        if (active) setOwnerRooms([]);
+      }
+    }
+
+    loadOwnerRooms();
+
+    return () => {
+      active = false;
+    };
+  }, [isOwner]);
 
   return (
     <div className="min-h-screen bg-background font-sans text-ink">
@@ -28,13 +64,15 @@ export default function Dashboard() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <span className="mb-3 inline-flex rounded-full bg-brand-soft px-4 py-1 text-xs font-black uppercase tracking-wide text-brand">
-              User dashboard
+              {isOwner ? "Owner dashboard" : "User dashboard"}
             </span>
             <h1 className="text-3xl font-black tracking-normal md:text-4xl">
-              Your RentPE activity
+              {isOwner ? "Your RentPE owner activity" : "Your RentPE activity"}
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Track saved rooms, contacted owners, and properties you have posted.
+              {isOwner
+                ? "Track your listings, availability, leads, saved rooms, and seeker activity."
+                : "Track saved rooms, contacted owners, and properties you have posted."}
             </p>
           </div>
           <Link
@@ -47,16 +85,95 @@ export default function Dashboard() {
         </div>
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
-          <Metric icon={Heart} label="Wishlist" value={savedIds.length} tone="brand" />
-          <Metric
-            icon={MessageCircle}
-            label="Contacted owners"
-            value={contactedIds.length}
-            tone="success"
-          />
-          <Metric icon={Building2} label="Posted rooms" value={postedIds.length} tone="ink" />
-          <Metric icon={ShieldCheck} label="Verified leads" value="24h" tone="brand" />
+          {isOwner ? (
+            <>
+              <Metric icon={Building2} label="Live listings" value={ownerRooms.length} tone="ink" />
+              <Metric
+                icon={ShieldCheck}
+                label="Available"
+                value={ownerAvailableCount}
+                tone="success"
+              />
+              <Metric
+                icon={MessageCircle}
+                label="Occupied"
+                value={ownerOccupiedCount}
+                tone="brand"
+              />
+              <Metric
+                icon={Heart}
+                label="Avg rent"
+                value={formatPrice(averageOwnerRent)}
+                tone="brand"
+              />
+            </>
+          ) : (
+            <>
+              <Metric icon={Heart} label="Wishlist" value={savedIds.length} tone="brand" />
+              <Metric
+                icon={MessageCircle}
+                label="Contacted owners"
+                value={contactedIds.length}
+                tone="success"
+              />
+              <Metric icon={Building2} label="Posted rooms" value={postedIds.length} tone="ink" />
+              <Metric icon={ShieldCheck} label="Verified leads" value="24h" tone="brand" />
+            </>
+          )}
         </section>
+
+        {isOwner && (
+          <section className="mb-8 grid gap-5 lg:grid-cols-[1fr_360px]">
+            <Panel title="Recent listed rooms">
+              {ownerRooms.length ? (
+                <div className="space-y-3">
+                  {ownerRooms.slice(0, 4).map((room) => (
+                    <Link
+                      key={room.id}
+                      to={`/rooms/${room.slug || room.id}`}
+                      className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:border-brand"
+                    >
+                      <img
+                        src={room.coverImage}
+                        alt=""
+                        className="size-16 shrink-0 rounded-lg object-cover"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-black">{room.title}</span>
+                        <span className="mt-1 block text-xs font-bold text-slate-500">
+                          {room.location}
+                        </span>
+                      </span>
+                      <span className="text-sm font-black text-brand">
+                        {formatPrice(room.price)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-slate-500">
+                  Your posted rooms will appear here after you publish a listing.
+                </p>
+              )}
+            </Panel>
+            <Panel title="Owner actions">
+              <div className="grid gap-3">
+                <Link
+                  to="/my-rooms"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-black text-white"
+                >
+                  Manage listings
+                </Link>
+                <Link
+                  to="/list-room"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-black text-ink hover:border-brand hover:text-brand"
+                >
+                  Add room
+                </Link>
+              </div>
+            </Panel>
+          </section>
+        )}
 
         <section className="grid gap-8 lg:grid-cols-[1fr_360px]">
           <div>

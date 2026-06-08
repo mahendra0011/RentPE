@@ -1,25 +1,48 @@
 import { v2 as cloudinary } from "cloudinary";
 
-const cloudinaryReady =
-  Boolean(process.env.CLOUDINARY_CLOUD_NAME) &&
-  Boolean(process.env.CLOUDINARY_API_KEY) &&
-  Boolean(process.env.CLOUDINARY_API_SECRET);
+let configured = false;
 
-if (cloudinaryReady) {
-  cloudinary.config({
+function getCloudinarySettings() {
+  return {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
+  };
+}
+
+function configureCloudinary() {
+  const settings = getCloudinarySettings();
+  const ready = Boolean(settings.cloud_name && settings.api_key && settings.api_secret);
+
+  if (!ready) return false;
+
+  if (!configured) {
+    cloudinary.config(settings);
+    configured = true;
+  }
+
+  return true;
+}
+
+function getMissingConfigError() {
+  const error = new Error(
+    "Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to .env.",
+  );
+  error.status = 503;
+  return error;
 }
 
 export function isCloudinaryReady() {
-  return cloudinaryReady;
+  return configureCloudinary();
 }
 
 export function uploadBuffer(file) {
-  if (!cloudinaryReady) {
+  if (!file?.buffer) {
     return Promise.resolve(null);
+  }
+
+  if (!configureCloudinary()) {
+    return Promise.reject(getMissingConfigError());
   }
 
   return new Promise((resolve, reject) => {

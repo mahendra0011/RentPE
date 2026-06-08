@@ -9,6 +9,7 @@ const router = Router();
 const otpStore = new Map();
 const resetTokenStore = new Map();
 const memoryUsers = new Map();
+let googleCertCache = { expiresAt: 0, keys: [] };
 
 function normalizeEmail(email) {
   return String(email || "")
@@ -48,6 +49,7 @@ function createToken(user) {
       role: user.role,
       name: user.name || "",
       mobile: user.mobile || "",
+      avatarUrl: user.avatarUrl || "",
       emailVerified: Boolean(user.emailVerifiedAt),
       issuedAt: Date.now(),
     }),
@@ -60,8 +62,151 @@ function safeUser(user) {
     role: user.role,
     name: user.name || "",
     mobile: user.mobile || "",
+    avatarUrl: user.avatarUrl || "",
     emailVerified: Boolean(user.emailVerifiedAt),
   };
+}
+
+function getGoogleClientId() {
+  return process.env.VITE_GOOGLE_CLIENT_ID || "";
+}
+
+function decodeJwtPart(value) {
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+}
+
+async function getGooglePublicKeys() {
+  if (googleCertCache.expiresAt > Date.now() && googleCertCache.keys.length) {
+    return googleCertCache.keys;
+  }
+
+  const response = await fetch("https://www.googleapis.com/oauth2/v3/certs");
+  if (!response.ok) {
+    const error = new Error("Unable to verify Google login right now.");
+    error.status = 503;
+    throw error;
+  }
+
+  const cacheControl = response.headers.get("cache-control") || "";
+  const maxAge = Number(cacheControl.match(/max-age=(\d+)/)?.[1] || 3600);
+  const payload = await response.json();
+
+  googleCertCache = {
+    expiresAt: Date.now() + maxAge * 1000,
+    keys: payload.keys || [],
+  };
+
+  return googleCertCache.keys;
+}
+
+async function verifyGoogleCredential(credential) {
+  const clientId = getGoogleClientId();
+
+  if (!clientId) {
+    const error = new Error("Google login is not configured.");
+    error.status = 500;
+    throw error;
+  }
+
+  const tokenParts = String(credential || "").split(".");
+  if (tokenParts.length !== 3) {
+    const error = new Error("Invalid Google credential.");
+    error.status = 400;
+    throw error;
+  }
+
+  const [encodedHeader, encodedPayload, encodedSignature] = tokenParts;
+  const header = decodeJwtPart(encodedHeader);
+  const payload = decodeJwtPart(encodedPayload);
+
+  if (header.alg !== "RS256") {
+    const error = new Error("Unsupported Google credential signature.");
+    error.status = 400;
+    throw error;
+  }
+
+  const keys = await getGooglePublicKeys();
+  const jwk = keys.find((key) => key.kid === header.kid);
+
+  if (!jwk) {
+    googleCertCache = { expiresAt: 0, keys: [] };
+    const error = new Error("Google credential key was not found.");
+    error.status = 400;
+    throw error;
+  }
+
+  const publicKey = crypto.createPublicKey({ key: jwk, format: "jwk" });
+  const verified = crypto.verify(
+    "RSA-SHA256",
+    Buffer.from(`${encodedHeader}.${encodedPayload}`),
+    publicKey,
+    Buffer.from(encodedSignature, "base64url"),
+  );
+
+  if (!verified) {
+    const error = new Error("Invalid Google credential signature.");
+    error.status = 401;
+    throw error;
+  }
+
+  const validIssuer = ["accounts.google.com", "https://accounts.google.com"].includes(payload.iss);
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+
+  if (!validIssuer || payload.aud !== clientId || Number(payload.exp || 0) < nowInSeconds) {
+    const error = new Error("Google credential expired or does not match this app.");
+    error.status = 401;
+    throw error;
+  }
+
+  if (!payload.email || payload.email_verified !== true) {
+    const error = new Error("Google account email must be verified.");
+    error.status = 401;
+    throw error;
+  }
+
+  return {
+    sub: payload.sub,
+    email: normalizeEmail(payload.email),
+    name: payload.name || payload.email.split("@")[0],
+    avatarUrl: payload.picture || "",
+  };
+}
+
+async function upsertGoogleUser({ profile, role }) {
+  const updates = {
+    email: profile.email,
+    role,
+    name: profile.name,
+    googleSub: profile.sub,
+    avatarUrl: profile.avatarUrl,
+    authProvider: "google",
+    emailVerifiedAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  if (isMongoConnected()) {
+    const user = await User.findOneAndUpdate(
+      { email: profile.email },
+      { $set: updates },
+      {
+        new: true,
+        upsert: true,
+      },
+    ).lean();
+
+    return user;
+  }
+
+  const existing = memoryUsers.get(profile.email) || {};
+  const user = {
+    ...existing,
+    ...updates,
+    passwordHash: existing.passwordHash,
+    passwordSalt: existing.passwordSalt,
+    mobile: existing.mobile || "",
+  };
+  memoryUsers.set(profile.email, user);
+  return user;
 }
 
 function normalizeMobile(mobile) {
@@ -282,6 +427,29 @@ router.post("/login", async (request, response, next) => {
       user = { ...user, ...updates };
       memoryUsers.set(email, user);
     }
+
+    response.json({
+      ok: true,
+      token: createToken(user),
+      user: safeUser(user),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/google", async (request, response, next) => {
+  try {
+    const credential = String(request.body.credential || "");
+    const role = request.body.isOwner ? "owner" : "seeker";
+
+    if (!credential) {
+      response.status(400).json({ message: "Google credential is required." });
+      return;
+    }
+
+    const profile = await verifyGoogleCredential(credential);
+    const user = await upsertGoogleUser({ profile, role });
 
     response.json({
       ok: true,

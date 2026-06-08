@@ -1,11 +1,12 @@
 import { ArrowRight, Lock, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import {
   clearAuthError,
+  loginWithGoogle,
   loginUser,
   requestOtp,
   resetPassword,
@@ -14,6 +15,7 @@ import {
 } from "@/store/authSlice.js";
 
 const resetSessionStorageKey = "RentPE:reset-session";
+const googleScriptId = "google-identity-services";
 
 export default function Auth() {
   const location = useLocation();
@@ -38,7 +40,11 @@ export default function Auth() {
   const [otpEmail, setOtpEmail] = useState("");
   const [formError, setFormError] = useState("");
   const [resetSession, setResetSession] = useState({});
+  const googleButtonRef = useRef(null);
+  const googleOwnerModeRef = useRef(ownerFromUrl);
   const loading = status === "loading";
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+  const showGoogleLogin = !isForgot && !isResetPassword;
   const normalizedEmail = form.email.trim().toLowerCase();
   const otpReady = isSignup && otpEmail && otpEmail === normalizedEmail;
   const resetOtpReady = isForgot && otpEmail && otpEmail === normalizedEmail;
@@ -80,6 +86,79 @@ export default function Auth() {
     setFormError("");
     dispatch(clearAuthError());
   }, [dispatch, ownerFromUrl, isSignup, isForgot, isResetPassword, location.state]);
+
+  useEffect(() => {
+    googleOwnerModeRef.current = form.isOwner;
+  }, [form.isOwner]);
+
+  const handleGoogleCredential = useCallback(
+    async (googleResponse) => {
+      if (!googleResponse?.credential) {
+        setFormError("Google login could not start. Please try again.");
+        return;
+      }
+
+      setFormError("");
+
+      try {
+        const result = await dispatch(
+          loginWithGoogle({
+            credential: googleResponse.credential,
+            isOwner: googleOwnerModeRef.current,
+          }),
+        ).unwrap();
+        navigate(result.user.role === "owner" ? "/list-room" : "/");
+      } catch {
+        // Redux slice stores the visible error message.
+      }
+    },
+    [dispatch, navigate],
+  );
+
+  useEffect(() => {
+    if (!showGoogleLogin || !googleClientId) return;
+
+    let cancelled = false;
+
+    function renderGoogleButton() {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential,
+      });
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        shape: "pill",
+        text: isSignup ? "signup_with" : "signin_with",
+        width: Math.min(400, googleButtonRef.current.clientWidth || 320),
+      });
+    }
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+    } else {
+      let script = document.getElementById(googleScriptId);
+
+      if (!script) {
+        script = document.createElement("script");
+        script.id = googleScriptId;
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+
+      script.addEventListener("load", renderGoogleButton);
+    }
+
+    return () => {
+      cancelled = true;
+      document.getElementById(googleScriptId)?.removeEventListener("load", renderGoogleButton);
+    };
+  }, [googleClientId, handleGoogleCredential, isSignup, showGoogleLogin]);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -345,6 +424,37 @@ export default function Auth() {
                   </span>
                 </span>
               </label>
+            )}
+
+            {showGoogleLogin && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-slate-200" />
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    or
+                  </span>
+                  <span className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                {googleClientId ? (
+                  <div className="google-login-shell">
+                    <div ref={googleButtonRef} className="google-login-button" />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormError("Google login is not configured. Add VITE_GOOGLE_CLIENT_ID.")
+                    }
+                    className="google-login-shell gap-3 px-5 text-sm font-black text-ink transition-colors hover:text-[#1a73e8]"
+                  >
+                    <span className="flex size-6 items-center justify-center rounded-full bg-white font-black text-[#4285f4] shadow-sm ring-1 ring-slate-200">
+                      G
+                    </span>
+                    Continue with Google
+                  </button>
+                )}
+              </div>
             )}
 
             {(otpReady || resetOtpReady) && (

@@ -3,6 +3,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Crosshair,
   Home,
   ListChecks,
   MapPin,
@@ -17,6 +18,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
+import { getCityOption, listingCityOptions, roomTypeOptions } from "@/lib/listingMeta.js";
+import { formatCoordinate, geocodeAddress } from "@/lib/mapServices.js";
 import { addRuleLine, roomRuleSuggestions } from "@/lib/rules.js";
 import { markPosted } from "@/store/roomsSlice.js";
 
@@ -43,7 +46,7 @@ const amenities = [
 
 const initialData = {
   title: "",
-  type: "PG",
+  type: "Single Room",
   gender: "Co-ed",
   price: "",
   description: "",
@@ -52,7 +55,10 @@ const initialData = {
   photos: [],
   address: "",
   city: "",
+  state: "",
   landmark: "",
+  longitude: "",
+  latitude: "",
   ownerName: "",
   phone: "",
   whatsapp: true,
@@ -64,7 +70,9 @@ export default function ListRoom() {
   const user = useSelector((state) => state.auth.user);
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState("");
+  const [locationMessage, setLocationMessage] = useState("");
   const [data, setData] = useState(initialData);
 
   const previews = useMemo(
@@ -74,6 +82,14 @@ export default function ListRoom() {
 
   function update(key, value) {
     setData((current) => ({ ...current, [key]: value }));
+    if (["address", "city", "landmark", "longitude", "latitude"].includes(key)) {
+      setLocationMessage("");
+    }
+  }
+
+  function updateCity(value) {
+    const option = getCityOption(value);
+    setData((current) => ({ ...current, city: option.city, state: option.state }));
   }
 
   function toggleAmenity(amenity) {
@@ -95,6 +111,50 @@ export default function ListRoom() {
     update(
       "photos",
       data.photos.filter((_, photoIndex) => photoIndex !== index),
+    );
+  }
+
+  async function findCoordinates() {
+    setGeocoding(true);
+    setError("");
+    setLocationMessage("");
+
+    try {
+      const result = await geocodeAddress(
+        [data.address, data.landmark, data.city, data.state].filter(Boolean).join(", "),
+      );
+      setData((current) => ({
+        ...current,
+        longitude: String(result.longitude),
+        latitude: String(result.latitude),
+      }));
+      setLocationMessage(result.label);
+    } catch (geocodeError) {
+      setLocationMessage(geocodeError.message);
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
+  function useCurrentLocation() {
+    setLocationMessage("");
+
+    if (!navigator.geolocation) {
+      setLocationMessage("Current location is not supported by this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setData((current) => ({
+          ...current,
+          longitude: String(position.coords.longitude),
+          latitude: String(position.coords.latitude),
+        }));
+        setLocationMessage("Current location added.");
+      },
+      () => setLocationMessage("Location permission was not allowed."),
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
@@ -243,9 +303,9 @@ export default function ListRoom() {
                         onChange={(event) => update("type", event.target.value)}
                         className="form-input"
                       >
-                        <option>PG</option>
-                        <option>Hostel</option>
-                        <option>Flat</option>
+                        {roomTypeOptions.map((type) => (
+                          <option key={type}>{type}</option>
+                        ))}
                       </select>
                     </Field>
                     <Field label="Tenant gender">
@@ -396,12 +456,18 @@ export default function ListRoom() {
                   </Field>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="City">
-                      <input
+                      <select
                         value={data.city}
-                        onChange={(event) => update("city", event.target.value)}
-                        placeholder="Bhopal"
+                        onChange={(event) => updateCity(event.target.value)}
                         className="form-input"
-                      />
+                      >
+                        <option value="">Select city and state</option>
+                        {listingCityOptions.map((option) => (
+                          <option key={option.label} value={option.city}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </Field>
                     <Field label="Nearest landmark">
                       <input
@@ -416,6 +482,35 @@ export default function ListRoom() {
                     RentPE uses this address, city, and landmark as searchable keywords. Users will
                     see the area, price, photos, and owner contact.
                   </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={findCoordinates}
+                      disabled={geocoding}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-70"
+                    >
+                      <MapPin className="size-4" />
+                      {geocoding ? "Finding..." : "Find coordinates"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={useCurrentLocation}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-slate-200 px-5 text-sm font-black text-ink hover:border-brand hover:text-brand"
+                    >
+                      <Crosshair className="size-4" />
+                      Use current location
+                    </button>
+                  </div>
+                  {(data.longitude && data.latitude) || locationMessage ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold leading-5 text-slate-600">
+                      {data.longitude && data.latitude ? (
+                        <span className="block text-ink">
+                          {formatCoordinate(data.latitude)}, {formatCoordinate(data.longitude)}
+                        </span>
+                      ) : null}
+                      {locationMessage && <span className="mt-1 block">{locationMessage}</span>}
+                    </div>
+                  ) : null}
                 </div>
               )}
 

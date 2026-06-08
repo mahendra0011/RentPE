@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { Check, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -7,15 +7,29 @@ import { useSearchParams } from "react-router-dom";
 import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
+import {
+  getCityFromStorage,
+  getCityOption,
+  roomTypeOptions,
+  saveCityToStorage,
+} from "@/lib/listingMeta.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { createRoomSearchIndex, searchRoomIds } from "@/lib/roomSearch.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
-const filterTypes = ["PG", "Hostel", "Flat"];
+const filterTypes = roomTypeOptions;
 const filterGenders = ["Girls", "Boys", "Co-ed"];
 const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
-const initialVisibleRooms = 48;
-const visibleRoomStep = 48;
+const initialVisibleRooms = 24;
+const visibleRoomStep = 24;
+const defaultPriceMax = 20000;
+const sortOptions = [
+  { value: "recommended", label: "Recommended" },
+  { value: "rentLow", label: "Rent: low to high" },
+  { value: "rentHigh", label: "Rent: high to low" },
+  { value: "distance", label: "Nearest first" },
+  { value: "rating", label: "Top rated" },
+];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -38,21 +52,29 @@ export default function FindRoom() {
   const [keywordQuery, setKeywordQuery] = useState(
     () => searchParams.get("q") || searchParams.get("location") || "",
   );
+  const [selectedCity, setSelectedCity] = useState(
+    () => searchParams.get("city") || getCityFromStorage(),
+  );
   const [showFilters, setShowFilters] = useState(
     () =>
       searchParams.get("filters") === "1" ||
       searchParams.get("all") === "1" ||
       Boolean(searchParams.get("q")) ||
-      Boolean(searchParams.get("location")),
+      Boolean(searchParams.get("location")) ||
+      Boolean(searchParams.get("city")),
   );
-  const [priceMax, setPriceMax] = useState(() => Number(searchParams.get("budget") || 20000));
+  const [priceMax, setPriceMax] = useState(() =>
+    Number(searchParams.get("budget") || defaultPriceMax),
+  );
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedGenders, setSelectedGenders] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [furnishedOnly, setFurnishedOnly] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(true);
+  const [sortMode, setSortMode] = useState(() => searchParams.get("sort") || "recommended");
   const [visibleCount, setVisibleCount] = useState(initialVisibleRooms);
   const deferredKeywordQuery = useDeferredValue(keywordQuery);
+  const selectedCityOption = getCityOption(selectedCity);
 
   useEffect(() => {
     dispatch(fetchRooms());
@@ -61,6 +83,8 @@ export default function FindRoom() {
   useEffect(() => {
     const nextKeyword = searchParams.get("q") || searchParams.get("location");
     const nextBudget = searchParams.get("budget");
+    const nextCity = searchParams.get("city");
+    const nextSort = searchParams.get("sort");
 
     if (nextKeyword !== null) {
       setKeywordQuery(nextKeyword);
@@ -69,6 +93,19 @@ export default function FindRoom() {
 
     if (nextBudget !== null) {
       setPriceMax(Number(nextBudget));
+    }
+
+    if (nextCity !== null) {
+      const normalizedCity = getCityOption(nextCity).city;
+      setSelectedCity(normalizedCity);
+      saveCityToStorage(normalizedCity);
+      setShowFilters(true);
+    } else {
+      setSelectedCity(getCityFromStorage());
+    }
+
+    if (nextSort) {
+      setSortMode(nextSort);
     }
 
     if (searchParams.get("filters") === "1" || searchParams.get("all") === "1") {
@@ -81,9 +118,11 @@ export default function FindRoom() {
     const matchRank = matchedRoomIds
       ? new Map(matchedRoomIds.map((id, index) => [String(id), index]))
       : null;
+    const cityFilter = selectedCityOption.city.toLowerCase();
 
     const nextRooms = rooms.filter((room) => {
       if (matchRank && !matchRank.has(String(room.id))) return false;
+      if (cityFilter && String(room.city || "").toLowerCase() !== cityFilter) return false;
       if (room.price > priceMax) return false;
       if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
       if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
@@ -99,11 +138,7 @@ export default function FindRoom() {
       return true;
     });
 
-    if (!matchRank) return nextRooms;
-
-    return nextRooms.sort((firstRoom, secondRoom) => {
-      return matchRank.get(String(firstRoom.id)) - matchRank.get(String(secondRoom.id));
-    });
+    return sortRooms(nextRooms, sortMode, matchRank);
   }, [
     availableOnly,
     deferredKeywordQuery,
@@ -112,8 +147,10 @@ export default function FindRoom() {
     roomSearchIndex,
     rooms,
     selectedAmenities,
+    selectedCityOption.city,
     selectedGenders,
     selectedTypes,
+    sortMode,
   ]);
 
   useEffect(() => {
@@ -124,8 +161,10 @@ export default function FindRoom() {
     furnishedOnly,
     priceMax,
     selectedAmenities,
+    selectedCityOption.city,
     selectedGenders,
     selectedTypes,
+    sortMode,
   ]);
 
   const visibleRooms = useMemo(
@@ -140,16 +179,24 @@ export default function FindRoom() {
     selectedAmenities.length +
     Number(furnishedOnly) +
     Number(!availableOnly) +
-    Number(priceMax !== 20000) +
-    Number(Boolean(keywordQuery));
+    Number(priceMax !== defaultPriceMax) +
+    Number(Boolean(keywordQuery)) +
+    Number(sortMode !== "recommended");
 
   function onKeywordSubmit(event) {
     event.preventDefault();
+    const params = buildSearchParams();
+    setSearchParams(params);
+  }
+
+  function buildSearchParams() {
     const params = new URLSearchParams();
     if (keywordQuery.trim()) params.set("q", keywordQuery.trim());
-    if (priceMax !== 20000) params.set("budget", String(priceMax));
+    if (priceMax !== defaultPriceMax) params.set("budget", String(priceMax));
+    if (selectedCityOption.city) params.set("city", selectedCityOption.city);
+    if (sortMode !== "recommended") params.set("sort", sortMode);
     if (showFilters) params.set("filters", "1");
-    setSearchParams(params);
+    return params;
   }
 
   function toggleFilter(list, value, setter) {
@@ -158,13 +205,17 @@ export default function FindRoom() {
 
   function resetFilters() {
     setKeywordQuery("");
-    setPriceMax(20000);
+    setPriceMax(defaultPriceMax);
     setSelectedTypes([]);
     setSelectedGenders([]);
     setSelectedAmenities([]);
     setFurnishedOnly(false);
     setAvailableOnly(true);
-    setSearchParams(showFilters ? { filters: "1" } : {});
+    setSortMode("recommended");
+    const params = new URLSearchParams();
+    if (selectedCityOption.city) params.set("city", selectedCityOption.city);
+    if (showFilters) params.set("filters", "1");
+    setSearchParams(params);
   }
 
   return (
@@ -176,32 +227,31 @@ export default function FindRoom() {
           initial="hidden"
           animate="visible"
           variants={quickStagger}
-          className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 md:pb-20 md:pt-16"
+          className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 md:pb-20 md:pt-14"
         >
           <motion.form
             onSubmit={onKeywordSubmit}
             variants={fadeUp}
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
-            className="animate-soft-pulse mx-auto max-w-[760px] rounded-[28px] border border-slate-200 bg-white p-2 shadow-[0_24px_70px_-32px_rgba(79,70,229,0.55)] md:rounded-full"
+            className="animate-soft-pulse mx-auto max-w-[780px] rounded-[28px] border border-slate-200 bg-white p-2 shadow-[0_24px_70px_-32px_rgba(79,70,229,0.55)] lg:rounded-full"
           >
-            <div className="flex flex-col gap-2 md:h-14 md:flex-row md:items-center">
-              <label className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 md:px-5 md:py-0">
+            <div className="grid gap-2 lg:h-14 lg:grid-cols-[1fr_170px_150px] lg:items-center">
+              <label className="flex min-w-0 items-center gap-3 px-4 py-3 lg:px-5 lg:py-0">
                 <Search className="size-5 shrink-0 text-slate-400" />
                 <input
                   value={keywordQuery}
                   onChange={(event) => setKeywordQuery(event.target.value)}
                   type="text"
-                  placeholder="Search keyword: PG, hostel, flat, WiFi"
+                  placeholder="Search PG, flat, WiFi, landmark"
                   className="w-full bg-transparent text-sm font-black text-ink outline-none placeholder:text-slate-400"
                 />
               </label>
-              <div className="hidden h-8 w-px bg-slate-200 md:block" />
-              <label className="flex items-center gap-2 px-4 py-3 md:px-5 md:py-0">
+              <label className="flex items-center gap-2 border-t border-slate-100 px-4 py-3 lg:border-l lg:border-t-0 lg:px-5 lg:py-0">
                 <select
-                  value={priceMax === 20000 ? "" : String(priceMax)}
-                  onChange={(event) => setPriceMax(Number(event.target.value || 20000))}
-                  className="bg-transparent text-sm font-black text-slate-600 outline-none"
+                  value={priceMax === defaultPriceMax ? "" : String(priceMax)}
+                  onChange={(event) => setPriceMax(Number(event.target.value || defaultPriceMax))}
+                  className="w-full bg-transparent text-sm font-black text-slate-600 outline-none"
                   aria-label="Budget"
                 >
                   <option value="">Any Budget</option>
@@ -213,7 +263,7 @@ export default function FindRoom() {
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.96 }}
-                className="animate-shimmer inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-8 text-sm font-black text-brand-foreground shadow-lg shadow-brand/30 transition-transform active:scale-95 md:h-full"
+                className="animate-shimmer inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-8 text-sm font-black text-brand-foreground shadow-lg shadow-brand/30 transition-transform active:scale-95 lg:h-full"
               >
                 <Search className="size-4" />
                 Search
@@ -221,22 +271,17 @@ export default function FindRoom() {
             </div>
           </motion.form>
 
-          <motion.div variants={fadeUp} className="mt-14">
-            <motion.div
-              variants={fadeUp}
-              className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
-            >
+          <motion.div variants={fadeUp} className="mt-10">
+            <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
                 <h1 className="text-3xl font-black tracking-normal text-ink">Find rooms</h1>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   Showing{" "}
                   <span className="font-black text-ink">
-                    {visibleRooms.length}
-                    {hasMoreRooms ? ` of ${filteredRooms.length}` : ""} properties
+                    {filteredRooms.length} {filteredRooms.length === 1 ? "property" : "properties"}
                   </span>
-                  {deferredKeywordQuery
-                    ? ` matching "${deferredKeywordQuery}"`
-                    : " from RentPE listings"}
+                  {selectedCityOption.city ? ` in ${selectedCityOption.label}` : " across cities"}
+                  {deferredKeywordQuery ? ` matching "${deferredKeywordQuery}"` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -262,7 +307,7 @@ export default function FindRoom() {
                   Reset
                 </button>
               </div>
-            </motion.div>
+            </div>
 
             {showFilters && (
               <div className="mb-7 rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -270,7 +315,7 @@ export default function FindRoom() {
                   <div>
                     <h2 className="font-black text-ink">Filters</h2>
                     <p className="mt-1 text-xs font-bold text-slate-500">
-                      Keyword, budget and room preferences apply instantly
+                      Budget, room type, tenant and amenities apply instantly
                     </p>
                   </div>
                   <button
@@ -295,7 +340,7 @@ export default function FindRoom() {
                     />
                   </FilterBlock>
 
-                  <FilterBlock label="Property type">
+                  <FilterBlock label="Room type">
                     <ChipRow
                       items={filterTypes}
                       selected={selectedTypes}
@@ -335,30 +380,45 @@ export default function FindRoom() {
                       />
                     </div>
                   </FilterBlock>
+
+                  <FilterBlock label="Sort">
+                    <select
+                      value={sortMode}
+                      onChange={(event) => setSortMode(event.target.value)}
+                      className="form-input py-2.5"
+                    >
+                      {sortOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FilterBlock>
                 </div>
               </div>
             )}
 
-            <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
-              {visibleRooms.map((room, index) => (
-                <RoomCard key={room.id} room={room} index={index % visibleRoomStep} />
-              ))}
-              {filteredRooms.length === 0 && (
-                <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center">
-                  <p className="font-black text-ink">No rooms match these filters</p>
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="mt-3 text-sm font-black text-brand"
-                  >
-                    Reset filters
-                  </button>
-                </div>
-              )}
-            </motion.div>
+            {filteredRooms.length > 0 ? (
+              <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
+                {visibleRooms.map((room, index) => (
+                  <RoomCard key={room.id} room={room} index={index % visibleRoomStep} />
+                ))}
+              </motion.div>
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-slate-200 bg-white py-16 text-center shadow-sm">
+                <p className="font-black text-ink">No rooms match these filters</p>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mt-3 text-sm font-black text-brand"
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
 
             {hasMoreRooms && (
-              <div className="mt-10 flex justify-center">
+              <div className="mt-10 text-center">
                 <button
                   type="button"
                   onClick={() => setVisibleCount((count) => count + visibleRoomStep)}
@@ -373,6 +433,28 @@ export default function FindRoom() {
       </main>
     </div>
   );
+}
+
+function sortRooms(rooms, sortMode, matchRank) {
+  const nextRooms = [...rooms];
+
+  return nextRooms.sort((firstRoom, secondRoom) => {
+    if (sortMode === "rentLow") return firstRoom.price - secondRoom.price;
+    if (sortMode === "rentHigh") return secondRoom.price - firstRoom.price;
+    if (sortMode === "distance") return firstRoom.distanceKm - secondRoom.distanceKm;
+    if (sortMode === "rating") {
+      return (secondRoom.owner?.rating || 0) - (firstRoom.owner?.rating || 0);
+    }
+    if (matchRank) {
+      return matchRank.get(String(firstRoom.id)) - matchRank.get(String(secondRoom.id));
+    }
+
+    if (firstRoom.availability !== secondRoom.availability) {
+      return firstRoom.availability === "available" ? -1 : 1;
+    }
+
+    return (secondRoom.owner?.rating || 0) - (firstRoom.owner?.rating || 0);
+  });
 }
 
 function FilterBlock({ label, children }) {
@@ -401,6 +483,7 @@ function ChipRow({ items, selected, onToggle }) {
                 : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
             }`}
           >
+            {active && <Check className="mr-1 inline size-3" />}
             {item}
           </button>
         );

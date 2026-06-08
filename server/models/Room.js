@@ -34,7 +34,11 @@ const roomSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, index: true },
     title: { type: String, required: true, trim: true },
     tag: { type: String, trim: true },
-    type: { type: String, enum: ["PG", "Hostel", "Flat"], required: true },
+    type: {
+      type: String,
+      enum: ["Single Room", "PG", "Shared Room", "Flat", "Hostel"],
+      required: true,
+    },
     gender: { type: String, enum: ["Girls", "Boys", "Co-ed"], required: true },
     price: { type: Number, required: true, min: 0 },
     description: { type: String, trim: true },
@@ -43,6 +47,7 @@ const roomSchema = new mongoose.Schema(
     images: [{ type: String }],
     address: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
+    state: { type: String, trim: true },
     landmark: { type: String, trim: true },
     locationLabel: { type: String, trim: true },
     location: { type: locationSchema, default: undefined },
@@ -67,9 +72,11 @@ roomSchema.index({
   title: "text",
   address: "text",
   city: "text",
+  state: "text",
   landmark: "text",
   rules: "text",
 });
+roomSchema.index({ location: "2dsphere" });
 
 const Room = mongoose.models.Room || mongoose.model("Room", roomSchema);
 

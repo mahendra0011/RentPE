@@ -5,6 +5,7 @@ import { uploadBuffer } from "../config/cloudinary.js";
 import { isMongoConnected } from "../config/db.js";
 import { seedRooms } from "../data/seedRooms.js";
 import Room from "../models/Room.js";
+import { geocodeRoomAddress } from "../services/nominatim.js";
 
 const router = Router();
 const upload = multer({
@@ -100,7 +101,46 @@ function parseList(value) {
     .filter(Boolean);
 }
 
-const ignoredKeywordTerms = new Set(["near", "room", "rooms", "pg", "flat", "hostel", "in", "at"]);
+function parseFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getQueryPoint(query) {
+  const longitude = parseFiniteNumber(query.lng ?? query.longitude);
+  const latitude = parseFiniteNumber(query.lat ?? query.latitude);
+
+  if (!isValidCoordinate(longitude, latitude)) return null;
+
+  return {
+    longitude,
+    latitude,
+    radiusMeters: getRadiusMeters(query),
+  };
+}
+
+function getRadiusMeters(query) {
+  const radiusMeters = parseFiniteNumber(query.radiusMeters);
+  if (radiusMeters && radiusMeters > 0) return Math.min(radiusMeters, 100000);
+
+  const radiusKm = parseFiniteNumber(query.radiusKm ?? query.radius);
+  if (radiusKm && radiusKm > 0) return Math.min(radiusKm * 1000, 100000);
+
+  return 10000;
+}
+
+const ignoredKeywordTerms = new Set([
+  "near",
+  "room",
+  "rooms",
+  "single",
+  "shared",
+  "pg",
+  "flat",
+  "hostel",
+  "in",
+  "at",
+]);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -128,6 +168,7 @@ function keywordMatches(room, terms) {
     ...(room.rules || []),
     room.address,
     room.city,
+    room.state,
     room.landmark,
     room.locationLabel,
   ]
@@ -140,10 +181,11 @@ function keywordMatches(room, terms) {
 
 function buildRoomFilter(query) {
   const filter = { status: "live" };
-  const types = parseList(query.types);
+  const types = parseList(query.types || query.type || query.roomType);
   const genders = parseList(query.genders);
   const amenities = parseList(query.amenities);
   const keywordTerms = getKeywordTerms(query);
+  const queryPoint = getQueryPoint(query);
 
   if (query.priceMax) filter.price = { $lte: Number(query.priceMax) };
   if (types.length) filter.type = { $in: types };
@@ -162,6 +204,7 @@ function buildRoomFilter(query) {
       "rules",
       "address",
       "city",
+      "state",
       "landmark",
       "locationLabel",
     ];
@@ -170,17 +213,38 @@ function buildRoomFilter(query) {
       fields.map((field) => ({ [field]: keywordRegex })),
     );
   }
+  if (query.city) filter.city = new RegExp(`^${escapeRegExp(query.city)}$`, "i");
+  if (query.state) filter.state = new RegExp(`^${escapeRegExp(query.state)}$`, "i");
+  if (queryPoint) {
+    filter.location = {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [queryPoint.longitude, queryPoint.latitude],
+        },
+        $maxDistance: queryPoint.radiusMeters,
+      },
+    };
+  }
 
   return filter;
 }
 
 function memoryMatches(room, query) {
+  const queryPoint = getQueryPoint(query);
+
   if (!keywordMatches(room, getKeywordTerms(query))) return false;
   if (query.priceMax && room.price > Number(query.priceMax)) return false;
   if (query.furnishedOnly === "true" && !room.furnished) return false;
   if (query.availableOnly === "true" && room.availability !== "available") return false;
+  if (query.city && String(room.city || "").toLowerCase() !== String(query.city).toLowerCase()) {
+    return false;
+  }
+  if (query.state && String(room.state || "").toLowerCase() !== String(query.state).toLowerCase()) {
+    return false;
+  }
 
-  const types = parseList(query.types);
+  const types = parseList(query.types || query.type || query.roomType);
   const genders = parseList(query.genders);
   const amenities = parseList(query.amenities);
 
@@ -189,14 +253,89 @@ function memoryMatches(room, query) {
   if (amenities.length && !amenities.every((amenity) => room.amenities.includes(amenity))) {
     return false;
   }
+  if (queryPoint && !isRoomWithinRadius(room, queryPoint)) return false;
 
   return true;
+}
+
+function isRoomWithinRadius(room, queryPoint) {
+  const coordinates = getRoomCoordinates(room);
+  if (!coordinates) return false;
+
+  return (
+    getDistanceMeters(
+      queryPoint.latitude,
+      queryPoint.longitude,
+      coordinates.latitude,
+      coordinates.longitude,
+    ) <= queryPoint.radiusMeters
+  );
+}
+
+function getRoomCoordinates(room) {
+  if (room.location?.type === "Point" && Array.isArray(room.location.coordinates)) {
+    const [longitude, latitude] = room.location.coordinates.map(Number);
+    if (isValidCoordinate(longitude, latitude)) return { longitude, latitude };
+  }
+
+  return null;
+}
+
+function getDistanceMeters(firstLatitude, firstLongitude, secondLatitude, secondLongitude) {
+  const earthRadiusMeters = 6371000;
+  const firstLatRad = toRadians(firstLatitude);
+  const secondLatRad = toRadians(secondLatitude);
+  const deltaLat = toRadians(secondLatitude - firstLatitude);
+  const deltaLng = toRadians(secondLongitude - firstLongitude);
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(firstLatRad) * Math.cos(secondLatRad) * Math.sin(deltaLng / 2) ** 2;
+
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function isValidCoordinate(longitude, latitude) {
+  return (
+    Number.isFinite(longitude) &&
+    Number.isFinite(latitude) &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    latitude >= -90 &&
+    latitude <= 90
+  );
+}
+
+async function getRoomLocation(input, fallbackLocation) {
+  const longitude = parseFiniteNumber(input.lng ?? input.longitude);
+  const latitude = parseFiniteNumber(input.lat ?? input.latitude);
+
+  if (isValidCoordinate(longitude, latitude)) {
+    return { type: "Point", coordinates: [longitude, latitude] };
+  }
+
+  try {
+    return (
+      (await geocodeRoomAddress({
+        address: input.address,
+        city: input.city,
+        state: input.state,
+        landmark: input.landmark,
+      })) || fallbackLocation
+    );
+  } catch {
+    return fallbackLocation || undefined;
+  }
 }
 
 async function normalizeRoom(body, images, ownerEmail = "") {
   const title = String(body.title || "").trim();
   const price = Number(body.price || 0);
   const city = String(body.city || "").trim();
+  const state = String(body.state || "").trim();
   const address = String(body.address || "").trim();
   const landmark = String(body.landmark || "").trim();
   const ownerName = String(body.ownerName || "").trim();
@@ -209,13 +348,15 @@ async function normalizeRoom(body, images, ownerEmail = "") {
   }
 
   const slugBase = slugify(title);
+  const type = body.roomType || body.type || "Single Room";
   const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
+  const location = await getRoomLocation({ ...body, address, city, state, landmark });
 
   return {
     slug: `${slugBase}-${Date.now().toString(36)}`,
     title,
-    tag: `${body.gender || "Co-ed"} ${body.type || "PG"}`,
-    type: body.type || "PG",
+    tag: `${body.gender || "Co-ed"} ${type}`,
+    type,
     gender: body.gender || "Co-ed",
     price,
     description: body.description || "",
@@ -224,8 +365,10 @@ async function normalizeRoom(body, images, ownerEmail = "") {
     images,
     address,
     city,
+    state,
     landmark,
     locationLabel,
+    location,
     localEssentials: [],
     ownerEmail,
     furnished: body.furnished !== "false",
@@ -242,10 +385,11 @@ async function normalizeRoom(body, images, ownerEmail = "") {
   };
 }
 
-function buildRoomUpdates(body, images, existingRoom) {
+async function buildRoomUpdates(body, images, existingRoom) {
   const title = String(body.title || existingRoom.title || "").trim();
   const price = Number(body.price || existingRoom.price || 0);
   const city = String(body.city || existingRoom.city || "").trim();
+  const state = String(body.state ?? existingRoom.state ?? "").trim();
   const address = String(body.address || existingRoom.address || "").trim();
   const landmark = String(body.landmark ?? existingRoom.landmark ?? "").trim();
   const ownerName = String(body.ownerName || existingRoom.owner?.name || "").trim();
@@ -257,9 +401,22 @@ function buildRoomUpdates(body, images, existingRoom) {
     throw error;
   }
 
-  const type = body.type || existingRoom.type || "PG";
+  const type = body.roomType || body.type || existingRoom.type || "Single Room";
   const gender = body.gender || existingRoom.gender || "Co-ed";
   const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
+  const shouldRefreshLocation =
+    body.lat !== undefined ||
+    body.latitude !== undefined ||
+    body.lng !== undefined ||
+    body.longitude !== undefined ||
+    !existingRoom.location ||
+    address !== (existingRoom.address || "") ||
+    city !== (existingRoom.city || "") ||
+    state !== (existingRoom.state || "") ||
+    landmark !== (existingRoom.landmark || "");
+  const location = shouldRefreshLocation
+    ? await getRoomLocation({ ...body, address, city, state, landmark }, existingRoom.location)
+    : existingRoom.location;
 
   return {
     title,
@@ -273,8 +430,10 @@ function buildRoomUpdates(body, images, existingRoom) {
     images: images.length ? images : existingRoom.images || [],
     address,
     city,
+    state,
     landmark,
     locationLabel,
+    location,
     furnished:
       body.furnished === undefined ? existingRoom.furnished !== false : body.furnished !== "false",
     availability: body.availability || existingRoom.availability || "available",
@@ -295,7 +454,10 @@ router.get("/", async (request, response, next) => {
     const filter = buildRoomFilter(request.query);
 
     if (isMongoConnected()) {
-      const rooms = await Room.find(filter).sort({ createdAt: -1 }).lean();
+      const queryPoint = getQueryPoint(request.query);
+      const query = Room.find(filter);
+      if (!queryPoint) query.sort({ createdAt: -1 });
+      const rooms = await query.lean();
       response.json(rooms);
       return;
     }
@@ -387,7 +549,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
         return;
       }
 
-      const updates = buildRoomUpdates(request.body, images, existingRoom);
+      const updates = await buildRoomUpdates(request.body, images, existingRoom);
       const room = await Room.findOneAndUpdate(
         { slug: request.params.slug, ownerEmail },
         { $set: updates },
@@ -406,7 +568,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
       return;
     }
 
-    const updates = buildRoomUpdates(request.body, images, memoryRooms[index]);
+    const updates = await buildRoomUpdates(request.body, images, memoryRooms[index]);
     memoryRooms[index] = { ...memoryRooms[index], ...updates };
     response.json(memoryRooms[index]);
   } catch (error) {
