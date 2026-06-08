@@ -244,7 +244,7 @@ function memoryMatches(room, query) {
     return false;
   }
 
-  const types = parseList(query.types);
+  const types = parseList(query.types || query.type || query.roomType);
   const genders = parseList(query.genders);
   const amenities = parseList(query.amenities);
 
@@ -253,14 +253,89 @@ function memoryMatches(room, query) {
   if (amenities.length && !amenities.every((amenity) => room.amenities.includes(amenity))) {
     return false;
   }
+  if (queryPoint && !isRoomWithinRadius(room, queryPoint)) return false;
 
   return true;
+}
+
+function isRoomWithinRadius(room, queryPoint) {
+  const coordinates = getRoomCoordinates(room);
+  if (!coordinates) return false;
+
+  return (
+    getDistanceMeters(
+      queryPoint.latitude,
+      queryPoint.longitude,
+      coordinates.latitude,
+      coordinates.longitude,
+    ) <= queryPoint.radiusMeters
+  );
+}
+
+function getRoomCoordinates(room) {
+  if (room.location?.type === "Point" && Array.isArray(room.location.coordinates)) {
+    const [longitude, latitude] = room.location.coordinates.map(Number);
+    if (isValidCoordinate(longitude, latitude)) return { longitude, latitude };
+  }
+
+  return null;
+}
+
+function getDistanceMeters(firstLatitude, firstLongitude, secondLatitude, secondLongitude) {
+  const earthRadiusMeters = 6371000;
+  const firstLatRad = toRadians(firstLatitude);
+  const secondLatRad = toRadians(secondLatitude);
+  const deltaLat = toRadians(secondLatitude - firstLatitude);
+  const deltaLng = toRadians(secondLongitude - firstLongitude);
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(firstLatRad) * Math.cos(secondLatRad) * Math.sin(deltaLng / 2) ** 2;
+
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function isValidCoordinate(longitude, latitude) {
+  return (
+    Number.isFinite(longitude) &&
+    Number.isFinite(latitude) &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    latitude >= -90 &&
+    latitude <= 90
+  );
+}
+
+async function getRoomLocation(input, fallbackLocation) {
+  const longitude = parseFiniteNumber(input.lng ?? input.longitude);
+  const latitude = parseFiniteNumber(input.lat ?? input.latitude);
+
+  if (isValidCoordinate(longitude, latitude)) {
+    return { type: "Point", coordinates: [longitude, latitude] };
+  }
+
+  try {
+    return (
+      (await geocodeRoomAddress({
+        address: input.address,
+        city: input.city,
+        state: input.state,
+        landmark: input.landmark,
+      })) || fallbackLocation
+    );
+  } catch {
+    return fallbackLocation || undefined;
+  }
 }
 
 async function normalizeRoom(body, images, ownerEmail = "") {
   const title = String(body.title || "").trim();
   const price = Number(body.price || 0);
   const city = String(body.city || "").trim();
+  const state = String(body.state || "").trim();
   const address = String(body.address || "").trim();
   const landmark = String(body.landmark || "").trim();
   const ownerName = String(body.ownerName || "").trim();
