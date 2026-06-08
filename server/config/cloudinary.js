@@ -33,12 +33,16 @@ function getMissingConfigError() {
 }
 
 export function isCloudinaryReady() {
-  return cloudinaryReady;
+  return configureCloudinary();
 }
 
 export function uploadBuffer(file) {
-  if (!cloudinaryReady) {
+  if (!file?.buffer) {
     return Promise.resolve(null);
+  }
+
+  if (!configureCloudinary()) {
+    return Promise.reject(getMissingConfigError());
   }
 
   return new Promise((resolve, reject) => {
