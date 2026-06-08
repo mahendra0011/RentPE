@@ -63,10 +63,27 @@ export default function RoomDetails() {
   const [active, setActive] = useState(0);
   const [reported, setReported] = useState(false);
   const [shareState, setShareState] = useState("");
+  const selectedCityOption = getCityOption(getCityFromStorage());
+  const mapCity = selectedCityOption.city;
+  const allRoomsForMap = useMemo(() => normalizeRooms(items.length ? items : staticRooms), [items]);
+  const mapRooms = useMemo(
+    () => getMapRooms(allRoomsForMap, mapCity, room),
+    [allRoomsForMap, mapCity, room],
+  );
+  const [selectedMapRoomId, setSelectedMapRoomId] = useState("");
+  const [hoveredMapRoomId, setHoveredMapRoomId] = useState("");
 
   useEffect(() => {
     dispatch(fetchRoom(id));
   }, [dispatch, id]);
+
+  useEffect(() => {
+    dispatch(fetchRooms(mapCity ? { city: mapCity } : {}));
+  }, [dispatch, mapCity]);
+
+  useEffect(() => {
+    if (room) setSelectedMapRoomId(getRoomKey(room));
+  }, [room?.id, room?.slug]);
 
   if (!room) {
     return (
@@ -86,9 +103,7 @@ export default function RoomDetails() {
     );
   }
 
-  const similar = normalizeRooms(rooms)
-    .filter((item) => item.id !== room.id)
-    .slice(0, 3);
+  const similar = allRoomsForMap.filter((item) => item.id !== room.id).slice(0, 3);
   const saved = savedIds.includes(room.id);
   const houseRules = room.rules || [];
 
