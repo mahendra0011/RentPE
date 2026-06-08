@@ -10,9 +10,9 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter.jsx";
@@ -22,6 +22,7 @@ import SpotlightPanel from "@/components/reactbits/SpotlightPanel.jsx";
 import TiltCard from "@/components/reactbits/TiltCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
+import { getCityFromStorage, getCityOption } from "@/lib/listingMeta.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
@@ -129,9 +130,35 @@ const shortlistStats = [
 export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const apiRooms = useSelector((state) => state.rooms.items);
-  const rooms = apiRooms.length ? apiRooms : normalizeRooms(staticRooms);
+  const selectedCityOption = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return getCityOption(params.get("city") ?? getCityFromStorage());
+  }, [location.search]);
+  const selectedCity = selectedCityOption.city;
+  const fallbackRooms = useMemo(() => normalizeRooms(staticRooms), []);
+  const sourceRooms = apiRooms.length ? apiRooms : fallbackRooms;
+  const rooms = useMemo(() => {
+    if (!selectedCity) return sourceRooms;
+
+    const city = selectedCity.toLowerCase();
+    return sourceRooms.filter((room) => String(room.city || "").toLowerCase() === city);
+  }, [selectedCity, sourceRooms]);
   const previewRooms = rooms.slice(0, 3);
+  const filterLink = `/find-room?${new URLSearchParams({
+    ...(selectedCity ? { city: selectedCity } : {}),
+    filters: "1",
+  }).toString()}`;
+  const seeAllLink = `/find-room?${new URLSearchParams({
+    ...(selectedCity ? { city: selectedCity } : {}),
+    all: "1",
+  }).toString()}`;
+  const selectedCityLabel = selectedCityOption.city ? selectedCityOption.city : "any city";
+  const listingsTitle = selectedCity ? `Rooms in ${selectedCity}` : "Rooms matching your move";
+  const listingsSubtitle = selectedCity
+    ? `Showing rooms around ${selectedCityOption.shortLabel || selectedCity}`
+    : "Search by city, area, landmark, title, or owner-posted address";
 
   useEffect(() => {
     dispatch(fetchRooms());
