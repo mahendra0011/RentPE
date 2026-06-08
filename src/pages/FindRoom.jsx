@@ -280,9 +280,8 @@ export default function FindRoom() {
                   <span className="font-black text-ink">
                     {filteredRooms.length} {filteredRooms.length === 1 ? "property" : "properties"}
                   </span>
-                  {deferredKeywordQuery
-                    ? ` matching "${deferredKeywordQuery}"`
-                    : " from RentPE listings"}
+                  {selectedCityOption.city ? ` in ${selectedCityOption.label}` : " across cities"}
+                  {deferredKeywordQuery ? ` matching "${deferredKeywordQuery}"` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -308,7 +307,7 @@ export default function FindRoom() {
                   Reset
                 </button>
               </div>
-            </motion.div>
+            </div>
 
             {showFilters && (
               <div className="mb-7 rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -316,7 +315,7 @@ export default function FindRoom() {
                   <div>
                     <h2 className="font-black text-ink">Filters</h2>
                     <p className="mt-1 text-xs font-bold text-slate-500">
-                      Keyword, budget and room preferences apply instantly
+                      Budget, room type, tenant and amenities apply instantly
                     </p>
                   </div>
                   <button
@@ -341,7 +340,7 @@ export default function FindRoom() {
                     />
                   </FilterBlock>
 
-                  <FilterBlock label="Property type">
+                  <FilterBlock label="Room type">
                     <ChipRow
                       items={filterTypes}
                       selected={selectedTypes}
@@ -381,30 +380,45 @@ export default function FindRoom() {
                       />
                     </div>
                   </FilterBlock>
+
+                  <FilterBlock label="Sort">
+                    <select
+                      value={sortMode}
+                      onChange={(event) => setSortMode(event.target.value)}
+                      className="form-input py-2.5"
+                    >
+                      {sortOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FilterBlock>
                 </div>
               </div>
             )}
 
-            <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
-              {visibleRooms.map((room, index) => (
-                <RoomCard key={room.id} room={room} index={index % visibleRoomStep} />
-              ))}
-              {filteredRooms.length === 0 && (
-                <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center">
-                  <p className="font-black text-ink">No rooms match these filters</p>
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="mt-3 text-sm font-black text-brand"
-                  >
-                    Reset filters
-                  </button>
-                </div>
-              )}
-            </motion.div>
+            {filteredRooms.length > 0 ? (
+              <motion.div layout className="grid grid-cols-1 gap-7 md:grid-cols-3">
+                {visibleRooms.map((room, index) => (
+                  <RoomCard key={room.id} room={room} index={index % visibleRoomStep} />
+                ))}
+              </motion.div>
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-slate-200 bg-white py-16 text-center shadow-sm">
+                <p className="font-black text-ink">No rooms match these filters</p>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mt-3 text-sm font-black text-brand"
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
 
             {hasMoreRooms && (
-              <div className="mt-10 flex justify-center">
+              <div className="mt-10 text-center">
                 <button
                   type="button"
                   onClick={() => setVisibleCount((count) => count + visibleRoomStep)}
@@ -419,6 +433,28 @@ export default function FindRoom() {
       </main>
     </div>
   );
+}
+
+function sortRooms(rooms, sortMode, matchRank) {
+  const nextRooms = [...rooms];
+
+  return nextRooms.sort((firstRoom, secondRoom) => {
+    if (sortMode === "rentLow") return firstRoom.price - secondRoom.price;
+    if (sortMode === "rentHigh") return secondRoom.price - firstRoom.price;
+    if (sortMode === "distance") return firstRoom.distanceKm - secondRoom.distanceKm;
+    if (sortMode === "rating") {
+      return (secondRoom.owner?.rating || 0) - (firstRoom.owner?.rating || 0);
+    }
+    if (matchRank) {
+      return matchRank.get(String(firstRoom.id)) - matchRank.get(String(secondRoom.id));
+    }
+
+    if (firstRoom.availability !== secondRoom.availability) {
+      return firstRoom.availability === "available" ? -1 : 1;
+    }
+
+    return (secondRoom.owner?.rating || 0) - (firstRoom.owner?.rating || 0);
+  });
 }
 
 function FilterBlock({ label, children }) {
@@ -447,6 +483,7 @@ function ChipRow({ items, selected, onToggle }) {
                 : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
             }`}
           >
+            {active && <Check className="mr-1 inline size-3" />}
             {item}
           </button>
         );
