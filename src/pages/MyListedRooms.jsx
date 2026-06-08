@@ -1,4 +1,16 @@
-import { Building2, Camera, Check, Edit3, Eye, ImagePlus, Save, Trash2, X } from "lucide-react";
+import {
+  Building2,
+  Camera,
+  Check,
+  Crosshair,
+  Edit3,
+  Eye,
+  ImagePlus,
+  MapPin,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -6,6 +18,13 @@ import { Link } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
 import { formatPrice } from "@/lib/format.js";
+import {
+  getCityOption,
+  getRoomTypeMeta,
+  listingCityOptions,
+  roomTypeOptions,
+} from "@/lib/listingMeta.js";
+import { formatCoordinate, geocodeAddress } from "@/lib/mapServices.js";
 import { normalizeRoom, normalizeRooms } from "@/lib/roomAdapter.js";
 import { addRuleLine, roomRuleSuggestions } from "@/lib/rules.js";
 
@@ -24,7 +43,7 @@ const amenityOptions = [
 
 const emptyForm = {
   title: "",
-  type: "PG",
+  type: "Single Room",
   gender: "Co-ed",
   price: "",
   description: "",
@@ -32,6 +51,7 @@ const emptyForm = {
   amenities: [],
   address: "",
   city: "",
+  state: "",
   landmark: "",
   ownerName: "",
   phone: "",
