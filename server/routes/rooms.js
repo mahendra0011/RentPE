@@ -430,8 +430,10 @@ async function buildRoomUpdates(body, images, existingRoom) {
     images: images.length ? images : existingRoom.images || [],
     address,
     city,
+    state,
     landmark,
     locationLabel,
+    location,
     furnished:
       body.furnished === undefined ? existingRoom.furnished !== false : body.furnished !== "false",
     availability: body.availability || existingRoom.availability || "available",
@@ -452,7 +454,10 @@ router.get("/", async (request, response, next) => {
     const filter = buildRoomFilter(request.query);
 
     if (isMongoConnected()) {
-      const rooms = await Room.find(filter).sort({ createdAt: -1 }).lean();
+      const queryPoint = getQueryPoint(request.query);
+      const query = Room.find(filter);
+      if (!queryPoint) query.sort({ createdAt: -1 });
+      const rooms = await query.lean();
       response.json(rooms);
       return;
     }
@@ -544,7 +549,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
         return;
       }
 
-      const updates = buildRoomUpdates(request.body, images, existingRoom);
+      const updates = await buildRoomUpdates(request.body, images, existingRoom);
       const room = await Room.findOneAndUpdate(
         { slug: request.params.slug, ownerEmail },
         { $set: updates },
@@ -563,7 +568,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
       return;
     }
 
-    const updates = buildRoomUpdates(request.body, images, memoryRooms[index]);
+    const updates = await buildRoomUpdates(request.body, images, memoryRooms[index]);
     memoryRooms[index] = { ...memoryRooms[index], ...updates };
     response.json(memoryRooms[index]);
   } catch (error) {
