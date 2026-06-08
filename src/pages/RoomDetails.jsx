@@ -24,11 +24,18 @@ import { Link, useParams } from "react-router-dom";
 import RoomCard from "@/components/RoomCard.jsx";
 import RoomLocationMap from "@/components/RoomLocationMap.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
-import { getRoom, rooms } from "@/data/rooms.js";
+import { getRoom, rooms as staticRooms } from "@/data/rooms.js";
 import { formatPrice } from "@/lib/format.js";
+import { getCityFromStorage, getCityOption } from "@/lib/listingMeta.js";
 import { normalizeRoom, normalizeRooms } from "@/lib/roomAdapter.js";
 import { shareRoom } from "@/lib/share.js";
-import { fetchRoom, markContacted, reportRoom, toggleSavedRoom } from "@/store/roomsSlice.js";
+import {
+  fetchRoom,
+  fetchRooms,
+  markContacted,
+  reportRoom,
+  toggleSavedRoom,
+} from "@/store/roomsSlice.js";
 
 const amenityIcons = {
   WiFi: Wifi,
