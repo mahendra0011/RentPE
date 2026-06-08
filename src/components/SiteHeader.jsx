@@ -147,109 +147,86 @@ export default function SiteHeader() {
     const nextCity = getCityOption(city).city;
     if (!nextCity) return;
 
-        <div className="hidden items-center gap-4 md:flex">
-          <button
-            type="button"
-            onClick={toggleDarkMode}
-            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </button>
-          {user ? (
-            <>
-              <span className="max-w-36 truncate text-sm font-black text-slate-600">
-                {user.name || user.email}
-              </span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:text-ink"
-                aria-label="Logout"
-              >
-                <LogOut className="size-4" />
-              </button>
-            </>
-          ) : (
-            <AuthLinks />
-          )}
-          {isOwner && (
-            <>
-              <MyRoomsLink />
-              <ListRoomCta />
-            </>
-          )}
-        </div>
+    setSelectedCity(nextCity);
+    saveCityToStorage(nextCity);
+    setDetectCityError("");
+    setCityPromptPaused(false);
 
-        <div className="flex items-center gap-2 md:hidden">
-          <button
-            type="button"
-            onClick={toggleDarkMode}
-            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-ink"
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
-        </div>
-      </nav>
+    const params =
+      location.pathname === "/find-room"
+        ? new URLSearchParams(location.search)
+        : new URLSearchParams();
 
-      {open && (
-        <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2">
-            <NavLink
-              to="/"
-              end
-              onClick={closeMenu}
-              className={({ isActive }) =>
-                `rounded-xl px-3 py-2 text-sm font-black ${
-                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
-                }`
-              }
-            >
-              Home
-            </NavLink>
-            <NavLink
-              to="/find-room"
-              onClick={closeMenu}
-              className={({ isActive }) =>
-                `rounded-xl px-3 py-2 text-sm font-black ${
-                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
-                }`
-              }
-            >
-              Find Room
-            </NavLink>
-            <NavLink
-              to="/wishlist"
-              onClick={closeMenu}
-              className={({ isActive }) =>
-                `flex items-center justify-between rounded-xl px-3 py-2 text-sm font-black ${
-                  isActive ? "bg-brand-soft text-brand" : "text-slate-700"
-                }`
-              }
-            >
-              <span className="inline-flex items-center gap-2">
-                <Heart className="size-4" />
-                Wishlist
-              </span>
-              {wishlistCount > 0 && (
-                <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] leading-none text-white">
-                  {wishlistCount}
-                </span>
-              )}
-            </NavLink>
+    params.set("city", nextCity);
+    params.set("filters", "1");
+
+    const query = params.toString();
+    navigate(`/find-room${query ? `?${query}` : ""}`);
+  }
+
+  function handleOpenNavbarCityPicker() {
+    setCityPromptPaused(true);
+    setMenuOpen(true);
+    setCityPickerOpenKey((key) => key + 1);
+  }
+
+  function handleCityPickerOpenChange(open) {
+    if (!open && !getCityOption(selectedCity).city) {
+      setCityPromptPaused(false);
+    }
+  }
+
+  async function handleUseCurrentLocation() {
+    setDetectCityError("");
+    setDetectingCity(true);
+
+    try {
+      const [longitude, latitude] = await getBrowserCoordinates();
+      const payload = await apiRequest(
+        `/api/geo/reverse?longitude=${encodeURIComponent(longitude)}&latitude=${encodeURIComponent(
+          latitude,
+        )}`,
+      );
+      const cityOption = getCityOptionFromLocation(payload);
+
+      if (!cityOption.city) {
+        throw new Error("City could not be detected from your location.");
+      }
+
+      handleCityChange(cityOption.city);
+    } catch (error) {
+      setDetectCityError(error.message || "City could not be detected from your location.");
+    } finally {
+      setDetectingCity(false);
+    }
+  }
+
+  return (
+    <>
+      <header className="relative sticky top-0 z-50 border-b border-slate-200 bg-white/92 shadow-[0_10px_28px_-26px_rgba(15,23,42,0.45)] backdrop-blur">
+        <nav className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <Logo />
+
+          <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 xl:flex">
+            <NavLinks wishlistCount={wishlistCount} className="pointer-events-auto" />
+          </div>
+
+          <div className="hidden min-w-0 items-center gap-2 xl:flex">
+            <CitySelect
+              value={selectedCity}
+              onChange={handleCityChange}
+              onDetectCity={handleUseCurrentLocation}
+              detectingCity={detectingCity}
+              detectCityError={detectCityError}
+              forceOpenKey={cityPickerOpenKey}
+              onOpenChange={handleCityPickerOpenChange}
+              className="w-[220px]"
+            />
             <button
               type="button"
               onClick={toggleDarkMode}
-              className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-700"
+              className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               <span className="inline-flex items-center gap-2">
                 {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
