@@ -30,7 +30,12 @@ import { logout } from "@/store/authSlice.js";
 
 function Logo({ onClick }) {
   return (
-    <Link to="/" className="flex items-center gap-2" aria-label="RentPE home">
+    <Link
+      to="/"
+      onClick={onClick}
+      className="flex shrink-0 items-center gap-2"
+      aria-label="RentPE home"
+    >
       <span className="flex size-8 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg shadow-brand/25">
         <MapPin className="size-4" strokeWidth={2.6} />
       </span>
@@ -39,19 +44,19 @@ function Logo({ onClick }) {
   );
 }
 
-function ListRoomCta({ onClick }) {
+function ListRoomCta({ onClick, className = "" }) {
   return (
     <Link
       to="/list-room"
       onClick={onClick}
-      className="inline-flex min-h-10 items-center justify-center rounded-full bg-ink px-5 text-sm font-black text-white shadow-sm transition-colors hover:bg-slate-800"
+      className={`inline-flex min-h-10 items-center justify-center rounded-full bg-ink px-5 text-sm font-black text-white shadow-sm transition-colors hover:bg-slate-800 ${className}`}
     >
       List Your Room
     </Link>
   );
 }
 
-function MyRoomsLink({ onClick }) {
+function MyRoomsLink({ onClick, className = "" }) {
   return (
     <Link
       to="/my-rooms"
