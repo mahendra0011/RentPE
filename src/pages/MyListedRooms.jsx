@@ -53,6 +53,8 @@ const emptyForm = {
   city: "",
   state: "",
   landmark: "",
+  longitude: "",
+  latitude: "",
   ownerName: "",
   phone: "",
   whatsapp: true,
@@ -69,15 +71,22 @@ export default function MyListedRooms() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
   const [deleteNotice, setDeleteNotice] = useState("");
+  const [locationMessage, setLocationMessage] = useState("");
 
   const selectedRoom = rooms.find((room) => room.id === selectedId || room.slug === selectedId);
   const photoPreviews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos]);
   const visibleImages = photoPreviews.length ? photoPreviews : selectedRoom?.images || [];
+  const availableCount = rooms.filter((room) => room.availability === "available").length;
+  const occupiedCount = rooms.filter((room) => room.availability === "occupied").length;
+  const averageRent = rooms.length
+    ? Math.round(rooms.reduce((sum, room) => sum + Number(room.price || 0), 0) / rooms.length)
+    : 0;
 
   useEffect(() => {
     if (!isOwner) return;
@@ -89,6 +98,7 @@ export default function MyListedRooms() {
       setForm(roomToForm(selectedRoom));
       setPhotos([]);
       setSaved("");
+      setLocationMessage("");
       setDeleteConfirmId("");
     }
   }, [selectedRoom]);
