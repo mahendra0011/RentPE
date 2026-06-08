@@ -185,6 +185,7 @@ function buildRoomFilter(query) {
   const genders = parseList(query.genders);
   const amenities = parseList(query.amenities);
   const keywordTerms = getKeywordTerms(query);
+  const queryPoint = getQueryPoint(query);
 
   if (query.priceMax) filter.price = { $lte: Number(query.priceMax) };
   if (types.length) filter.type = { $in: types };
@@ -203,6 +204,7 @@ function buildRoomFilter(query) {
       "rules",
       "address",
       "city",
+      "state",
       "landmark",
       "locationLabel",
     ];
@@ -211,15 +213,36 @@ function buildRoomFilter(query) {
       fields.map((field) => ({ [field]: keywordRegex })),
     );
   }
+  if (query.city) filter.city = new RegExp(`^${escapeRegExp(query.city)}$`, "i");
+  if (query.state) filter.state = new RegExp(`^${escapeRegExp(query.state)}$`, "i");
+  if (queryPoint) {
+    filter.location = {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [queryPoint.longitude, queryPoint.latitude],
+        },
+        $maxDistance: queryPoint.radiusMeters,
+      },
+    };
+  }
 
   return filter;
 }
 
 function memoryMatches(room, query) {
+  const queryPoint = getQueryPoint(query);
+
   if (!keywordMatches(room, getKeywordTerms(query))) return false;
   if (query.priceMax && room.price > Number(query.priceMax)) return false;
   if (query.furnishedOnly === "true" && !room.furnished) return false;
   if (query.availableOnly === "true" && room.availability !== "available") return false;
+  if (query.city && String(room.city || "").toLowerCase() !== String(query.city).toLowerCase()) {
+    return false;
+  }
+  if (query.state && String(room.state || "").toLowerCase() !== String(query.state).toLowerCase()) {
+    return false;
+  }
 
   const types = parseList(query.types);
   const genders = parseList(query.genders);
