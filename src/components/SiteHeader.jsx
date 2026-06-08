@@ -228,22 +228,20 @@ export default function SiteHeader() {
               className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
               aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
-              <span className="inline-flex items-center gap-2">
-                {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
-                {darkMode ? "Light mode" : "Dark mode"}
-              </span>
+              {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </button>
             {user ? (
               <>
-                <span className="rounded-xl px-3 py-2 text-sm font-black text-slate-500">
+                <span className="max-w-28 truncate text-sm font-black text-slate-600 2xl:max-w-36">
                   {user.name || user.email}
                 </span>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="rounded-xl px-3 py-2 text-left text-sm font-black text-slate-700"
+                  className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:text-ink"
+                  aria-label="Logout"
                 >
-                  Logout
+                  <LogOut className="size-4" />
                 </button>
               </>
             ) : (
