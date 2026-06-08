@@ -2,8 +2,8 @@ export const seedRooms = [
   {
     slug: "skyline-stay",
     title: "Skyline Stay - Single Room",
-    tag: "Girls PG",
-    type: "PG",
+    tag: "Single Room",
+    type: "Single Room",
     gender: "Girls",
     price: 6500,
     description:
@@ -13,6 +13,7 @@ export const seedRooms = [
     images: [],
     address: "12, Gulmohar Colony, Near City College, Bhopal - 462042",
     city: "Bhopal",
+    state: "Madhya Pradesh",
     landmark: "City College",
     locationLabel: "Gulmohar Colony, Bhopal",
     location: { type: "Point", coordinates: [77.4924, 23.2515] },
@@ -36,8 +37,8 @@ export const seedRooms = [
   {
     slug: "comfort-living",
     title: "Comfort Living PG",
-    tag: "Boys Hostel",
-    type: "Hostel",
+    tag: "Boys PG",
+    type: "PG",
     gender: "Boys",
     price: 4200,
     description:
@@ -47,6 +48,7 @@ export const seedRooms = [
     images: [],
     address: "Sector C, Bhopal - 462022",
     city: "Bhopal",
+    state: "Madhya Pradesh",
     landmark: "Sector C",
     locationLabel: "Sector C, Bhopal",
     location: { type: "Point", coordinates: [77.4845, 23.2486] },
