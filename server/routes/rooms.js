@@ -348,13 +348,15 @@ async function normalizeRoom(body, images, ownerEmail = "") {
   }
 
   const slugBase = slugify(title);
+  const type = body.roomType || body.type || "Single Room";
   const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
+  const location = await getRoomLocation({ ...body, address, city, state, landmark });
 
   return {
     slug: `${slugBase}-${Date.now().toString(36)}`,
     title,
-    tag: `${body.gender || "Co-ed"} ${body.type || "PG"}`,
-    type: body.type || "PG",
+    tag: `${body.gender || "Co-ed"} ${type}`,
+    type,
     gender: body.gender || "Co-ed",
     price,
     description: body.description || "",
@@ -363,8 +365,10 @@ async function normalizeRoom(body, images, ownerEmail = "") {
     images,
     address,
     city,
+    state,
     landmark,
     locationLabel,
+    location,
     localEssentials: [],
     ownerEmail,
     furnished: body.furnished !== "false",
