@@ -3,6 +3,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Crosshair,
   Home,
   ListChecks,
   MapPin,
@@ -17,6 +18,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
+import { getCityOption, listingCityOptions, roomTypeOptions } from "@/lib/listingMeta.js";
+import { formatCoordinate, geocodeAddress } from "@/lib/mapServices.js";
 import { addRuleLine, roomRuleSuggestions } from "@/lib/rules.js";
 import { markPosted } from "@/store/roomsSlice.js";
 
@@ -43,7 +46,7 @@ const amenities = [
 
 const initialData = {
   title: "",
-  type: "PG",
+  type: "Single Room",
   gender: "Co-ed",
   price: "",
   description: "",
@@ -52,6 +55,7 @@ const initialData = {
   photos: [],
   address: "",
   city: "",
+  state: "",
   landmark: "",
   ownerName: "",
   phone: "",
