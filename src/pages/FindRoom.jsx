@@ -74,6 +74,7 @@ export default function FindRoom() {
   const [sortMode, setSortMode] = useState(() => searchParams.get("sort") || "recommended");
   const [visibleCount, setVisibleCount] = useState(initialVisibleRooms);
   const deferredKeywordQuery = useDeferredValue(keywordQuery);
+  const selectedCityOption = getCityOption(selectedCity);
 
   useEffect(() => {
     dispatch(fetchRooms());
@@ -82,6 +83,8 @@ export default function FindRoom() {
   useEffect(() => {
     const nextKeyword = searchParams.get("q") || searchParams.get("location");
     const nextBudget = searchParams.get("budget");
+    const nextCity = searchParams.get("city");
+    const nextSort = searchParams.get("sort");
 
     if (nextKeyword !== null) {
       setKeywordQuery(nextKeyword);
@@ -90,6 +93,19 @@ export default function FindRoom() {
 
     if (nextBudget !== null) {
       setPriceMax(Number(nextBudget));
+    }
+
+    if (nextCity !== null) {
+      const normalizedCity = getCityOption(nextCity).city;
+      setSelectedCity(normalizedCity);
+      saveCityToStorage(normalizedCity);
+      setShowFilters(true);
+    } else {
+      setSelectedCity(getCityFromStorage());
+    }
+
+    if (nextSort) {
+      setSortMode(nextSort);
     }
 
     if (searchParams.get("filters") === "1" || searchParams.get("all") === "1") {
@@ -102,9 +118,11 @@ export default function FindRoom() {
     const matchRank = matchedRoomIds
       ? new Map(matchedRoomIds.map((id, index) => [String(id), index]))
       : null;
+    const cityFilter = selectedCityOption.city.toLowerCase();
 
     const nextRooms = rooms.filter((room) => {
       if (matchRank && !matchRank.has(String(room.id))) return false;
+      if (cityFilter && String(room.city || "").toLowerCase() !== cityFilter) return false;
       if (room.price > priceMax) return false;
       if (selectedTypes.length && !selectedTypes.includes(room.type)) return false;
       if (selectedGenders.length && !selectedGenders.includes(room.gender)) return false;
@@ -120,11 +138,7 @@ export default function FindRoom() {
       return true;
     });
 
-    if (!matchRank) return nextRooms;
-
-    return nextRooms.sort((firstRoom, secondRoom) => {
-      return matchRank.get(String(firstRoom.id)) - matchRank.get(String(secondRoom.id));
-    });
+    return sortRooms(nextRooms, sortMode, matchRank);
   }, [
     availableOnly,
     deferredKeywordQuery,
@@ -133,8 +147,10 @@ export default function FindRoom() {
     roomSearchIndex,
     rooms,
     selectedAmenities,
+    selectedCityOption.city,
     selectedGenders,
     selectedTypes,
+    sortMode,
   ]);
 
   useEffect(() => {
