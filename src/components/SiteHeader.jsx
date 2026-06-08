@@ -106,6 +106,10 @@ export default function SiteHeader() {
   const isOwner = user?.role === "owner";
 
   useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
     const storedTheme = localStorage.getItem("rentpe:theme");
     const shouldUseDark =
       storedTheme === "dark" ||
@@ -115,6 +119,18 @@ export default function SiteHeader() {
     document.documentElement.classList.toggle("dark", shouldUseDark);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cityFromUrl = params.get("city");
+
+    if (cityFromUrl !== null) {
+      setSelectedCity(cityFromUrl);
+      saveCityToStorage(cityFromUrl);
+    } else if (location.pathname === "/find-room") {
+      setSelectedCity(getCityFromStorage());
+    }
+  }, [location.pathname, location.search]);
+
   function toggleDarkMode() {
     const nextMode = !darkMode;
     setDarkMode(nextMode);
@@ -122,55 +138,14 @@ export default function SiteHeader() {
     localStorage.setItem("rentpe:theme", nextMode ? "dark" : "light");
   }
 
-  function closeMenu() {
-    setOpen(false);
-  }
-
   function handleLogout() {
     dispatch(logout());
-    closeMenu();
+    setMenuOpen(false);
   }
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-background/95 backdrop-blur-md">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo />
-
-        <div className="hidden items-center gap-7 text-sm font-black text-slate-500 md:flex">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
-            }
-          >
-            Home
-          </NavLink>
-          <NavLink
-            to="/find-room"
-            className={({ isActive }) =>
-              `transition-colors hover:text-ink ${isActive ? "text-ink" : ""}`
-            }
-          >
-            Find Room
-          </NavLink>
-          <NavLink
-            to="/wishlist"
-            className={({ isActive }) =>
-              `inline-flex items-center gap-1.5 transition-colors hover:text-ink ${
-                isActive ? "text-ink" : ""
-              }`
-            }
-          >
-            <Heart className="size-4" />
-            Wishlist
-            {wishlistCount > 0 && (
-              <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] leading-none text-white">
-                {wishlistCount}
-              </span>
-            )}
-          </NavLink>
-        </div>
+  function handleCityChange(city) {
+    const nextCity = getCityOption(city).city;
+    if (!nextCity) return;
 
         <div className="hidden items-center gap-4 md:flex">
           <button
