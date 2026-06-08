@@ -42,10 +42,17 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, response));
+    throw new ApiResponseError(getErrorMessage(payload, response), {
+      status: response.status,
+      url: response.url || url,
+    });
   }
 
   return payload;
+}
+
+export function isApiFallbackError(error) {
+  return Boolean(error?.htmlResponse || error?.networkError);
 }
 
 function withAuthHeaders(options) {
@@ -77,7 +84,10 @@ async function parseApiResponse(response) {
     try {
       return JSON.parse(text);
     } catch {
-      throw new Error("API returned invalid JSON. Check the backend response.");
+      throw new ApiResponseError("API returned invalid JSON. Check the backend response.", {
+        status: response.status,
+        url: response.url,
+      });
     }
   }
 
@@ -93,6 +103,14 @@ function getErrorMessage(payload, response) {
     return payload.trim();
   }
   return response.statusText || "Request failed";
+}
+
+function isHtmlPayload(payload, response) {
+  const contentType = response.headers.get("content-type") || "";
+  return (
+    contentType.includes("text/html") ||
+    (typeof payload === "string" && payload.trim().startsWith("<"))
+  );
 }
 
 function resolveApiUrl(path) {
