@@ -1,11 +1,12 @@
 import { ArrowRight, Lock, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import {
   clearAuthError,
+  loginWithGoogle,
   loginUser,
   requestOtp,
   resetPassword,
@@ -14,6 +15,7 @@ import {
 } from "@/store/authSlice.js";
 
 const resetSessionStorageKey = "RentPE:reset-session";
+const googleScriptId = "google-identity-services";
 
 export default function Auth() {
   const location = useLocation();
