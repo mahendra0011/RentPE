@@ -49,6 +49,7 @@ function createToken(user) {
       role: user.role,
       name: user.name || "",
       mobile: user.mobile || "",
+      avatarUrl: user.avatarUrl || "",
       emailVerified: Boolean(user.emailVerifiedAt),
       issuedAt: Date.now(),
     }),
@@ -61,6 +62,7 @@ function safeUser(user) {
     role: user.role,
     name: user.name || "",
     mobile: user.mobile || "",
+    avatarUrl: user.avatarUrl || "",
     emailVerified: Boolean(user.emailVerifiedAt),
   };
 }
