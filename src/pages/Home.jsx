@@ -161,8 +161,8 @@ export default function Home() {
     : "Search by city, area, landmark, title, or owner-posted address";
 
   useEffect(() => {
-    dispatch(fetchRooms());
-  }, [dispatch]);
+    dispatch(fetchRooms(selectedCity ? { city: selectedCity } : {}));
+  }, [dispatch, selectedCity]);
 
   useEffect(() => {
     function openHashTarget() {
@@ -188,6 +188,7 @@ export default function Home() {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     if (budget) params.set("budget", String(budget));
+    if (selectedCity) params.set("city", selectedCity);
     navigate(`/find-room${params.toString() ? `?${params}` : ""}`);
   }
 
@@ -202,7 +203,7 @@ export default function Home() {
               variants={fadeUp}
               className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl lg:text-[64px]"
             >
-              Your perfect room in <span className="text-brand">any city.</span>
+              Your perfect room in <span className="text-brand">{selectedCityLabel}.</span>
             </motion.h1>
             <motion.p
               variants={fadeUp}
@@ -274,23 +275,19 @@ export default function Home() {
         >
           <motion.div variants={fadeUp} className="mb-7 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-black tracking-normal text-ink">
-                Rooms matching your move
-              </h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Search by city, area, landmark, title, or owner-posted address
-              </p>
+              <h2 className="text-3xl font-black tracking-normal text-ink">{listingsTitle}</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">{listingsSubtitle}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
-                to="/find-room?filters=1"
+                to={filterLink}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand hover:text-brand"
               >
                 <SlidersHorizontal className="size-4" />
                 Filter
               </Link>
               <Link
-                to="/find-room?all=1"
+                to={seeAllLink}
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-black text-white transition-all hover:-translate-y-0.5 hover:bg-slate-800"
               >
                 See all
@@ -305,7 +302,11 @@ export default function Home() {
             ))}
             {previewRooms.length === 0 && (
               <div className="col-span-full rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center">
-                <p className="font-black text-ink">No rooms available yet</p>
+                <p className="font-black text-ink">
+                  {selectedCity
+                    ? `No rooms available in ${selectedCity} yet`
+                    : "No rooms available yet"}
+                </p>
               </div>
             )}
           </motion.div>
