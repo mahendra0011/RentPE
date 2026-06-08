@@ -17,11 +17,12 @@ import {
   Utensils,
   Wifi,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 
 import RoomCard from "@/components/RoomCard.jsx";
+import RoomLocationMap from "@/components/RoomLocationMap.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { getRoom, rooms } from "@/data/rooms.js";
 import { formatPrice } from "@/lib/format.js";
