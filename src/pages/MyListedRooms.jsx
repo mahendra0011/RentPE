@@ -665,17 +665,28 @@ export default function MyListedRooms() {
                     </div>
                   </Field>
                 </div>
-                <button
-                  type="submit"
-                  disabled={saving || Boolean(deletingId)}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 disabled:cursor-wait disabled:opacity-70"
-                >
-                  {saving ? <Edit3 className="size-4" /> : <Save className="size-4" />}
-                  {saving ? "Saving..." : "Save changes"}
-                </button>
-              </div>
-            </form>
-          </section>
+
+                <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    {saved && (
+                      <p className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">
+                        <Check className="size-4" />
+                        {saved}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={saving || Boolean(deletingId)}
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {saving ? <Edit3 className="size-4" /> : <Save className="size-4" />}
+                    {saving ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </>
         )}
       </main>
     </div>
@@ -685,7 +696,7 @@ export default function MyListedRooms() {
 function roomToForm(room) {
   return {
     title: room.title || "",
-    type: room.type || "PG",
+    type: room.type || "Single Room",
     gender: room.gender || "Co-ed",
     price: room.price || "",
     description: room.description || "",
@@ -693,7 +704,10 @@ function roomToForm(room) {
     amenities: room.amenities || [],
     address: room.address || "",
     city: room.city || "",
+    state: room.state || "",
     landmark: room.landmark || "",
+    longitude: room.geoCoordinates?.[0] || "",
+    latitude: room.geoCoordinates?.[1] || "",
     ownerName: room.owner?.name || "",
     phone: String(room.owner?.phone || "")
       .replace(/^91/, "")
@@ -702,6 +716,15 @@ function roomToForm(room) {
     furnished: room.furnished !== false,
     availability: room.availability || "available",
   };
+}
+
+function OwnerMetric({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-card p-5 shadow-sm">
+      <p className="text-2xl font-black text-ink">{value}</p>
+      <p className="mt-1 text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
+    </div>
+  );
 }
 
 function Field({ label, children, className = "" }) {
