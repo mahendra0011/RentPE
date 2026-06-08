@@ -458,56 +458,212 @@ export default function MyListedRooms() {
                       <img src={image} alt="" className="h-full w-full object-cover" />
                     </div>
                   ))}
+                  <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 text-center transition-colors hover:border-brand hover:bg-brand-soft/40">
+                    <Camera className="mb-2 size-6 text-slate-400" />
+                    <span className="px-3 text-xs font-black text-slate-600">Replace photos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(event) => onFiles(event.target.files)}
+                    />
+                  </label>
                 </div>
-              </Field>
 
-              <div className="mt-5 grid gap-5 md:grid-cols-[1fr_260px]">
-                <Field label="Amenities">
-                  <div className="flex flex-wrap gap-2">
-                    {amenityOptions.map((amenity) => {
-                      const active = form.amenities.includes(amenity);
-                      return (
-                        <button
-                          key={amenity}
-                          type="button"
-                          onClick={() => toggleAmenity(amenity)}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-black transition-colors ${
-                            active
-                              ? "border-brand bg-brand text-brand-foreground"
-                              : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
-                          }`}
-                        >
-                          {active && <Check className="mr-1 inline size-3" />}
-                          {amenity}
-                        </button>
-                      );
-                    })}
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Field label="Listing title">
+                    <input
+                      value={form.title}
+                      onChange={(event) => update("title", event.target.value)}
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Monthly rent">
+                    <input
+                      type="number"
+                      value={form.price}
+                      onChange={(event) => update("price", event.target.value)}
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Property type">
+                    <select
+                      value={form.type}
+                      onChange={(event) => update("type", event.target.value)}
+                      className="form-input"
+                    >
+                      {roomTypeOptions.map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Tenant">
+                    <select
+                      value={form.gender}
+                      onChange={(event) => update("gender", event.target.value)}
+                      className="form-input"
+                    >
+                      <option>Co-ed</option>
+                      <option>Girls</option>
+                      <option>Boys</option>
+                    </select>
+                  </Field>
+                  <Field label="City">
+                    <select
+                      value={form.city}
+                      onChange={(event) => updateCity(event.target.value)}
+                      className="form-input"
+                    >
+                      <option value="">Select city and state</option>
+                      {listingCityOptions.map((option) => (
+                        <option key={option.label} value={option.city}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Landmark">
+                    <input
+                      value={form.landmark}
+                      onChange={(event) => update("landmark", event.target.value)}
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Full address">
+                    <input
+                      value={form.address}
+                      onChange={(event) => update("address", event.target.value)}
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Owner phone">
+                    <input
+                      value={form.phone}
+                      onChange={(event) =>
+                        update("phone", event.target.value.replace(/\D/g, "").slice(0, 10))
+                      }
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Coordinates">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={findCoordinates}
+                        disabled={geocoding}
+                        className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-ink px-4 text-sm font-black text-white disabled:cursor-wait disabled:opacity-70"
+                      >
+                        <MapPin className="size-4" />
+                        {geocoding ? "Finding..." : "Find"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={useCurrentLocation}
+                        className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-black text-ink hover:border-brand hover:text-brand"
+                      >
+                        <Crosshair className="size-4" />
+                        Current
+                      </button>
+                    </div>
+                    {(form.longitude && form.latitude) || locationMessage ? (
+                      <p className="mt-2 rounded-xl bg-slate-50 p-3 text-xs font-bold leading-5 text-slate-600">
+                        {form.longitude && form.latitude ? (
+                          <span className="block text-ink">
+                            {formatCoordinate(form.latitude)}, {formatCoordinate(form.longitude)}
+                          </span>
+                        ) : null}
+                        {locationMessage && <span className="block">{locationMessage}</span>}
+                      </p>
+                    ) : null}
+                  </Field>
+                  <Field label="Owner name">
+                    <input
+                      value={form.ownerName}
+                      onChange={(event) => update("ownerName", event.target.value)}
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Availability">
+                    <select
+                      value={form.availability}
+                      onChange={(event) => update("availability", event.target.value)}
+                      className="form-input"
+                    >
+                      <option value="available">Available</option>
+                      <option value="occupied">Occupied</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <Field label="Description" className="mt-5">
+                  <textarea
+                    value={form.description}
+                    onChange={(event) => update("description", event.target.value)}
+                    rows={4}
+                    className="form-input resize-none"
+                  />
+                </Field>
+
+                <Field label="House rules" className="mt-5">
+                  <textarea
+                    value={form.rules}
+                    onChange={(event) => update("rules", event.target.value)}
+                    rows={3}
+                    placeholder="One rule per line"
+                    className="form-input resize-none"
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {roomRuleSuggestions.map((rule) => (
+                      <button
+                        type="button"
+                        key={rule}
+                        onClick={() => update("rules", addRuleLine(form.rules, rule))}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                      >
+                        {rule}
+                      </button>
+                    ))}
                   </div>
                 </Field>
-                <Field label="Controls">
-                  <div className="space-y-2">
-                    <Toggle
-                      label="Furnished"
-                      checked={form.furnished}
-                      onChange={(value) => update("furnished", value)}
-                    />
-                    <Toggle
-                      label="WhatsApp leads"
-                      checked={form.whatsapp}
-                      onChange={(value) => update("whatsapp", value)}
-                    />
-                  </div>
-                </Field>
-              </div>
 
-              <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  {saved && (
-                    <p className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">
-                      <Check className="size-4" />
-                      {saved}
-                    </p>
-                  )}
+                <div className="mt-5 grid gap-5 md:grid-cols-[1fr_260px]">
+                  <Field label="Amenities">
+                    <div className="flex flex-wrap gap-2">
+                      {amenityOptions.map((amenity) => {
+                        const active = form.amenities.includes(amenity);
+                        return (
+                          <button
+                            key={amenity}
+                            type="button"
+                            onClick={() => toggleAmenity(amenity)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-black transition-colors ${
+                              active
+                                ? "border-brand bg-brand text-brand-foreground"
+                                : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
+                            }`}
+                          >
+                            {active && <Check className="mr-1 inline size-3" />}
+                            {amenity}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+                  <Field label="Controls">
+                    <div className="space-y-2">
+                      <Toggle
+                        label="Furnished"
+                        checked={form.furnished}
+                        onChange={(value) => update("furnished", value)}
+                      />
+                      <Toggle
+                        label="WhatsApp leads"
+                        checked={form.whatsapp}
+                        onChange={(value) => update("whatsapp", value)}
+                      />
+                    </div>
+                  </Field>
                 </div>
                 <button
                   type="submit"
