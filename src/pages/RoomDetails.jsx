@@ -266,49 +266,6 @@ export default function RoomDetails() {
                 })}
               </div>
             </section>
-
-            <section className="border-t border-slate-200 py-6">
-              <h2 className="mb-4 text-lg font-black">Location</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-card p-5">
-                  <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                    Area
-                  </p>
-                  <p className="mt-2 font-black">{room.location}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-card p-5">
-                  <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                    Full address
-                  </p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-slate-600">{room.address}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="border-t border-slate-200 py-6">
-              <h2 className="mb-4 text-lg font-black">Local essentials</h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {(room.localEssentials?.length
-                  ? room.localEssentials
-                  : [
-                      { name: "College / Office", type: "landmark", distance: "Area detail" },
-                      { name: "Bus stop", type: "transit", distance: "Walkable" },
-                      { name: "Market", type: "daily needs", distance: "Area detail" },
-                    ]
-                ).map((item) => (
-                  <div
-                    key={`${item.name}-${item.type}`}
-                    className="rounded-xl border border-slate-200 bg-card p-4"
-                  >
-                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                      {item.type}
-                    </p>
-                    <p className="mt-1 font-black">{item.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{item.distance}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
 
           <aside>
@@ -411,6 +368,74 @@ export default function RoomDetails() {
           </aside>
         </div>
 
+        <section className="mt-10 border-t border-slate-200 py-8">
+          <h2 className="mb-4 text-lg font-black">Location</h2>
+          <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <RoomLocationMap
+              room={room}
+              rooms={mapRooms}
+              mapCity={mapCity}
+              selectedRoomId={selectedMapRoomId}
+              hoveredRoomId={hoveredMapRoomId}
+              onRoomSelect={setSelectedMapRoomId}
+            />
+            <div className="max-h-[640px] overflow-y-auto pr-1">
+              <div className="grid gap-3">
+                {mapRooms.map((mapRoom) => {
+                  const roomKey = getRoomKey(mapRoom);
+
+                  return (
+                    <MapRoomSelectCard
+                      key={roomKey}
+                      room={mapRoom}
+                      selected={roomKey === selectedMapRoomId}
+                      onSelect={() => setSelectedMapRoomId(roomKey)}
+                      onHover={(hovering) => setHoveredMapRoomId(hovering ? roomKey : "")}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-card p-5">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Area</p>
+              <p className="mt-2 font-black">{room.location}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-card p-5">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                Full address
+              </p>
+              <p className="mt-2 text-sm font-bold leading-6 text-slate-600">{room.address}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-slate-200 py-8">
+          <h2 className="mb-4 text-lg font-black">Local essentials</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {(room.localEssentials?.length
+              ? room.localEssentials
+              : [
+                  { name: "College / Office", type: "landmark", distance: "Area detail" },
+                  { name: "Bus stop", type: "transit", distance: "Walkable" },
+                  { name: "Market", type: "daily needs", distance: "Area detail" },
+                ]
+            ).map((item) => (
+              <div
+                key={`${item.name}-${item.type}`}
+                className="rounded-xl border border-slate-200 bg-card p-4"
+              >
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  {item.type}
+                </p>
+                <p className="mt-1 font-black">{item.name}</p>
+                <p className="mt-1 text-xs text-slate-500">{item.distance}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="mt-16 border-t border-slate-200 pt-10">
           <h2 className="mb-5 text-xl font-black">Similar rooms</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -422,4 +447,79 @@ export default function RoomDetails() {
       </main>
     </div>
   );
+}
+
+function MapRoomSelectCard({ room, selected, onSelect, onHover }) {
+  const detailsPath = `/rooms/${room.slug || room.id}`;
+  const image = room.coverImage || room.images?.[0] || "";
+
+  return (
+    <article
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+      className={`rounded-2xl border bg-white p-3 shadow-sm transition-all ${
+        selected ? "border-ink shadow-[var(--shadow-card)]" : "border-slate-200 hover:border-brand"
+      }`}
+    >
+      <button type="button" onClick={onSelect} className="flex w-full gap-3 text-left">
+        <img
+          src={image}
+          alt=""
+          className="size-20 shrink-0 rounded-xl bg-slate-100 object-cover"
+          loading="lazy"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="mb-1 flex items-center justify-between gap-2">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
+                selected ? "bg-ink text-white" : "bg-brand-soft text-brand"
+              }`}
+            >
+              {selected ? "Selected" : room.type}
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs font-black text-amber-600">
+              <Star className="size-3 fill-amber-500" />
+              {room.owner?.rating || "4.5"}
+            </span>
+          </span>
+          <span className="line-clamp-2 text-sm font-black text-ink">{room.title}</span>
+          <span className="mt-1 block truncate text-xs font-bold text-slate-500">
+            {room.location || room.address}
+          </span>
+          <span className="mt-1 block text-sm font-black text-brand">
+            {formatPrice(room.price)}
+            <span className="ml-1 text-[10px] font-black uppercase text-slate-400">/mo</span>
+          </span>
+        </span>
+      </button>
+      <Link
+        to={detailsPath}
+        className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl bg-ink px-3 text-xs font-black text-white transition-colors hover:bg-slate-800"
+      >
+        View Details
+      </Link>
+    </article>
+  );
+}
+
+function getMapRooms(rooms, city, activeRoom) {
+  const normalizedCity = String(city || "").toLowerCase();
+  const cityRooms = rooms.filter((room) => {
+    if (!normalizedCity) return true;
+    return String(room.city || "").toLowerCase() === normalizedCity;
+  });
+
+  if (!activeRoom) return cityRooms;
+
+  const hasActiveRoom = cityRooms.some(
+    (room) =>
+      (room.id && String(room.id) === String(activeRoom.id)) ||
+      (room.slug && String(room.slug) === String(activeRoom.slug)),
+  );
+
+  return hasActiveRoom ? cityRooms : [activeRoom, ...cityRooms];
+}
+
+function getRoomKey(room) {
+  return String(room?.id || room?.slug || "");
 }
