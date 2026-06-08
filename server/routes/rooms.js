@@ -385,10 +385,11 @@ async function normalizeRoom(body, images, ownerEmail = "") {
   };
 }
 
-function buildRoomUpdates(body, images, existingRoom) {
+async function buildRoomUpdates(body, images, existingRoom) {
   const title = String(body.title || existingRoom.title || "").trim();
   const price = Number(body.price || existingRoom.price || 0);
   const city = String(body.city || existingRoom.city || "").trim();
+  const state = String(body.state ?? existingRoom.state ?? "").trim();
   const address = String(body.address || existingRoom.address || "").trim();
   const landmark = String(body.landmark ?? existingRoom.landmark ?? "").trim();
   const ownerName = String(body.ownerName || existingRoom.owner?.name || "").trim();
@@ -400,9 +401,22 @@ function buildRoomUpdates(body, images, existingRoom) {
     throw error;
   }
 
-  const type = body.type || existingRoom.type || "PG";
+  const type = body.roomType || body.type || existingRoom.type || "Single Room";
   const gender = body.gender || existingRoom.gender || "Co-ed";
   const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
+  const shouldRefreshLocation =
+    body.lat !== undefined ||
+    body.latitude !== undefined ||
+    body.lng !== undefined ||
+    body.longitude !== undefined ||
+    !existingRoom.location ||
+    address !== (existingRoom.address || "") ||
+    city !== (existingRoom.city || "") ||
+    state !== (existingRoom.state || "") ||
+    landmark !== (existingRoom.landmark || "");
+  const location = shouldRefreshLocation
+    ? await getRoomLocation({ ...body, address, city, state, landmark }, existingRoom.location)
+    : existingRoom.location;
 
   return {
     title,
