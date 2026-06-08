@@ -123,6 +123,18 @@ export default function MyListedRooms() {
     setForm((current) => ({ ...current, [key]: value }));
     setSaved("");
     setDeleteNotice("");
+    if (["address", "city", "landmark", "longitude", "latitude"].includes(key)) {
+      setLocationMessage("");
+    }
+    setDeleteConfirmId("");
+  }
+
+  function updateCity(value) {
+    const option = getCityOption(value);
+    setForm((current) => ({ ...current, city: option.city, state: option.state }));
+    setSaved("");
+    setDeleteNotice("");
+    setLocationMessage("");
     setDeleteConfirmId("");
   }
 
@@ -179,6 +191,50 @@ export default function MyListedRooms() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function findCoordinates() {
+    setGeocoding(true);
+    setError("");
+    setLocationMessage("");
+
+    try {
+      const result = await geocodeAddress(
+        [form.address, form.landmark, form.city, form.state].filter(Boolean).join(", "),
+      );
+      setForm((current) => ({
+        ...current,
+        longitude: String(result.longitude),
+        latitude: String(result.latitude),
+      }));
+      setLocationMessage(result.label);
+    } catch (geocodeError) {
+      setLocationMessage(geocodeError.message);
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
+  function useCurrentLocation() {
+    setLocationMessage("");
+
+    if (!navigator.geolocation) {
+      setLocationMessage("Current location is not supported by this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm((current) => ({
+          ...current,
+          longitude: String(position.coords.longitude),
+          latitude: String(position.coords.latitude),
+        }));
+        setLocationMessage("Current location added.");
+      },
+      () => setLocationMessage("Location permission was not allowed."),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   }
 
   async function deleteListing() {
@@ -297,74 +353,27 @@ export default function MyListedRooms() {
         ) : rooms.length === 0 ? (
           <EmptyOwnerState />
         ) : (
-          <section className="grid gap-8 lg:grid-cols-[360px_1fr]">
-            <aside className="space-y-3">
-              {rooms.map((room) => {
-                const active = room.id === selectedId || room.slug === selectedId;
+          <>
+            <section className="mb-8 grid gap-4 md:grid-cols-4">
+              <OwnerMetric label="Live listings" value={rooms.length} />
+              <OwnerMetric label="Available" value={availableCount} />
+              <OwnerMetric label="Occupied" value={occupiedCount} />
+              <OwnerMetric label="Avg rent" value={formatPrice(averageRent)} />
+            </section>
 
-                return (
-                  <button
-                    key={room.id}
-                    type="button"
-                    onClick={() => setSelectedId(room.id)}
-                    className={`w-full rounded-2xl border bg-card p-3 text-left transition-colors ${
-                      active ? "border-brand shadow-[var(--shadow-card)]" : "border-slate-200"
-                    }`}
-                  >
-                    <div className="flex gap-3">
-                      <img
-                        src={room.coverImage}
-                        alt=""
-                        className="size-20 rounded-xl object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-black">{room.title}</p>
-                        <p className="mt-1 truncate text-xs font-bold text-slate-500">
-                          {room.location}
-                        </p>
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <span className="text-sm font-black text-brand">
-                            {formatPrice(room.price)}
-                          </span>
-                          <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-black uppercase text-brand">
-                            {room.availability}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </aside>
+            <section className="grid gap-8 lg:grid-cols-[360px_1fr]">
+              <aside className="space-y-3">
+                {rooms.map((room) => {
+                  const active = room.id === selectedId || room.slug === selectedId;
+                  const meta = getRoomTypeMeta(room.type);
 
-            <form
-              onSubmit={saveListing}
-              className="rounded-[28px] border border-slate-200 bg-card p-5 shadow-[var(--shadow-card)] sm:p-8"
-            >
-              <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-2xl font-black tracking-normal">Edit listing</h2>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    New photo upload replaces old listing photos.
-                  </p>
-                </div>
-                {selectedRoom && (
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/rooms/${selectedRoom.slug || selectedRoom.id}`}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-5 text-sm font-black text-ink hover:border-brand hover:text-brand"
-                    >
-                      <Eye className="size-4" />
-                      View
-                    </Link>
+                  return (
                     <button
+                      key={room.id}
                       type="button"
-                      onClick={deleteListing}
-                      disabled={Boolean(deletingId)}
-                      className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition-colors disabled:cursor-wait disabled:opacity-70 ${
-                        deleteConfirmId === (selectedRoom.slug || selectedRoom.id)
-                          ? "border-red-500 bg-red-50 text-red-700"
-                          : "border-red-200 text-red-600 hover:bg-red-50"
+                      onClick={() => setSelectedId(room.id)}
+                      className={`w-full rounded-2xl border bg-card p-3 text-left transition-colors ${
+                        active ? "border-brand shadow-[var(--shadow-card)]" : "border-slate-200"
                       }`}
                     >
                       <Trash2 className="size-4" />
