@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { Check, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -7,15 +7,29 @@ import { useSearchParams } from "react-router-dom";
 import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
+import {
+  getCityFromStorage,
+  getCityOption,
+  roomTypeOptions,
+  saveCityToStorage,
+} from "@/lib/listingMeta.js";
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { createRoomSearchIndex, searchRoomIds } from "@/lib/roomSearch.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
 
-const filterTypes = ["PG", "Hostel", "Flat"];
+const filterTypes = roomTypeOptions;
 const filterGenders = ["Girls", "Boys", "Co-ed"];
 const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
-const initialVisibleRooms = 48;
-const visibleRoomStep = 48;
+const initialVisibleRooms = 24;
+const visibleRoomStep = 24;
+const defaultPriceMax = 20000;
+const sortOptions = [
+  { value: "recommended", label: "Recommended" },
+  { value: "rentLow", label: "Rent: low to high" },
+  { value: "rentHigh", label: "Rent: high to low" },
+  { value: "distance", label: "Nearest first" },
+  { value: "rating", label: "Top rated" },
+];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
@@ -38,19 +52,26 @@ export default function FindRoom() {
   const [keywordQuery, setKeywordQuery] = useState(
     () => searchParams.get("q") || searchParams.get("location") || "",
   );
+  const [selectedCity, setSelectedCity] = useState(
+    () => searchParams.get("city") || getCityFromStorage(),
+  );
   const [showFilters, setShowFilters] = useState(
     () =>
       searchParams.get("filters") === "1" ||
       searchParams.get("all") === "1" ||
       Boolean(searchParams.get("q")) ||
-      Boolean(searchParams.get("location")),
+      Boolean(searchParams.get("location")) ||
+      Boolean(searchParams.get("city")),
   );
-  const [priceMax, setPriceMax] = useState(() => Number(searchParams.get("budget") || 20000));
+  const [priceMax, setPriceMax] = useState(() =>
+    Number(searchParams.get("budget") || defaultPriceMax),
+  );
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedGenders, setSelectedGenders] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [furnishedOnly, setFurnishedOnly] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(true);
+  const [sortMode, setSortMode] = useState(() => searchParams.get("sort") || "recommended");
   const [visibleCount, setVisibleCount] = useState(initialVisibleRooms);
   const deferredKeywordQuery = useDeferredValue(keywordQuery);
 
