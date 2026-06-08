@@ -72,6 +72,8 @@ export const rooms = [
     distanceKm: 2.5,
     location: "E-8 Extension, Bhopal",
     city: "Bhopal",
+    state: "Madhya Pradesh",
+    geoCoordinates: [77.4264, 23.2077],
     address: "E-8 Extension, Bhopal - 462016",
     description:
       "Premium studio in Bhopal's most desirable neighbourhood. Open-plan kitchen, queen bed, work desk, and a balcony with skyline views.",
@@ -91,14 +93,16 @@ export const rooms = [
   {
     id: "campus-corner",
     title: "Campus Corner - Twin Sharing",
-    tag: "Girls PG",
-    type: "PG",
+    tag: "Shared Room",
+    type: "Shared Room",
     gender: "Girls",
     price: 5500,
     distance: "800 m away",
     distanceKm: 0.8,
     location: "Lakeview Road, Bhopal",
     city: "Bhopal",
+    state: "Madhya Pradesh",
+    geoCoordinates: [77.4122, 23.1699],
     address: "Lakeview Road, Bhopal - 462042",
     description:
       "Twin-sharing rooms with attached bath, hot water, and AC. Close to colleges and bus stops. Owner stays on premises.",
@@ -126,6 +130,8 @@ export const rooms = [
     distanceKm: 3.1,
     location: "Central Business District, Bhopal",
     city: "Bhopal",
+    state: "Madhya Pradesh",
+    geoCoordinates: [77.4335, 23.2336],
     address: "Central Business District, Bhopal - 462011",
     description:
       "Spacious 2BHK in central Bhopal. Modular kitchen, two balconies, family-friendly society, and flexible move-in dates.",
@@ -157,6 +163,8 @@ export const rooms = [
     distanceKm: 1.8,
     location: "Habibganj, Bhopal",
     city: "Bhopal",
+    state: "Madhya Pradesh",
+    geoCoordinates: [77.4394, 23.2214],
     address: "Habibganj, Bhopal - 462024",
     description:
       "Budget-friendly hostel for students. Triple sharing with locker, study table, WiFi, and clean common spaces.",
