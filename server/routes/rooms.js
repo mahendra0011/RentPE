@@ -5,6 +5,7 @@ import { uploadBuffer } from "../config/cloudinary.js";
 import { isMongoConnected } from "../config/db.js";
 import { seedRooms } from "../data/seedRooms.js";
 import Room from "../models/Room.js";
+import { geocodeRoomAddress } from "../services/nominatim.js";
 
 const router = Router();
 const upload = multer({
@@ -100,7 +101,46 @@ function parseList(value) {
     .filter(Boolean);
 }
 
-const ignoredKeywordTerms = new Set(["near", "room", "rooms", "pg", "flat", "hostel", "in", "at"]);
+function parseFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getQueryPoint(query) {
+  const longitude = parseFiniteNumber(query.lng ?? query.longitude);
+  const latitude = parseFiniteNumber(query.lat ?? query.latitude);
+
+  if (!isValidCoordinate(longitude, latitude)) return null;
+
+  return {
+    longitude,
+    latitude,
+    radiusMeters: getRadiusMeters(query),
+  };
+}
+
+function getRadiusMeters(query) {
+  const radiusMeters = parseFiniteNumber(query.radiusMeters);
+  if (radiusMeters && radiusMeters > 0) return Math.min(radiusMeters, 100000);
+
+  const radiusKm = parseFiniteNumber(query.radiusKm ?? query.radius);
+  if (radiusKm && radiusKm > 0) return Math.min(radiusKm * 1000, 100000);
+
+  return 10000;
+}
+
+const ignoredKeywordTerms = new Set([
+  "near",
+  "room",
+  "rooms",
+  "single",
+  "shared",
+  "pg",
+  "flat",
+  "hostel",
+  "in",
+  "at",
+]);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -128,6 +168,7 @@ function keywordMatches(room, terms) {
     ...(room.rules || []),
     room.address,
     room.city,
+    room.state,
     room.landmark,
     room.locationLabel,
   ]
@@ -140,7 +181,7 @@ function keywordMatches(room, terms) {
 
 function buildRoomFilter(query) {
   const filter = { status: "live" };
-  const types = parseList(query.types);
+  const types = parseList(query.types || query.type || query.roomType);
   const genders = parseList(query.genders);
   const amenities = parseList(query.amenities);
   const keywordTerms = getKeywordTerms(query);
