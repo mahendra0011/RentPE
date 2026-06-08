@@ -1,8 +1,45 @@
 const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
+export class ApiResponseError extends Error {
+  constructor(message, details = {}) {
+    super(message);
+    this.name = "ApiResponseError";
+    this.status = details.status || 0;
+    this.url = details.url || "";
+    this.htmlResponse = Boolean(details.htmlResponse);
+    this.networkError = Boolean(details.networkError);
+  }
+}
+
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(resolveApiUrl(path), withAuthHeaders(options));
+  const url = resolveApiUrl(path);
+  let response;
+
+  try {
+    response = await fetch(url, withAuthHeaders(options));
+  } catch {
+    throw new ApiResponseError(
+      "Backend API is not reachable. Check VITE_API_URL and backend deployment.",
+      {
+        networkError: true,
+        url,
+      },
+    );
+  }
+
   const payload = await parseApiResponse(response);
+  const htmlResponse = isHtmlPayload(payload, response);
+
+  if (htmlResponse) {
+    throw new ApiResponseError(
+      "Backend API returned an HTML page. Set VITE_API_URL to the Express backend URL, not the frontend URL.",
+      {
+        status: response.status,
+        url: response.url || url,
+        htmlResponse: true,
+      },
+    );
+  }
 
   if (!response.ok) {
     throw new Error(getErrorMessage(payload, response));
