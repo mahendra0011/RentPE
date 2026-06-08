@@ -1,11 +1,34 @@
-import { Building2, Heart, LogOut, MapPin, Menu, Moon, Sun, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  Building2,
+  Check,
+  ChevronDown,
+  Heart,
+  LocateFixed,
+  Loader2,
+  LogOut,
+  MapPin,
+  MapPinned,
+  Menu,
+  Moon,
+  Search,
+  Sun,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
+import {
+  cityOptions,
+  getCityFromStorage,
+  getCityOption,
+  getCityOptionFromLocation,
+  saveCityToStorage,
+} from "@/lib/listingMeta.js";
+import { apiRequest } from "@/lib/api.js";
 import { logout } from "@/store/authSlice.js";
 
-function Logo() {
+function Logo({ onClick }) {
   return (
     <Link to="/" className="flex items-center gap-2" aria-label="RentPE home">
       <span className="flex size-8 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg shadow-brand/25">
