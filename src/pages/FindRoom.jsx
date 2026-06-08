@@ -161,8 +161,10 @@ export default function FindRoom() {
     furnishedOnly,
     priceMax,
     selectedAmenities,
+    selectedCityOption.city,
     selectedGenders,
     selectedTypes,
+    sortMode,
   ]);
 
   const visibleRooms = useMemo(
@@ -177,16 +179,24 @@ export default function FindRoom() {
     selectedAmenities.length +
     Number(furnishedOnly) +
     Number(!availableOnly) +
-    Number(priceMax !== 20000) +
-    Number(Boolean(keywordQuery));
+    Number(priceMax !== defaultPriceMax) +
+    Number(Boolean(keywordQuery)) +
+    Number(sortMode !== "recommended");
 
   function onKeywordSubmit(event) {
     event.preventDefault();
+    const params = buildSearchParams();
+    setSearchParams(params);
+  }
+
+  function buildSearchParams() {
     const params = new URLSearchParams();
     if (keywordQuery.trim()) params.set("q", keywordQuery.trim());
-    if (priceMax !== 20000) params.set("budget", String(priceMax));
+    if (priceMax !== defaultPriceMax) params.set("budget", String(priceMax));
+    if (selectedCityOption.city) params.set("city", selectedCityOption.city);
+    if (sortMode !== "recommended") params.set("sort", sortMode);
     if (showFilters) params.set("filters", "1");
-    setSearchParams(params);
+    return params;
   }
 
   function toggleFilter(list, value, setter) {
@@ -195,13 +205,17 @@ export default function FindRoom() {
 
   function resetFilters() {
     setKeywordQuery("");
-    setPriceMax(20000);
+    setPriceMax(defaultPriceMax);
     setSelectedTypes([]);
     setSelectedGenders([]);
     setSelectedAmenities([]);
     setFurnishedOnly(false);
     setAvailableOnly(true);
-    setSearchParams(showFilters ? { filters: "1" } : {});
+    setSortMode("recommended");
+    const params = new URLSearchParams();
+    if (selectedCityOption.city) params.set("city", selectedCityOption.city);
+    if (showFilters) params.set("filters", "1");
+    setSearchParams(params);
   }
 
   return (
@@ -213,7 +227,7 @@ export default function FindRoom() {
           initial="hidden"
           animate="visible"
           variants={quickStagger}
-          className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 md:pb-20 md:pt-16"
+          className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 md:pb-20 md:pt-14"
         >
           <motion.form
             onSubmit={onKeywordSubmit}
