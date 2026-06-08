@@ -1,10 +1,7 @@
-import room1 from "@/assets/room-1.jpg";
-import room2 from "@/assets/room-2.jpg";
-import room3 from "@/assets/room-3.jpg";
-
+import { defaultRoomImages } from "@/data/cloudinaryRoomImages.js";
 import { getCityOption, getCityStateLabel, getRoomTypeMeta } from "@/lib/listingMeta.js";
 
-const fallbackImages = [room1, room2, room3];
+const fallbackImages = defaultRoomImages;
 
 export function normalizeRoom(room, index = 0) {
   const id = room.id || room.slug || room._id;
@@ -53,10 +50,14 @@ export function normalizeRooms(rooms = []) {
 }
 
 function rotateImages(index) {
+  if (!fallbackImages.length) return [];
+
+  const startIndex = (index * 3) % fallbackImages.length;
+
   return [
-    fallbackImages[index % fallbackImages.length],
-    fallbackImages[(index + 1) % fallbackImages.length],
-    fallbackImages[(index + 2) % fallbackImages.length],
+    fallbackImages[startIndex],
+    fallbackImages[(startIndex + 1) % fallbackImages.length],
+    fallbackImages[(startIndex + 2) % fallbackImages.length],
   ];
 }
 

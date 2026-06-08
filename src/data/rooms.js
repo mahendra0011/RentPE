@@ -1,6 +1,4 @@
-import room1 from "@/assets/room-1.jpg";
-import room2 from "@/assets/room-2.jpg";
-import room3 from "@/assets/room-3.jpg";
+import { roomImageSets } from "@/data/cloudinaryRoomImages.js";
 
 export const rooms = [
   {
@@ -22,7 +20,7 @@ export const rooms = [
     rules: ["No smoking", "ID proof required", "Gate closes at 10 PM"],
     furnished: true,
     amenities: ["WiFi", "AC", "CCTV", "Hot Water", "Laundry", "Power Backup"],
-    images: [room1, room3, room2],
+    images: roomImageSets["skyline-stay"],
     owner: {
       name: "Sunita Sharma",
       phone: "919876543210",
@@ -51,7 +49,7 @@ export const rooms = [
     rules: ["No loud music after 10 PM", "Mess timing is fixed", "Visitors allowed in common area"],
     furnished: true,
     amenities: ["Mess Included", "Parking", "WiFi", "Study Room", "Common TV"],
-    images: [room2, room1, room3],
+    images: roomImageSets["comfort-living"],
     owner: {
       name: "Rakesh Verma",
       phone: "919812345670",
@@ -80,7 +78,7 @@ export const rooms = [
     rules: ["Security deposit required", "No subletting", "Society rules must be followed"],
     furnished: true,
     amenities: ["Kitchen", "Lift", "No Broker", "AC", "Geyser", "Parking", "Balcony"],
-    images: [room3, room1, room2],
+    images: roomImageSets["elite-studio"],
     owner: {
       name: "Anil Mehta",
       phone: "919900112233",
@@ -109,7 +107,7 @@ export const rooms = [
     rules: ["ID proof required", "No smoking", "Visitors allowed with permission"],
     furnished: true,
     amenities: ["WiFi", "AC", "Attached Bath", "Mess"],
-    images: [room1, room2, room3],
+    images: roomImageSets["campus-corner"],
     owner: {
       name: "Geeta Pandey",
       phone: "919871122334",
@@ -142,7 +140,7 @@ export const rooms = [
     ],
     furnished: false,
     amenities: ["Kitchen", "Lift", "Parking", "Pet Friendly", "Gym"],
-    images: [room3, room2, room1],
+    images: roomImageSets["metro-nest"],
     owner: {
       name: "Pooja Iyer",
       phone: "919811223344",
@@ -171,7 +169,7 @@ export const rooms = [
     rules: ["Study hours after 9 PM", "Keep common spaces clean", "Rent due by 5th of every month"],
     furnished: true,
     amenities: ["WiFi", "Mess", "Study Room", "CCTV"],
-    images: [room2, room3, room1],
+    images: roomImageSets["scholars-den"],
     owner: {
       name: "Mohit Singh",
       phone: "919812340099",
