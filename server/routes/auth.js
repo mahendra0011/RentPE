@@ -9,6 +9,7 @@ const router = Router();
 const otpStore = new Map();
 const resetTokenStore = new Map();
 const memoryUsers = new Map();
+let googleCertCache = { expiresAt: 0, keys: [] };
 
 function normalizeEmail(email) {
   return String(email || "")
