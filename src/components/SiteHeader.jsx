@@ -61,7 +61,7 @@ function MyRoomsLink({ onClick, className = "" }) {
     <Link
       to="/my-rooms"
       onClick={onClick}
-      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
+      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand ${className}`}
     >
       <Building2 className="size-4" />
       My Rooms
@@ -91,9 +91,16 @@ function AuthLinks({ onClick }) {
 }
 
 export default function SiteHeader() {
-  const [open, setOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedCity, setSelectedCity] = useState(() => getCityFromStorage());
+  const [detectingCity, setDetectingCity] = useState(false);
+  const [detectCityError, setDetectCityError] = useState("");
+  const [cityPickerOpenKey, setCityPickerOpenKey] = useState(0);
+  const [cityPromptPaused, setCityPromptPaused] = useState(false);
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const wishlistCount = useSelector((state) => state.rooms.savedIds.length);
   const isOwner = user?.role === "owner";
