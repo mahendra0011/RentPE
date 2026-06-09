@@ -15,6 +15,14 @@ export function normalizeRoom(room, index = 0) {
   const [fallbackImage] = rotateImages(index);
   const images = room.images?.length ? room.images : rotateImages(index);
   const areaBadge = room.landmark || displayLocation || room.city || "Location listed";
+  const owner = {
+    verified: false,
+    rating: 0,
+    reviewCount: 0,
+    since: String(new Date().getFullYear()),
+    ...room.owner,
+  };
+  owner.reviewCount = getReviewCount(owner.reviewCount ?? owner.reviews);
 
   return {
     ...room,
@@ -32,12 +40,7 @@ export function normalizeRoom(room, index = 0) {
     location: displayLocation || room.address || room.city || "Location pending",
     distance: areaBadge,
     distanceKm: 0,
-    owner: {
-      verified: false,
-      rating: 0,
-      since: String(new Date().getFullYear()),
-      ...room.owner,
-    },
+    owner,
     geoCoordinates,
     coords: room.coords,
     availability: room.availability || "available",
@@ -75,4 +78,9 @@ function getGeoCoordinates(room) {
   }
 
   return null;
+}
+
+function getReviewCount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
 }

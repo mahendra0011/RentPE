@@ -409,6 +409,7 @@ async function normalizeRoom(body, images, ownerEmail = "") {
       whatsapp: body.whatsapp !== "false",
       verified: false,
       rating: 0,
+      reviewCount: 0,
       since: String(new Date().getFullYear()),
     },
   };

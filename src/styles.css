@@ -197,9 +197,18 @@
   }
 
   .rentpe-map-popup__meta strong {
+    display: inline-flex;
+    gap: 0.0625rem;
     color: oklch(0.62 0.16 70);
     font-size: 0.6875rem;
     font-weight: 900;
+  }
+
+  .rentpe-map-popup__reviews {
+    color: oklch(0.52 0.03 257);
+    font-size: 0.625rem;
+    font-weight: 900;
+    white-space: nowrap;
   }
 
   .rentpe-map-popup h3 {

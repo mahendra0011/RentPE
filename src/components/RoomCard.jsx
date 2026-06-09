@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
+import RatingStars from "@/components/RatingStars.jsx";
 import { formatPrice } from "@/lib/format.js";
 import { shareRoom } from "@/lib/share.js";
 import { markContacted, toggleSavedRoom } from "@/store/roomsSlice.js";
@@ -73,6 +74,13 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
           <div className="min-w-0">
             <h3 className="truncate text-[15px] font-black text-ink">{room.title}</h3>
             <p className="mt-1 truncate text-xs text-slate-500">{room.location}</p>
+            <RatingStars
+              rating={room.owner?.rating}
+              reviewCount={room.owner?.reviewCount}
+              size="xs"
+              className="mt-1.5"
+              labelClassName="text-[10px] font-black text-slate-400"
+            />
           </div>
           <span className="whitespace-nowrap text-lg font-black text-brand">
             {formatPrice(room.price)}
