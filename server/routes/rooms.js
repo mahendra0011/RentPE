@@ -6,7 +6,7 @@ import { isMongoConnected } from "../config/db.js";
 import { seedRooms } from "../data/seedRooms.js";
 import Room from "../models/Room.js";
 import { geocodeRoomAddress } from "../services/nominatim.js";
-import { defaultRoomImages, roomImageSets } from "../../src/data/cloudinaryRoomImages.js";
+import { buildUniqueRoomImages } from "../../src/data/cloudinaryRoomImages.js";
 
 const router = Router();
 const upload = multer({
@@ -15,7 +15,6 @@ const upload = multer({
 });
 
 const memoryRooms = [...seedRooms];
-const fallbackImageWindow = 3;
 
 function normalizeEmail(email) {
   return String(email || "")
@@ -76,16 +75,8 @@ function parseAmenities(value) {
   }
 }
 
-function getFallbackRoomImages(room = {}, index = 0) {
-  const slugImages = roomImageSets[room.slug];
-  if (slugImages?.length) return slugImages;
-  if (!defaultRoomImages.length) return [];
-
-  const startIndex = (index * fallbackImageWindow) % defaultRoomImages.length;
-  return Array.from(
-    { length: Math.min(fallbackImageWindow, defaultRoomImages.length) },
-    (_, offset) => defaultRoomImages[(startIndex + offset) % defaultRoomImages.length],
-  );
+function getFallbackRoomImages(room = {}, index = null) {
+  return buildUniqueRoomImages(room, index);
 }
 
 function withCloudinaryImages(room, index = 0) {
