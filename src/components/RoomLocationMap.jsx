@@ -1032,7 +1032,7 @@ function getRouteErrorMessage(error) {
 }
 
 function createRoomPopupHtml(properties) {
-  const detailPath = `/rooms/${encodeURIComponent(properties.slug || properties.id)}`;
+  const detailPath = `/#/rooms/${encodeURIComponent(properties.slug || properties.id)}`;
 
   return `
     <article style="width: 242px; overflow: hidden; border-radius: 18px; background: #ffffff; color: #0f172a; font-family: Inter, system-ui, sans-serif;">

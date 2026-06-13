@@ -510,7 +510,7 @@ function showRoomPopup(map, room, coordinates, { userLocation, onRoute }) {
         <p class="rentpe-map-popup__amenities">${escapeHtml(amenities)}</p>
         <p class="rentpe-map-popup__distance">${escapeHtml(room.distance)}</p>
         <div class="rentpe-map-popup__actions">
-          <a href="/rooms/${room.slug || room.id}">View Details</a>
+          <a href="#/rooms/${encodeURIComponent(room.slug || room.id)}">View Details</a>
           ${
             userLocation && openRouteServiceApiKey
               ? `<button type="button" data-route-room="${room.id}">Route</button>`
