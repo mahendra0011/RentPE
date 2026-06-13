@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Check, Heart, MapPin, MessageCircle, Share2 } from "lucide-react";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import RatingStars from "@/components/RatingStars.jsx";
 import { formatPrice } from "@/lib/format.js";
@@ -11,8 +11,11 @@ import { markContacted, toggleSavedRoom } from "@/store/roomsSlice.js";
 
 export default function RoomCard({ room, index = 0, onHover, highlighted = false }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const saved = useSelector((state) => state.rooms.savedIds.includes(room.id));
   const [shareState, setShareState] = useState("");
+  const cardImages = getCardImages(room);
+  const detailsPath = `/rooms/${room.slug || room.id}`;
 
   async function handleShare() {
     try {
@@ -25,6 +28,23 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
         window.setTimeout(() => setShareState(""), 1600);
       }
     }
+  }
+
+  function handleDetailsClick(event) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    navigate(detailsPath);
   }
 
   return (
@@ -48,14 +68,27 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
         highlighted ? "border-brand shadow-[var(--shadow-card)]" : "border-slate-200"
       }`}
     >
-      <Link to={`/rooms/${room.slug || room.id}`} className="block">
+      <a href={detailsPath} onClick={handleDetailsClick} className="block">
         <div className="relative mb-4 overflow-hidden rounded-[16px] bg-slate-100">
-          <img
-            src={room.coverImage || room.images[0]}
-            alt={room.title}
-            className="aspect-[1.32] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
+          <div className="grid aspect-[1.32] grid-cols-[minmax(0,1fr)_74px] gap-1 sm:grid-cols-[minmax(0,1fr)_86px]">
+            <img
+              src={cardImages[0]}
+              alt={room.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="grid min-h-0 gap-1">
+              {cardImages.slice(1, 3).map((image, imageIndex) => (
+                <img
+                  key={`${image}-${imageIndex}`}
+                  src={image}
+                  alt=""
+                  className="h-full min-h-0 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          </div>
           <span className="absolute left-3 top-3 rounded-full bg-white/92 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-ink shadow-sm backdrop-blur">
             {room.tag}
           </span>
@@ -98,7 +131,7 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
             </span>
           ))}
         </div>
-      </Link>
+      </a>
 
       <div className="mt-4 grid gap-2 px-1 pb-1">
         <a
@@ -144,4 +177,17 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
       </div>
     </motion.article>
   );
+}
+
+function getCardImages(room) {
+  const images = [room.coverImage, ...(room.images || [])].filter(Boolean);
+  const uniqueImages = [...new Set(images)];
+
+  if (!uniqueImages.length) return [""];
+
+  while (uniqueImages.length < 3) {
+    uniqueImages.push(uniqueImages[uniqueImages.length - 1]);
+  }
+
+  return uniqueImages.slice(0, 3);
 }
