@@ -32,3 +32,20 @@ export const roomImageSets = {
 };
 
 export const defaultRoomImages = Object.values(roomImageSets).flat();
+
+const roomImageKeys = Object.keys(roomImageSets);
+
+export function buildUniqueRoomImages(room = {}, index = 0) {
+  const keys = roomImageKeys;
+  const images = [];
+  for (let i = 0; i < 3; i++) {
+    const keyIndex = (index + i) % keys.length;
+    const key = keys[keyIndex];
+    const set = roomImageSets[key];
+    if (set && set.length > 0) {
+      const imageIndex = i % set.length;
+      images.push(set[imageIndex]);
+    }
+  }
+  return images;
+}
