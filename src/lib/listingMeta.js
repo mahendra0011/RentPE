@@ -509,7 +509,8 @@ export function getRoomTypeMeta(type = "") {
 
 export function getCityFromStorage() {
   try {
-    return localStorage.getItem(CITY_STORAGE_KEY) || "";
+    const storedCity = localStorage.getItem(CITY_STORAGE_KEY) || "";
+    return getCityOption(storedCity).city;
   } catch {
     return "";
   }
