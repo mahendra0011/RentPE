@@ -1,6 +1,6 @@
 export async function shareRoom(room) {
   const slug = room.slug || room.id;
-  const url = `${window.location.origin}/rooms/${slug}`;
+  const url = `${window.location.origin}/#/rooms/${encodeURIComponent(slug)}`;
   const shareData = {
     title: `${room.title} on RentPE`,
     text: `Check out this room on RentPE: ${room.title}`,
