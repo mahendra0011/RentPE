@@ -1,7 +1,5 @@
-import { defaultRoomImages } from "@/data/cloudinaryRoomImages.js";
+import { buildUniqueRoomImages } from "@/data/cloudinaryRoomImages.js";
 import { getCityOption, getCityStateLabel, getRoomTypeMeta } from "@/lib/listingMeta.js";
-
-const fallbackImages = defaultRoomImages;
 
 export function normalizeRoom(room, index = 0) {
   const id = room.id || room.slug || room._id;
@@ -12,17 +10,18 @@ export function normalizeRoom(room, index = 0) {
       ? room.location
       : room.locationLabel || [room.landmark, room.city].filter(Boolean).join(", ");
   const geoCoordinates = getGeoCoordinates(room);
-  const [fallbackImage] = rotateImages(index);
-  const images = room.images?.length ? room.images : rotateImages(index);
+  const generatedImages = buildUniqueRoomImages(room, index);
+  const [fallbackImage] = generatedImages;
+  const images = room.images?.length ? room.images : generatedImages;
   const areaBadge = room.landmark || displayLocation || room.city || "Location listed";
+  const ownerInput = room.owner || {};
   const owner = {
     verified: false,
     rating: 0,
-    reviewCount: 0,
     since: String(new Date().getFullYear()),
-    ...room.owner,
+    ...ownerInput,
   };
-  owner.reviewCount = getReviewCount(owner.reviewCount ?? owner.reviews);
+  owner.reviewCount = getReviewCount(ownerInput.reviewCount ?? ownerInput.reviews);
 
   return {
     ...room,
@@ -52,18 +51,6 @@ export function normalizeRooms(rooms = []) {
   return rooms.map((room, index) => normalizeRoom(room, index));
 }
 
-function rotateImages(index) {
-  if (!fallbackImages.length) return [];
-
-  const startIndex = (index * 3) % fallbackImages.length;
-
-  return [
-    fallbackImages[startIndex],
-    fallbackImages[(startIndex + 1) % fallbackImages.length],
-    fallbackImages[(startIndex + 2) % fallbackImages.length],
-  ];
-}
-
 function getGeoCoordinates(room) {
   if (Array.isArray(room.geoCoordinates) && room.geoCoordinates.length === 2) {
     return room.geoCoordinates;
@@ -81,6 +68,8 @@ function getGeoCoordinates(room) {
 }
 
 function getReviewCount(value) {
+  if (value === undefined || value === null || value === "") return null;
+
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
 }
