@@ -13,7 +13,6 @@ import {
   Share2,
   ShieldCheck,
   Snowflake,
-  Star,
   Utensils,
   Wifi,
 } from "lucide-react";
@@ -21,6 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 
+import RatingStars from "@/components/RatingStars.jsx";
 import RoomCard from "@/components/RoomCard.jsx";
 import RoomLocationMap from "@/components/RoomLocationMap.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
@@ -70,6 +70,7 @@ export default function RoomDetails() {
     () => getMapRooms(allRoomsForMap, mapCity, room),
     [allRoomsForMap, mapCity, room],
   );
+  const activeRoomKey = getRoomKey(room);
   const [selectedMapRoomId, setSelectedMapRoomId] = useState("");
   const [hoveredMapRoomId, setHoveredMapRoomId] = useState("");
 
@@ -82,8 +83,9 @@ export default function RoomDetails() {
   }, [dispatch, mapCity]);
 
   useEffect(() => {
-    if (room) setSelectedMapRoomId(getRoomKey(room));
-  }, [room?.id, room?.slug]);
+    setActive(0);
+    if (activeRoomKey) setSelectedMapRoomId(activeRoomKey);
+  }, [activeRoomKey]);
 
   if (!room) {
     return (
@@ -140,64 +142,64 @@ export default function RoomDetails() {
           Back to listings
         </Link>
 
-        <section className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-[1.6fr_1fr]">
-          <motion.div
-            key={active}
-            initial={{ opacity: 0.55 }}
-            animate={{ opacity: 1 }}
-            className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 md:h-[460px] md:aspect-auto"
-          >
-            <img
-              src={room.images[active]}
-              alt={room.title}
-              className="h-full w-full object-cover"
-            />
-            <span className="absolute left-3 top-3 rounded-full bg-card/90 px-3 py-1 text-xs font-black uppercase tracking-wide shadow-sm backdrop-blur">
-              {room.tag}
-            </span>
-            <div className="absolute right-3 top-3 flex gap-2">
-              <button
-                type="button"
-                onClick={handleShare}
-                className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card"
-                aria-label={`Share ${room.title}`}
-                title="Share"
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          <div className="min-w-0">
+            <section className="mb-7">
+              <motion.div
+                key={active}
+                initial={{ opacity: 0.55 }}
+                animate={{ opacity: 1 }}
+                className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 md:h-[500px] md:aspect-auto"
               >
-                <Share2 className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => dispatch(toggleSavedRoom(room.id))}
-                className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card"
-                aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
-                title="Wishlist"
-              >
-                <Heart className={`size-4 ${saved ? "fill-brand text-brand" : ""}`} />
-              </button>
-            </div>
-          </motion.div>
+                <img
+                  src={room.images[active]}
+                  alt={room.title}
+                  className="h-full w-full object-cover"
+                />
+                <span className="absolute left-3 top-3 rounded-full bg-card/90 px-3 py-1 text-xs font-black uppercase tracking-wide shadow-sm backdrop-blur">
+                  {room.tag}
+                </span>
+                <div className="absolute right-3 top-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card"
+                    aria-label={`Share ${room.title}`}
+                    title="Share"
+                  >
+                    <Share2 className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dispatch(toggleSavedRoom(room.id))}
+                    className="flex size-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur hover:bg-card"
+                    aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+                    title="Wishlist"
+                  >
+                    <Heart className={`size-4 ${saved ? "fill-brand text-brand" : ""}`} />
+                  </button>
+                </div>
+              </motion.div>
 
-          <div className="grid grid-cols-3 gap-3 md:grid-cols-1">
-            {room.images.map((image, index) => (
-              <button
-                key={image}
-                type="button"
-                onClick={() => setActive(index)}
-                className={`relative aspect-[4/3] overflow-hidden rounded-xl transition-all md:h-[148px] ${
-                  active === index
-                    ? "ring-2 ring-brand ring-offset-2"
-                    : "opacity-80 hover:opacity-100"
-                }`}
-                aria-label={`View photo ${index + 1}`}
-              >
-                <img src={image} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
-        </section>
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                {room.images.map((image, index) => (
+                  <button
+                    key={image}
+                    type="button"
+                    onClick={() => setActive(index)}
+                    className={`relative aspect-[4/3] overflow-hidden rounded-xl transition-all ${
+                      active === index
+                        ? "ring-2 ring-brand ring-offset-2"
+                        : "opacity-80 hover:opacity-100"
+                    }`}
+                    aria-label={`View photo ${index + 1}`}
+                  >
+                    <img src={image} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </section>
 
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_380px]">
-          <div>
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-5">
               <div>
                 <h1 className="text-2xl font-black tracking-normal md:text-3xl">{room.title}</h1>
@@ -206,11 +208,13 @@ export default function RoomDetails() {
                   {room.address}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5">
-                <Star className="size-4 fill-amber-500 text-amber-500" />
-                <span className="text-sm font-black">{room.owner.rating}</span>
-                <span className="text-xs text-slate-500">42 reviews</span>
-              </div>
+              <RatingStars
+                rating={room.owner?.rating}
+                reviewCount={room.owner?.reviewCount}
+                size="sm"
+                className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5"
+                labelClassName="text-xs font-black text-slate-500"
+              />
             </div>
 
             <div className="my-6 grid grid-cols-3 gap-3">
@@ -370,7 +374,7 @@ export default function RoomDetails() {
 
         <section className="mt-10 border-t border-slate-200 py-8">
           <h2 className="mb-4 text-lg font-black">Location</h2>
-          <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
             <RoomLocationMap
               room={room}
               rooms={mapRooms}
@@ -461,11 +465,11 @@ function MapRoomSelectCard({ room, selected, onSelect, onHover }) {
         selected ? "border-ink shadow-[var(--shadow-card)]" : "border-slate-200 hover:border-brand"
       }`}
     >
-      <button type="button" onClick={onSelect} className="flex w-full gap-3 text-left">
+      <button type="button" onClick={onSelect} className="flex w-full gap-2.5 text-left">
         <img
           src={image}
           alt=""
-          className="size-20 shrink-0 rounded-xl bg-slate-100 object-cover"
+          className="size-16 shrink-0 rounded-xl bg-slate-100 object-cover"
           loading="lazy"
         />
         <span className="min-w-0 flex-1">
@@ -477,10 +481,12 @@ function MapRoomSelectCard({ room, selected, onSelect, onHover }) {
             >
               {selected ? "Selected" : room.type}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs font-black text-amber-600">
-              <Star className="size-3 fill-amber-500" />
-              {room.owner?.rating || "4.5"}
-            </span>
+            <RatingStars
+              rating={room.owner?.rating}
+              reviewCount={room.owner?.reviewCount}
+              size="xs"
+              labelClassName="text-[10px] font-black text-slate-400"
+            />
           </span>
           <span className="line-clamp-2 text-sm font-black text-ink">{room.title}</span>
           <span className="mt-1 block truncate text-xs font-bold text-slate-500">

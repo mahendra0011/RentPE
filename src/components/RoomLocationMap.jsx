@@ -55,6 +55,8 @@ const roomTypeUi = {
   },
 };
 
+const roomPopupMapOffset = [0, 142];
+
 export default function RoomLocationMap({
   room,
   rooms = [],
@@ -99,8 +101,7 @@ export default function RoomLocationMap({
   );
   const selectedMapRoom = useMemo(() => {
     const selectedRoom = cityRooms.find(
-      (cityRoom) =>
-        getStableRoomKey(cityRoom) === (controlledSelectedRoomKey || selectedRoomKey),
+      (cityRoom) => getStableRoomKey(cityRoom) === (controlledSelectedRoomKey || selectedRoomKey),
     );
     return selectedRoom || activeMapRoom;
   }, [activeMapRoom, cityRooms, controlledSelectedRoomKey, selectedRoomKey]);
@@ -109,6 +110,13 @@ export default function RoomLocationMap({
   const cityRoomsCenter = useMemo(() => getRoomsCenter(cityRooms), [cityRooms]);
   const mapCenter = cityRoomsCenter || coordinates;
   const mapScopeLabel = mapCity || room?.city || "Selected city";
+  const handleRoomSelect = useCallback(
+    (roomKey) => {
+      setSelectedRoomKey(roomKey);
+      onRoomSelect?.(roomKey);
+    },
+    [onRoomSelect],
+  );
 
   useEffect(() => {
     if (controlledSelectedRoomKey) return;
@@ -271,11 +279,6 @@ export default function RoomLocationMap({
     }
   }
 
-  const handleRoomSelect = useCallback((roomKey) => {
-    setSelectedRoomKey(roomKey);
-    onRoomSelect?.(roomKey);
-  }, [onRoomSelect]);
-
   return (
     <>
       {!fullscreenOpen && (
@@ -323,9 +326,7 @@ export default function RoomLocationMap({
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-ink">{mapScopeLabel} rooms</p>
-                <p className="text-xs font-bold text-slate-500">
-                  Select a room, then tap Route
-                </p>
+                <p className="text-xs font-bold text-slate-500">Select a room, then tap Route</p>
               </div>
               <button
                 type="button"
@@ -484,7 +485,8 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
   useEffect(() => {
     if (!map) return undefined;
 
-    markersRef.current.clear();
+    const markerRecords = markersRef.current;
+    markerRecords.clear();
     const markers = rooms
       .map((room) => {
         const coordinates = getRoomCoordinates(room);
@@ -500,7 +502,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
           .setLngLat(coordinates)
           .addTo(map);
 
-        function showPopup() {
+        function showPopup({ centerInMap = false } = {}) {
           if (!properties) return;
           popupRef.current?.remove();
           popupOwnerKeyRef.current = roomKey;
@@ -512,6 +514,8 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
             .setLngLat(coordinates)
             .setHTML(createRoomPopupHtml(properties))
             .addTo(map);
+
+          if (centerInMap) focusOnMap();
         }
 
         function hidePopup() {
@@ -521,7 +525,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
           popupRef.current = null;
           popupOwnerKeyRef.current = "";
 
-          const selectedRecord = markersRef.current.get(selectedRoomKeyRef.current);
+          const selectedRecord = markerRecords.get(selectedRoomKeyRef.current);
           selectedRecord?.showPopup();
         }
 
@@ -529,6 +533,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
           map.flyTo({
             center: coordinates,
             zoom: Math.max(map.getZoom(), 14),
+            offset: roomPopupMapOffset,
             duration: 520,
           });
         }
@@ -538,7 +543,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
           event.stopPropagation();
           selectedRoomKeyRef.current = roomKey;
           onRoomSelect?.(roomKey);
-          showPopup();
+          showPopup({ centerInMap: true });
         }
 
         markerElements.button.addEventListener("click", handleClick);
@@ -555,7 +560,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
           roomKey,
           showPopup,
         };
-        markersRef.current.set(roomKey, markerRecord);
+        markerRecords.set(roomKey, markerRecord);
 
         return markerRecord;
       })
@@ -565,7 +570,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
       popupRef.current?.remove();
       popupRef.current = null;
       popupOwnerKeyRef.current = "";
-      markersRef.current.clear();
+      markerRecords.clear();
       markers.forEach(({ hidePopup, handleClick, marker, markerElements, showPopup }) => {
         markerElements.button.removeEventListener("click", handleClick);
         markerElements.button.removeEventListener("mouseenter", showPopup);
@@ -573,7 +578,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
         marker.remove();
       });
     };
-  }, [map, onRoomSelect, roomsRenderKey]);
+  }, [map, onRoomSelect, rooms, roomsRenderKey]);
 
   useEffect(() => {
     const selectedKey = getStableRoomKey(selectedRoom);
@@ -594,8 +599,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
     });
 
     if (selectedRecord) {
-      selectedRecord.showPopup();
-      selectedRecord.focusOnMap();
+      selectedRecord.showPopup({ centerInMap: true });
     }
   }, [roomsRenderKey, selectedRoom]);
 
@@ -610,7 +614,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
         popupRef.current = null;
         popupOwnerKeyRef.current = "";
         externalHoverRoomRef.current = "";
-        selectedRecord?.showPopup();
+        selectedRecord?.showPopup({ centerInMap: true });
       }
       return;
     }
@@ -619,7 +623,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
     if (!markerRecord) return;
 
     externalHoverRoomRef.current = hoverKey;
-    markerRecord.showPopup();
+    markerRecord.showPopup({ centerInMap: true });
   }, [hoveredRoomId]);
 
   return null;
@@ -869,7 +873,8 @@ function getRoomFeature(room, activeRoom) {
       type: meta.label,
       rent: formatPrice(room.price),
       image: room.coverImage || room.images?.[0] || "",
-      rating: Number(room.owner?.rating || 4.5).toFixed(1),
+      rating: Number(room.owner?.rating || 0),
+      reviewCount: getReviewCount(room.owner?.reviewCount),
       amenities: (room.amenities || []).slice(0, 3).join(" \u2022 "),
       location: room.location || room.address || room.city || "",
       city: room.city || "",
@@ -1043,9 +1048,14 @@ function createRoomPopupHtml(properties) {
           <p style="margin: 0; font-size: 13px; font-weight: 900;">${escapeHtml(
             properties.type,
           )}</p>
-          <span style="display: inline-flex; align-items: center; gap: 3px; border-radius: 999px; background: #fef3c7; padding: 3px 7px; color: #b45309; font-size: 11px; font-weight: 900;">&#9733; ${escapeHtml(
-            properties.rating || "4.5",
-          )}</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; background: #fef3c7; padding: 3px 7px; color: #b45309; font-size: 11px; font-weight: 900;">
+            <span aria-label="${escapeAttribute(getRatingAriaLabel(properties.rating))}">${getPopupStarsHtml(
+              properties.rating,
+            )}</span>
+            <span style="color: #64748b; font-size: 10px;">${escapeHtml(
+              formatReviewLabel(properties.reviewCount),
+            )}</span>
+          </span>
         </div>
         <p style="margin: 8px 0 0; color: #7c3aed; font-size: 18px; font-weight: 950;">${escapeHtml(
           properties.rent,
@@ -1075,6 +1085,35 @@ function createRoomPopupHtml(properties) {
       </div>
     </article>
   `;
+}
+
+function getPopupStarsHtml(rating) {
+  const filledStars = Math.round(clamp(Number(rating) || 0, 0, 5));
+
+  return Array.from({ length: 5 }, (_, index) => {
+    const color = index < filledStars ? "#f59e0b" : "#fde68a";
+    return `<span style="color:${color}">&#9733;</span>`;
+  }).join("");
+}
+
+function getRatingAriaLabel(rating) {
+  const ratingValue = clamp(Number(rating) || 0, 0, 5);
+  return `${ratingValue.toFixed(1)} out of 5 stars`;
+}
+
+function formatReviewLabel(value) {
+  const count = getReviewCount(value);
+  if (!count) return "No reviews yet";
+  return `${count} ${count === 1 ? "review" : "reviews"}`;
+}
+
+function getReviewCount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function isValidCoordinate(longitude, latitude) {

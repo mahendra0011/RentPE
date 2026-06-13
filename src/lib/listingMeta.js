@@ -415,6 +415,62 @@ export const listingCityOptions = cityOptions;
 
 export const roomTypeOptions = ["Single Room", "PG", "Shared Room", "Flat", "Hostel"];
 
+export const roomAmenityDefaults = [
+  "WiFi",
+  "AC",
+  "Geyser",
+  "Parking",
+  "Mess",
+  "CCTV",
+  "Laundry",
+  "Power Backup",
+  "Lift",
+  "Gym",
+];
+
+const roomAmenityAliases = {
+  Water: "Geyser",
+  Geyser: "Geyser",
+  AC: "AC",
+  WiFi: "WiFi",
+  Parking: "Parking",
+  Mess: "Mess",
+  CCTV: "CCTV",
+  Laundry: "Laundry",
+  "Power Backup": "Power Backup",
+  Lift: "Lift",
+  Gym: "Gym",
+};
+
+export function normalizeAmenity(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return null;
+  return roomAmenityAliases[trimmed] || trimmed;
+}
+
+export function getUniqueAmenities(amenities = []) {
+  const seen = new Set();
+  return amenities
+    .map((amenity) => normalizeAmenity(amenity))
+    .filter((amenity) => {
+      if (!amenity) return false;
+      if (seen.has(amenity)) return false;
+      seen.add(amenity);
+      return true;
+    });
+}
+
+export function resolveFilterAmenities() {
+  const defaultSet = new Set(roomAmenityDefaults);
+  const apiRooms = Array.isArray(window?.__rentpeRooms) ? window.__rentpeRooms : [];
+
+  apiRooms.forEach((room) => {
+    (room.amenities || []).forEach((amenity) => defaultSet.add(amenity));
+  });
+
+  return Array.from(defaultSet);
+}
+
 export const roomTypeMeta = {
   "Single Room": {
     label: "Single Room",
@@ -509,7 +565,8 @@ export function getRoomTypeMeta(type = "") {
 
 export function getCityFromStorage() {
   try {
-    return localStorage.getItem(CITY_STORAGE_KEY) || "";
+    const storedCity = localStorage.getItem(CITY_STORAGE_KEY) || "";
+    return getCityOption(storedCity).city;
   } catch {
     return "";
   }

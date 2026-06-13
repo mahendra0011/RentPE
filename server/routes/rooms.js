@@ -6,6 +6,7 @@ import { isMongoConnected } from "../config/db.js";
 import { seedRooms } from "../data/seedRooms.js";
 import Room from "../models/Room.js";
 import { geocodeRoomAddress } from "../services/nominatim.js";
+import { buildUniqueRoomImages } from "../../src/data/cloudinaryRoomImages.js";
 
 const router = Router();
 const upload = multer({
@@ -72,6 +73,23 @@ function parseAmenities(value) {
       .map((item) => item.trim())
       .filter(Boolean);
   }
+}
+
+function getFallbackRoomImages(room = {}, index = null) {
+  return buildUniqueRoomImages(room, index);
+}
+
+function withCloudinaryImages(room, index = 0) {
+  if (room?.images?.length) return room;
+
+  return {
+    ...room,
+    images: getFallbackRoomImages(room, index),
+  };
+}
+
+function withCloudinaryImagesList(rooms = []) {
+  return rooms.map((room, index) => withCloudinaryImages(room, index));
 }
 
 function parseRules(value) {
@@ -348,12 +366,14 @@ async function normalizeRoom(body, images, ownerEmail = "") {
   }
 
   const slugBase = slugify(title);
+  const slug = `${slugBase}-${Date.now().toString(36)}`;
   const type = body.roomType || body.type || "Single Room";
   const locationLabel = [landmark, address, city].filter(Boolean).join(", ");
   const location = await getRoomLocation({ ...body, address, city, state, landmark });
+  const roomImages = images.length ? images : getFallbackRoomImages({ slug });
 
   return {
-    slug: `${slugBase}-${Date.now().toString(36)}`,
+    slug,
     title,
     tag: `${body.gender || "Co-ed"} ${type}`,
     type,
@@ -362,7 +382,7 @@ async function normalizeRoom(body, images, ownerEmail = "") {
     description: body.description || "",
     rules: parseRules(body.rules),
     amenities: parseAmenities(body.amenities),
-    images,
+    images: roomImages,
     address,
     city,
     state,
@@ -380,6 +400,7 @@ async function normalizeRoom(body, images, ownerEmail = "") {
       whatsapp: body.whatsapp !== "false",
       verified: false,
       rating: 0,
+      reviewCount: 0,
       since: String(new Date().getFullYear()),
     },
   };
@@ -427,7 +448,11 @@ async function buildRoomUpdates(body, images, existingRoom) {
     description: body.description ?? existingRoom.description ?? "",
     rules: body.rules === undefined ? existingRoom.rules || [] : parseRules(body.rules),
     amenities: body.amenities ? parseAmenities(body.amenities) : existingRoom.amenities || [],
-    images: images.length ? images : existingRoom.images || [],
+    images: images.length
+      ? images
+      : existingRoom.images?.length
+        ? existingRoom.images
+        : getFallbackRoomImages(existingRoom),
     address,
     city,
     state,
@@ -458,11 +483,13 @@ router.get("/", async (request, response, next) => {
       const query = Room.find(filter);
       if (!queryPoint) query.sort({ createdAt: -1 });
       const rooms = await query.lean();
-      response.json(rooms);
+      response.json(withCloudinaryImagesList(rooms));
       return;
     }
 
-    response.json(memoryRooms.filter((room) => memoryMatches(room, request.query)));
+    response.json(
+      withCloudinaryImagesList(memoryRooms.filter((room) => memoryMatches(room, request.query))),
+    );
   } catch (error) {
     next(error);
   }
@@ -475,11 +502,15 @@ router.get("/mine", async (request, response, next) => {
 
     if (isMongoConnected()) {
       const rooms = await Room.find({ ownerEmail }).sort({ updatedAt: -1 }).lean();
-      response.json(rooms);
+      response.json(withCloudinaryImagesList(rooms));
       return;
     }
 
-    response.json(memoryRooms.filter((room) => normalizeEmail(room.ownerEmail) === ownerEmail));
+    response.json(
+      withCloudinaryImagesList(
+        memoryRooms.filter((room) => normalizeEmail(room.ownerEmail) === ownerEmail),
+      ),
+    );
   } catch (error) {
     next(error);
   }
@@ -495,7 +526,7 @@ router.get("/:slug", async (request, response, next) => {
         response.status(404).json({ message: "Room not found" });
         return;
       }
-      response.json(room);
+      response.json(withCloudinaryImages(room));
       return;
     }
 
@@ -504,7 +535,7 @@ router.get("/:slug", async (request, response, next) => {
       response.status(404).json({ message: "Room not found" });
       return;
     }
-    response.json(room);
+    response.json(withCloudinaryImages(room));
   } catch (error) {
     next(error);
   }
@@ -520,12 +551,12 @@ router.post("/", upload.array("photos", 8), async (request, response, next) => {
 
     if (isMongoConnected()) {
       const room = await Room.create(roomInput);
-      response.status(201).json(room);
+      response.status(201).json(withCloudinaryImages(room));
       return;
     }
 
     memoryRooms.unshift(roomInput);
-    response.status(201).json(roomInput);
+    response.status(201).json(withCloudinaryImages(roomInput));
   } catch (error) {
     next(error);
   }
@@ -555,7 +586,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
         { $set: updates },
         { new: true },
       ).lean();
-      response.json(room);
+      response.json(withCloudinaryImages(room));
       return;
     }
 
@@ -570,7 +601,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
 
     const updates = await buildRoomUpdates(request.body, images, memoryRooms[index]);
     memoryRooms[index] = { ...memoryRooms[index], ...updates };
-    response.json(memoryRooms[index]);
+    response.json(withCloudinaryImages(memoryRooms[index]));
   } catch (error) {
     next(error);
   }

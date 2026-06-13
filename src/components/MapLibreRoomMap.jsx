@@ -521,6 +521,21 @@ function showRoomPopup(map, room, coordinates, { userLocation, onRoute }) {
     )
     .addTo(map);
 
+  const popupElement = popup.getElement();
+  const ratingElement = popupElement?.querySelector(".rentpe-map-popup__meta strong");
+  if (ratingElement) {
+    ratingElement.innerHTML = getPopupStarsHtml(room.owner?.rating);
+    ratingElement.setAttribute("aria-label", getRatingAriaLabel(room.owner?.rating));
+  }
+
+  const metaElement = popupElement?.querySelector(".rentpe-map-popup__meta");
+  if (metaElement) {
+    const reviewsElement = document.createElement("small");
+    reviewsElement.className = "rentpe-map-popup__reviews";
+    reviewsElement.textContent = formatReviewLabel(room.owner?.reviewCount);
+    metaElement.appendChild(reviewsElement);
+  }
+
   popup
     .getElement()
     ?.querySelector("[data-route-room]")
@@ -538,4 +553,33 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function getPopupStarsHtml(rating) {
+  const filledStars = Math.round(clamp(Number(rating) || 0, 0, 5));
+
+  return Array.from({ length: 5 }, (_, index) => {
+    const color = index < filledStars ? "#f59e0b" : "#fde68a";
+    return `<span style="color:${color}">&#9733;</span>`;
+  }).join("");
+}
+
+function getRatingAriaLabel(rating) {
+  const ratingValue = clamp(Number(rating) || 0, 0, 5);
+  return `${ratingValue.toFixed(1)} out of 5 stars`;
+}
+
+function formatReviewLabel(value) {
+  const count = getReviewCount(value);
+  if (!count) return "No reviews yet";
+  return `${count} ${count === 1 ? "review" : "reviews"}`;
+}
+
+function getReviewCount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }

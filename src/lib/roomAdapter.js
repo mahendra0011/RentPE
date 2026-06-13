@@ -1,10 +1,5 @@
-import room1 from "@/assets/room-1.jpg";
-import room2 from "@/assets/room-2.jpg";
-import room3 from "@/assets/room-3.jpg";
-
+import { buildUniqueRoomImages } from "@/data/cloudinaryRoomImages.js";
 import { getCityOption, getCityStateLabel, getRoomTypeMeta } from "@/lib/listingMeta.js";
-
-const fallbackImages = [room1, room2, room3];
 
 export function normalizeRoom(room, index = 0) {
   const id = room.id || room.slug || room._id;
@@ -15,9 +10,18 @@ export function normalizeRoom(room, index = 0) {
       ? room.location
       : room.locationLabel || [room.landmark, room.city].filter(Boolean).join(", ");
   const geoCoordinates = getGeoCoordinates(room);
-  const [fallbackImage] = rotateImages(index);
-  const images = room.images?.length ? room.images : rotateImages(index);
+  const generatedImages = buildUniqueRoomImages(room, index);
+  const [fallbackImage] = generatedImages;
+  const images = room.images?.length ? room.images : generatedImages;
   const areaBadge = room.landmark || displayLocation || room.city || "Location listed";
+  const ownerInput = room.owner || {};
+  const owner = {
+    verified: false,
+    rating: 0,
+    since: String(new Date().getFullYear()),
+    ...ownerInput,
+  };
+  owner.reviewCount = getReviewCount(ownerInput.reviewCount ?? ownerInput.reviews);
 
   return {
     ...room,
@@ -35,12 +39,7 @@ export function normalizeRoom(room, index = 0) {
     location: displayLocation || room.address || room.city || "Location pending",
     distance: areaBadge,
     distanceKm: 0,
-    owner: {
-      verified: false,
-      rating: 0,
-      since: String(new Date().getFullYear()),
-      ...room.owner,
-    },
+    owner,
     geoCoordinates,
     coords: room.coords,
     availability: room.availability || "available",
@@ -50,14 +49,6 @@ export function normalizeRoom(room, index = 0) {
 
 export function normalizeRooms(rooms = []) {
   return rooms.map((room, index) => normalizeRoom(room, index));
-}
-
-function rotateImages(index) {
-  return [
-    fallbackImages[index % fallbackImages.length],
-    fallbackImages[(index + 1) % fallbackImages.length],
-    fallbackImages[(index + 2) % fallbackImages.length],
-  ];
 }
 
 function getGeoCoordinates(room) {
@@ -74,4 +65,11 @@ function getGeoCoordinates(room) {
   }
 
   return null;
+}
+
+function getReviewCount(value) {
+  if (value === undefined || value === null || value === "") return null;
+
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
 }

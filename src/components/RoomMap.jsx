@@ -1,7 +1,8 @@
-import { Bed, Building2, Home, LocateFixed, MapPin, Minus, Plus, Star, Users } from "lucide-react";
+import { Bed, Building2, Home, LocateFixed, MapPin, Minus, Plus, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+import RatingStars from "@/components/RatingStars.jsx";
 import { formatPrice } from "@/lib/format.js";
 import { getRoomTypeMeta, roomTypeMeta } from "@/lib/listingMeta.js";
 import { mapTilerApiKey } from "@/lib/mapServices.js";
@@ -263,10 +264,12 @@ function RoomPopup({ point }) {
             >
               {meta.label}
             </span>
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-black text-amber-600">
-              <Star className="size-3 fill-amber-500" />
-              {room.owner?.rating || "4.5"}
-            </span>
+            <RatingStars
+              rating={room.owner?.rating}
+              reviewCount={room.owner?.reviewCount}
+              size="xs"
+              labelClassName="text-[10px] font-black text-slate-400"
+            />
           </div>
           <h3 className="mt-1 line-clamp-2 text-sm font-black text-ink">{room.title}</h3>
           <p className="mt-1 text-sm font-black text-brand">{formatPrice(room.price)}/month</p>

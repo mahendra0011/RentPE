@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useLayoutEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import Auth from "@/pages/Auth.jsx";
 import Dashboard from "@/pages/Dashboard.jsx";
@@ -12,20 +13,34 @@ import Wishlist from "@/pages/Wishlist.jsx";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/find-room" element={<FindRoom />} />
-      <Route path="/login" element={<Auth />} />
-      <Route path="/signup" element={<Auth />} />
-      <Route path="/forgot-password" element={<Auth />} />
-      <Route path="/reset-password" element={<Auth />} />
-      <Route path="/search" element={<Navigate to="/find-room" replace />} />
-      <Route path="/list-room" element={<ListRoom />} />
-      <Route path="/my-rooms" element={<MyListedRooms />} />
-      <Route path="/wishlist" element={<Wishlist />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/rooms/:id" element={<RoomDetails />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/find-room" element={<FindRoom />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/signup" element={<Auth />} />
+        <Route path="/forgot-password" element={<Auth />} />
+        <Route path="/reset-password" element={<Auth />} />
+        <Route path="/search" element={<Navigate to="/find-room" replace />} />
+        <Route path="/list-room" element={<ListRoom />} />
+        <Route path="/my-rooms" element={<MyListedRooms />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/rooms/:id" element={<RoomDetails />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
+}
+
+function ScrollToTop() {
+  const { hash, pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    if (hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [hash, pathname]);
+
+  return null;
 }

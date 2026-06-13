@@ -1,6 +1,4 @@
-import room1 from "@/assets/room-1.jpg";
-import room2 from "@/assets/room-2.jpg";
-import room3 from "@/assets/room-3.jpg";
+import { roomImageSets } from "@/data/cloudinaryRoomImages.js";
 
 export const rooms = [
   {
@@ -22,12 +20,13 @@ export const rooms = [
     rules: ["No smoking", "ID proof required", "Gate closes at 10 PM"],
     furnished: true,
     amenities: ["WiFi", "AC", "CCTV", "Hot Water", "Laundry", "Power Backup"],
-    images: [room1, room3, room2],
+    images: roomImageSets["skyline-stay"],
     owner: {
       name: "Sunita Sharma",
       phone: "919876543210",
       verified: true,
       rating: 4.8,
+      reviewCount: 42,
       since: "2021",
     },
     coords: { x: 32, y: 44 },
@@ -51,12 +50,13 @@ export const rooms = [
     rules: ["No loud music after 10 PM", "Mess timing is fixed", "Visitors allowed in common area"],
     furnished: true,
     amenities: ["Mess Included", "Parking", "WiFi", "Study Room", "Common TV"],
-    images: [room2, room1, room3],
+    images: roomImageSets["comfort-living"],
     owner: {
       name: "Rakesh Verma",
       phone: "919812345670",
       verified: true,
       rating: 4.5,
+      reviewCount: 31,
       since: "2019",
     },
     coords: { x: 58, y: 30 },
@@ -80,12 +80,13 @@ export const rooms = [
     rules: ["Security deposit required", "No subletting", "Society rules must be followed"],
     furnished: true,
     amenities: ["Kitchen", "Lift", "No Broker", "AC", "Geyser", "Parking", "Balcony"],
-    images: [room3, room1, room2],
+    images: roomImageSets["elite-studio"],
     owner: {
       name: "Anil Mehta",
       phone: "919900112233",
       verified: true,
       rating: 4.9,
+      reviewCount: 58,
       since: "2020",
     },
     coords: { x: 72, y: 62 },
@@ -109,12 +110,13 @@ export const rooms = [
     rules: ["ID proof required", "No smoking", "Visitors allowed with permission"],
     furnished: true,
     amenities: ["WiFi", "AC", "Attached Bath", "Mess"],
-    images: [room1, room2, room3],
+    images: roomImageSets["campus-corner"],
     owner: {
       name: "Geeta Pandey",
       phone: "919871122334",
       verified: true,
       rating: 4.6,
+      reviewCount: 24,
       since: "2022",
     },
     coords: { x: 44, y: 70 },
@@ -142,12 +144,13 @@ export const rooms = [
     ],
     furnished: false,
     amenities: ["Kitchen", "Lift", "Parking", "Pet Friendly", "Gym"],
-    images: [room3, room2, room1],
+    images: roomImageSets["metro-nest"],
     owner: {
       name: "Pooja Iyer",
       phone: "919811223344",
       verified: false,
       rating: 4.3,
+      reviewCount: 17,
       since: "2023",
     },
     coords: { x: 22, y: 22 },
@@ -171,12 +174,13 @@ export const rooms = [
     rules: ["Study hours after 9 PM", "Keep common spaces clean", "Rent due by 5th of every month"],
     furnished: true,
     amenities: ["WiFi", "Mess", "Study Room", "CCTV"],
-    images: [room2, room3, room1],
+    images: roomImageSets["scholars-den"],
     owner: {
       name: "Mohit Singh",
       phone: "919812340099",
       verified: true,
       rating: 4.2,
+      reviewCount: 19,
       since: "2018",
     },
     coords: { x: 64, y: 84 },

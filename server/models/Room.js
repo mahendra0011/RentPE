@@ -7,6 +7,7 @@ const ownerSchema = new mongoose.Schema(
     whatsapp: { type: Boolean, default: true },
     verified: { type: Boolean, default: false },
     rating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
     since: { type: String, default: () => String(new Date().getFullYear()) },
   },
   { _id: false },

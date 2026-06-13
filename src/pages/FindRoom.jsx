@@ -19,9 +19,6 @@ import { fetchRooms } from "@/store/roomsSlice.js";
 
 const filterTypes = roomTypeOptions;
 const filterGenders = ["Girls", "Boys", "Co-ed"];
-const filterAmenities = ["WiFi", "AC", "Parking", "Mess", "Lift", "CCTV"];
-const initialVisibleRooms = 24;
-const visibleRoomStep = 24;
 const defaultPriceMax = 20000;
 const sortOptions = [
   { value: "recommended", label: "Recommended" },

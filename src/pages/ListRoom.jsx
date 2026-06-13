@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Upload,
   X,
+  Plus,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,7 +19,12 @@ import { Link, useNavigate } from "react-router-dom";
 
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { apiRequest } from "@/lib/api.js";
-import { getCityOption, listingCityOptions, roomTypeOptions } from "@/lib/listingMeta.js";
+import {
+  getCityOption,
+  listingCityOptions,
+  roomTypeOptions,
+  roomAmenityDefaults,
+} from "@/lib/listingMeta.js";
 import { formatCoordinate, geocodeAddress } from "@/lib/mapServices.js";
 import { addRuleLine, roomRuleSuggestions } from "@/lib/rules.js";
 import { markPosted } from "@/store/roomsSlice.js";
@@ -62,6 +68,7 @@ const initialData = {
   ownerName: "",
   phone: "",
   whatsapp: true,
+  customAmenity: "",
 };
 
 export default function ListRoom() {
@@ -93,12 +100,29 @@ export default function ListRoom() {
   }
 
   function toggleAmenity(amenity) {
-    update(
-      "amenities",
-      data.amenities.includes(amenity)
-        ? data.amenities.filter((item) => item !== amenity)
-        : [...data.amenities, amenity],
-    );
+    setData((current) => ({
+      ...current,
+      amenities: current.amenities.includes(amenity)
+        ? current.amenities.filter((item) => item !== amenity)
+        : [...current.amenities, amenity],
+    }));
+  }
+
+  function addCustomAmenity() {
+    setData((current) => {
+      const value = current.customAmenity.trim();
+      if (!value || current.amenities.includes(value)) {
+        return { ...current, customAmenity: "" };
+      }
+      return { ...current, amenities: [...current.amenities, value], customAmenity: "" };
+    });
+  }
+
+  function removeAmenity(amenity) {
+    setData((current) => ({
+      ...current,
+      amenities: current.amenities.filter((item) => item !== amenity),
+    }));
   }
 
   function onFiles(files) {
@@ -200,6 +224,7 @@ export default function ListRoom() {
       const payload = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (key === "photos") return;
+        if (key === "customAmenity") return;
         if (Array.isArray(value)) {
           payload.append(key, JSON.stringify(value));
           return;
@@ -347,17 +372,53 @@ export default function ListRoom() {
                             type="button"
                             key={amenity}
                             onClick={() => toggleAmenity(amenity)}
-                            className={`rounded-full border px-4 py-1.5 text-xs font-black transition-colors ${
+                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition-colors ${
                               active
                                 ? "border-brand bg-brand text-brand-foreground"
                                 : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
                             }`}
                           >
-                            {active && <Check className="mr-1 inline size-3" />}
+                            {active && <Check className="size-3" />}
                             {amenity}
                           </button>
                         );
                       })}
+                    </div>
+                    {data.amenities.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {data.amenities.map((amenity) => (
+                          <span
+                            key={amenity}
+                            className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1 text-xs font-black text-brand"
+                          >
+                            {amenity}
+                            <button
+                              type="button"
+                              onClick={() => removeAmenity(amenity)}
+                              className="inline-flex size-4 items-center justify-center rounded-full bg-brand/10 text-brand transition-colors hover:bg-brand hover:text-white"
+                              aria-label={`Remove ${amenity}`}
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <input
+                        value={data.customAmenity}
+                        onChange={(event) => update("customAmenity", event.target.value)}
+                        placeholder="Add amenity"
+                        className="form-input w-40"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomAmenity}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                      >
+                        <Plus className="size-3" />
+                        Add
+                      </button>
                     </div>
                   </Field>
                 </div>
