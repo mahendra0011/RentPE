@@ -27,6 +27,20 @@ const sortOptions = [
   { value: "distance", label: "Nearest first" },
   { value: "rating", label: "Top rated" },
 ];
+const initialVisibleRooms = 6;
+const visibleRoomStep = 6;
+const filterAmenities = [
+  "WiFi",
+  "AC",
+  "Geyser",
+  "Parking",
+  "Mess",
+  "CCTV",
+  "Laundry",
+  "Power Backup",
+  "Lift",
+  "Gym",
+];
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   visible: { opacity: 1, y: 0 },
