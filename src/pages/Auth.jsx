@@ -44,7 +44,9 @@ export default function Auth() {
   const googleOwnerModeRef = useRef(ownerFromUrl);
   const loading = status === "loading";
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-  const showGoogleLogin = !isForgot && !isResetPassword;
+  const isLocalhost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
+  const googleLoginAllowed = !isLocalhost || import.meta.env.VITE_ENABLE_GOOGLE_LOGIN === "1";
+  const showGoogleLogin = !isForgot && !isResetPassword && googleLoginAllowed;
   const normalizedEmail = form.email.trim().toLowerCase();
   const otpReady = isSignup && otpEmail && otpEmail === normalizedEmail;
   const resetOtpReady = isForgot && otpEmail && otpEmail === normalizedEmail;
