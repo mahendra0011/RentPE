@@ -6,18 +6,46 @@ The app uses owner-entered text for discovery: city, area, landmark, address, ti
 
 ## Features
 
+### Room Seeker
 - Fast keyword search with FlexSearch
 - Smooth result rendering with batched `Load more` listings
 - Filters for budget, property type, tenant type, amenities, furnished status, and availability
 - Room details with gallery, rent, amenities, house rules, local essentials, owner contact, report action, wishlist, and sharing
+- **Reviews & Ratings** - Read reviews from other tenants, view average star ratings, and submit your own review with star rating and comment
+- **In-app Chat** - Real-time messaging with owners including typing indicators, read receipts, file/image sharing, emoji reactions, and message edit/delete
+- **Inquiry System** - Send inquiries to owners, owner can accept/reject inquiries, daily inquiry limit enforcement
+- **Schedule a Visit** - Send a date/time visit request directly in chat
+- **Safety Features** - Automatic detection of suspicious payment requests, safety tips banner, report conversations, block users
+- Wishlist and dashboard pages for seekers
+
+### Room Owner
 - Owner signup/login with role-aware navigation
 - Owner listing creation with photos, details, location, amenities, house rules, and WhatsApp lead preference
 - Owner `My Rooms` page for editing listings, replacing photos, changing availability, updating rules, and deleting listings
-- Wishlist and dashboard pages for seekers
+- **In-app Chat Management** - Respond to inquiries, set away mode with auto-reply, quick reply templates, mute/archive conversations
+- **Response Time Tracking** - Automatic tracking of owner response time displayed as a badge in chat
+
+### Admin Dashboard
+- **Overview** - Stats cards (total users, rooms, available rooms, owners), room status breakdown with progress bars (live/reported/occupied)
+- **Users Management** - Card-based layout with colored avatars, role badges, role switching (seeker/owner/admin), email/mobile display, delete user with cascade delete of their rooms
+- **Rooms Management** - Card-based layout with room images, status badges, status switching (live/reported), price display, report count, delete room
+- **Cities Management** - Dedicated tab to add/delete cities, auto-populated from existing rooms, city+state input, grid layout with MapPinned icons
+- **Reports** - Severity-based cards (high/medium/low) with colored left borders and progress bars, status management, delete actions
+- **Flagged Messages** - Card-based view of flagged messages, flag reason display, dismiss functionality
+- **Reviews Moderation** - View and manage user-submitted reviews
+
+### Authentication & Security
 - Forgot password flow: email OTP, reset-password page, new password, confirm password, then login redirect
 - Email OTP through Brevo Transactional Email API
+- Role-based access control (seeker, owner, admin)
+- Block/unblock users
+- Report conversations with reason
+- Auto-flagging of payment-related keywords
+
+### Platform
 - Cloudinary-ready image upload
 - MongoDB Atlas support with Mongoose
+- In-memory fallback when MongoDB is unavailable
 - Render-friendly frontend and backend deployment
 
 ## Tech Stack
@@ -31,12 +59,14 @@ Frontend:
 - Framer Motion
 - Lucide React icons
 - FlexSearch
+- Socket.io Client (real-time chat)
 
 Backend:
 
 - Node.js
 - Express.js
 - MongoDB with Mongoose
+- Socket.io (real-time messaging)
 - Multer for multipart uploads
 - Cloudinary for room images
 - Brevo Transactional Email REST API for OTP email
@@ -48,15 +78,18 @@ RentPE/
   server/
     config/          MongoDB and Cloudinary configuration
     data/            Seed listings used when MongoDB is unavailable
-    models/          Mongoose models
-    routes/          Express API routes
-    services/        Brevo email service
+    middleware/      Auth middleware (requireAdmin, requireAuth)
+    models/          Mongoose models (Room, User, Message, Conversation, Review, City)
+    routes/          Express API routes (rooms, auth, chat, admin, reviews, cities, geo)
+    services/        Brevo email service, Nominatim geocoding
+    socket.js        Socket.io real-time setup
   src/
     assets/          Local fallback room images
-    components/      Shared React components
+    components/      Shared React components (ChatDrawer, RatingStars, ReviewsSection, etc.)
+    context/         React contexts (ChatContext)
     data/            Static fallback room data
     lib/             API client, formatting, search, adapters, rule helpers
-    pages/           App pages
+    pages/           App pages (Home, RoomDetails, AdminDashboard, etc.)
     store/           Redux Toolkit store and slices
   index.html
   vite.config.js
@@ -67,21 +100,29 @@ Generated/local-only folders such as `dist/`, `node_modules/`, and `.env` are ig
 
 ## Core Flows
 
-Room seeker:
+### Room Seeker
 
 1. Open `Home` or `Find Room`.
 2. Search by keyword such as city, area, PG, hostel, flat, WiFi, rule text, landmark, or owner-entered address.
 3. Apply filters for price, type, tenant, amenities, furnished status, and availability.
-4. Open room details, check house rules, save to wishlist, share the listing, call the owner, or message on WhatsApp.
+4. Open room details, check house rules, read reviews, save to wishlist, share the listing, call the owner, or message on WhatsApp.
+5. **Chat** - Use in-app chat to message the owner directly (real-time).
 
-Room owner:
+### Room Owner
 
 1. Sign up or login with owner mode selected.
 2. Use `List Your Room` to publish a listing.
 3. Add details, house rules, photos, location, and contact information.
 4. Use `My Rooms` to edit, delete, update availability, replace photos, and update rules.
+5. **Chat** - Receive and respond to inquiries, set away mode, use quick replies.
 
-Forgot password:
+### Admin
+
+1. Login with admin role.
+2. Access admin dashboard to manage users, rooms, cities, reports, and flagged messages.
+3. Change user roles, update room statuses, add/delete cities, dismiss flagged messages.
+
+### Forgot Password
 
 1. Open `/forgot-password`.
 2. Enter email and verify OTP.
@@ -160,11 +201,12 @@ Notes:
 ```txt
 /                 Home
 /find-room        Search and filter room listings
-/rooms/:id        Room details
+/rooms/:id        Room details (includes reviews section)
 /list-room        Owner listing form
 /my-rooms         Owner listing management
 /wishlist         Saved rooms
 /dashboard        User dashboard
+/admin            Admin dashboard (overview, users, rooms, cities, reports, flagged)
 /login            Login
 /signup           Signup
 /forgot-password  Email OTP for password reset
@@ -204,6 +246,60 @@ PATCH  /api/rooms/:slug/availability
 POST   /api/rooms/:slug/report
 ```
 
+Reviews:
+
+```txt
+GET    /api/reviews/:roomSlug
+POST   /api/reviews/:roomSlug
+```
+
+Chat:
+
+```txt
+GET    /api/chat/conversations
+GET    /api/chat/conversations/:id/messages
+POST   /api/chat/conversations/:id/messages
+POST   /api/chat/conversations
+PATCH  /api/chat/conversations/:id/read
+PATCH  /api/chat/conversations/:id/mute
+PATCH  /api/chat/conversations/:id/archive
+DELETE /api/chat/conversations/with/:email
+GET    /api/chat/unread-count
+GET    /api/chat/quick-replies
+PUT    /api/chat/quick-replies
+GET    /api/chat/away-mode
+PUT    /api/chat/away-mode
+GET    /api/chat/inquiry-daily-limit
+POST   /api/chat/inquiry
+POST   /api/chat/inquiry/:id/respond
+POST   /api/chat/messages/:id/react
+PATCH  /api/chat/messages/:id
+DELETE /api/chat/messages/:id
+POST   /api/chat/upload
+POST   /api/chat/report
+POST   /api/chat/block/:email
+POST   /api/chat/unblock/:email
+GET    /api/chat/blocked
+```
+
+Admin:
+
+```txt
+GET    /api/admin/stats
+GET    /api/admin/users
+PATCH  /api/admin/users/:email/role
+DELETE /api/admin/users/:email
+GET    /api/admin/rooms
+PATCH  /api/admin/rooms/:slug/status
+DELETE /api/admin/rooms/:slug
+GET    /api/admin/reports
+GET    /api/admin/flagged-messages
+PATCH  /api/admin/flagged-messages/:id/dismiss
+GET    /api/admin/cities
+POST   /api/admin/cities
+DELETE /api/admin/cities/:name
+```
+
 Owner-only room routes use the logged-in user's bearer token from local auth storage. Frontend API calls attach it automatically.
 
 ## Data Model Notes
@@ -221,6 +317,26 @@ Room listings store searchable owner-entered fields:
 
 Owner listings are connected to `ownerEmail`, which powers the `My Rooms` management page and owner-scoped edits/deletes.
 
+### Reviews
+
+Reviews are stored per-room with:
+- `userName`, `userEmail`, `rating` (1-5), `comment` (max 1000 chars)
+- Fetched and displayed on the room details page
+- Sample reviews shown as fallback when no reviews exist
+- New reviews are posted via `POST /api/reviews/:roomSlug`
+
+### Chat
+
+Real-time chat powered by Socket.io:
+- Conversations are created per room between seeker and owner
+- Inquiry system with accept/reject flow
+- Messages support text, images, and files
+- Typing indicators, read receipts, emoji reactions
+- Message edit/delete within 15 minutes
+- Auto-flagging of suspicious payment-related messages
+- Away mode with auto-reply for owners
+- Response time tracking for owners
+
 ## Image Upload Notes
 
 Room photos are submitted as multipart form data through Multer.
@@ -229,6 +345,21 @@ Room photos are submitted as multipart form data through Multer.
 - Owner edits can replace listing photos through `PATCH /api/rooms/:slug`.
 - Cloudinary folder defaults to `rentpe/rooms`.
 - If no new photos are uploaded during edit, existing photos stay unchanged.
+- Chat file uploads go through `POST /api/chat/upload`.
+
+## Real-time Events (Socket.io)
+
+```txt
+connect / disconnect          Socket connection lifecycle
+user:online                   User online/offline status
+message:new                   New message in a conversation
+message:read                  Messages marked as read
+message:delivered             Messages delivered
+typing:start / typing:stop    Typing indicators
+conversation:new              New conversation created
+inquiry:responded             Inquiry accepted/rejected
+room:status-changed           Room availability changed
+```
 
 ## Useful Commands
 
@@ -291,18 +422,26 @@ https://your-backend.onrender.com/api/health
 - Keep secrets in local `.env` and Render backend environment variables.
 - Rotate any secret that was shared publicly or committed by mistake.
 - Owner mode unlocks listing management actions, including edit and delete.
+- Chat messages with payment-related keywords are automatically flagged for review.
+- Never pay any advance or deposit before visiting the property in person.
 
 ## Current Status
 
-RentPE supports the complete MVP flow:
+RentPE supports the complete MVP flow plus advanced features:
 
-- seeker search and filters
-- fast search with FlexSearch
-- room details with house rules
-- owner signup/login
-- room listing creation
-- owner listing edit and delete
-- password reset through OTP and confirm-password page
+- ✅ seeker search and filters
+- ✅ fast search with FlexSearch
+- ✅ room details with house rules
+- ✅ **reviews and ratings with user submissions**
+- ✅ **in-app real-time chat with full messaging features**
+- ✅ **inquiry system with accept/reject**
+- ✅ **safety features (suspicious message detection, blocking, reporting)**
+- ✅ owner signup/login
+- ✅ room listing creation
+- ✅ owner listing edit and delete
+- ✅ password reset through OTP and confirm-password page
+- ✅ **admin dashboard with users, rooms, cities, reports, flagged messages management**
+- ✅ **city management (add/delete cities)**
 - Cloudinary-ready uploads
 - Brevo OTP email
 - MongoDB Atlas storage
