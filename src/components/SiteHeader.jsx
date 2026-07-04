@@ -9,8 +9,11 @@ import {
   MapPin,
   MapPinned,
   Menu,
+  Bell,
+  MessageCircle,
   Moon,
   Search,
+  Shield,
   Sun,
   X,
 } from "lucide-react";
@@ -26,7 +29,13 @@ import {
   saveCityToStorage,
 } from "@/lib/listingMeta.js";
 import { apiRequest } from "@/lib/api.js";
+import { useChat } from "@/context/ChatContext.jsx";
 import { logout } from "@/store/authSlice.js";
+import {
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from "@/store/notificationsSlice.js";
 
 function Logo({ onClick }) {
   return (
@@ -102,6 +111,16 @@ export default function SiteHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
+  const { toggleDrawer, unreadTotal } = useChat();
+  const {
+    notifications: storeNotifications,
+    unreadCount: notifUnread,
+    status: notifStatus,
+  } = useSelector(
+    (state) => state.notifications || { notifications: [], unreadCount: 0, status: "idle" },
+  );
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const notifPanelRef = useRef(null);
   const wishlistCount = useSelector((state) => state.rooms.savedIds.length);
   const isOwner = user?.role === "owner";
 
@@ -118,6 +137,29 @@ export default function SiteHeader() {
     setDarkMode(shouldUseDark);
     document.documentElement.classList.toggle("dark", shouldUseDark);
   }, []);
+
+  useEffect(() => {
+    if (user && notifStatus === "idle") {
+      dispatch(fetchNotifications());
+    }
+  }, [user, notifStatus, dispatch]);
+
+  useEffect(() => {
+    if (!user || !showNotifPanel) return;
+    dispatch(fetchNotifications());
+  }, [showNotifPanel, user, dispatch]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(event.target)) {
+        setShowNotifPanel(false);
+      }
+    }
+    if (showNotifPanel) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showNotifPanel]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -205,23 +247,27 @@ export default function SiteHeader() {
     <>
       <header className="relative sticky top-0 z-50 border-b border-slate-200 bg-white/92 shadow-[0_10px_28px_-26px_rgba(15,23,42,0.45)] backdrop-blur">
         <nav className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Logo />
+          <div className="flex items-center gap-3">
+            <Logo />
+            <div className="hidden md:block">
+              <CitySelect
+                value={selectedCity}
+                onChange={handleCityChange}
+                onDetectCity={handleUseCurrentLocation}
+                detectingCity={detectingCity}
+                detectCityError={detectCityError}
+                forceOpenKey={cityPickerOpenKey}
+                onOpenChange={handleCityPickerOpenChange}
+                className="w-[180px]"
+              />
+            </div>
+          </div>
 
           <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 xl:flex">
             <NavLinks wishlistCount={wishlistCount} className="pointer-events-auto" />
           </div>
 
           <div className="hidden min-w-0 items-center gap-2 xl:flex">
-            <CitySelect
-              value={selectedCity}
-              onChange={handleCityChange}
-              onDetectCity={handleUseCurrentLocation}
-              detectingCity={detectingCity}
-              detectCityError={detectCityError}
-              forceOpenKey={cityPickerOpenKey}
-              onOpenChange={handleCityPickerOpenChange}
-              className="w-[220px]"
-            />
             <button
               type="button"
               onClick={toggleDarkMode}
@@ -230,8 +276,104 @@ export default function SiteHeader() {
             >
               {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </button>
+            {user && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowNotifPanel((v) => !v)}
+                  className="relative inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-4" />
+                  {notifUnread > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white">
+                      {notifUnread > 9 ? "9+" : notifUnread}
+                    </span>
+                  )}
+                </button>
+                {showNotifPanel && (
+                  <div
+                    ref={notifPanelRef}
+                    className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-slate-200 bg-white shadow-lg"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                      <span className="text-xs font-black text-ink">Notifications</span>
+                      {notifUnread > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => dispatch(markAllNotificationsRead())}
+                          className="text-[10px] font-bold text-brand hover:underline"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {!storeNotifications || storeNotifications.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <Bell className="mx-auto mb-2 size-6 text-slate-300" />
+                          <p className="text-xs font-bold text-slate-400">No notifications yet</p>
+                        </div>
+                      ) : (
+                        storeNotifications.map((n) => (
+                          <button
+                            key={n._id || n.id}
+                            type="button"
+                            onClick={() => {
+                              if (!n.read) dispatch(markNotificationRead(n._id || n.id));
+                            }}
+                            className={`flex w-full items-start gap-3 border-b border-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${
+                              n.read ? "" : "bg-brand-soft/20"
+                            }`}
+                          >
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs">
+                              {n.type === "chat" ? "💬" : n.type === "booking" ? "📅" : "📢"}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={`text-xs ${n.read ? "font-bold text-slate-500" : "font-black text-ink"}`}
+                              >
+                                {n.title || n.message}
+                              </p>
+                              <p className="mt-0.5 text-[10px] font-bold text-slate-400">
+                                {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {user && (
+              <button
+                id="chat-drawer-toggle"
+                type="button"
+                onClick={toggleDrawer}
+                className="relative inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                aria-label="Chat"
+              >
+                <MessageCircle className="size-4" />
+                {unreadTotal > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-brand text-[9px] font-black text-white ring-2 ring-white">
+                    {unreadTotal > 9 ? "9+" : unreadTotal}
+                  </span>
+                )}
+              </button>
+            )}
             {user ? (
               <>
+                {user.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    className="inline-flex size-10 items-center justify-center rounded-full border border-purple-200 bg-purple-50 text-purple-600 transition-colors hover:border-purple-300 hover:bg-purple-100"
+                    aria-label="Admin dashboard"
+                  >
+                    <Shield className="size-4" />
+                  </Link>
+                )}
                 <span className="max-w-28 truncate text-sm font-black text-slate-600 2xl:max-w-36">
                   {user.name || user.email}
                 </span>
@@ -248,10 +390,7 @@ export default function SiteHeader() {
               <AuthLinks />
             )}
             {isOwner && (
-              <>
-                <MyRoomsLink />
-                <ListRoomCta className="px-4 2xl:px-5" />
-              </>
+              <OwnerMenu />
             )}
           </div>
 
@@ -303,14 +442,60 @@ export default function SiteHeader() {
                       <span className="min-w-0 truncate text-sm font-black text-ink">
                         {user.name || user.email}
                       </span>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
-                      >
-                        <LogOut className="size-4" />
-                        Logout
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNotifPanel((v) => !v);
+                              setMenuOpen(false);
+                            }}
+                            className="relative inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                            aria-label="Notifications"
+                          >
+                            <Bell className="size-4" />
+                            {notifUnread > 0 && (
+                              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white">
+                                {notifUnread > 9 ? "9+" : notifUnread}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toggleDrawer();
+                            setMenuOpen(false);
+                          }}
+                          className="relative inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                          aria-label="Chat"
+                        >
+                          <MessageCircle className="size-4" />
+                          {unreadTotal > 0 && (
+                            <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-brand text-[9px] font-black text-white ring-2 ring-white">
+                              {unreadTotal > 9 ? "9+" : unreadTotal}
+                            </span>
+                          )}
+                        </button>
+                        {user.role === "admin" && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setMenuOpen(false)}
+                            className="inline-flex size-10 items-center justify-center rounded-full border border-purple-200 bg-purple-50 text-purple-600 transition-colors hover:border-purple-300 hover:bg-purple-100"
+                            aria-label="Admin dashboard"
+                          >
+                            <Shield className="size-4" />
+                          </Link>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                        >
+                          <LogOut className="size-4" />
+                          Logout
+                        </button>
+                      </div>
                     </div>
                     {isOwner && (
                       <div className="grid gap-2 sm:grid-cols-2">
@@ -332,6 +517,8 @@ export default function SiteHeader() {
       {!getCityOption(selectedCity).city && !cityPromptPaused && (
         <CityRequiredModal
           onOpenCityPicker={handleOpenNavbarCityPicker}
+          onDetectCity={handleUseCurrentLocation}
+          detectingCity={detectingCity}
           detectCityError={detectCityError}
         />
       )}
@@ -389,7 +576,12 @@ function NavLinks({ wishlistCount, className = "", onNavigate, variant = "deskto
   );
 }
 
-function CityRequiredModal({ onOpenCityPicker, detectCityError }) {
+function CityRequiredModal({
+  onOpenCityPicker,
+  onDetectCity,
+  detectingCity = false,
+  detectCityError = "",
+}) {
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_32px_90px_-34px_rgba(15,23,42,0.8)] sm:p-6">
@@ -399,8 +591,8 @@ function CityRequiredModal({ onOpenCityPicker, detectCityError }) {
           </span>
           <h2 className="text-2xl font-black tracking-normal text-ink">Select your city</h2>
           <p className="mt-2 text-sm font-bold leading-6 text-slate-500">
-            Choose your city from the navbar city picker to continue. RentPE will show rooms, map
-            markers, and routes for that city.
+            Choose your city to continue. RentPE will show rooms, map markers, and routes for that
+            city.
           </p>
         </div>
         {detectCityError && (
@@ -410,11 +602,26 @@ function CityRequiredModal({ onOpenCityPicker, detectCityError }) {
         )}
         <button
           type="button"
+          onClick={onDetectCity}
+          disabled={detectingCity}
+          className="mb-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-brand/20 bg-brand-soft px-5 text-sm font-black text-brand shadow-sm transition-colors hover:border-brand disabled:cursor-wait disabled:opacity-75"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+            {detectingCity ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <LocateFixed className="size-4" />
+            )}
+          </span>
+          {detectingCity ? "Detecting your city" : "Use my location"}
+        </button>
+        <button
+          type="button"
           onClick={onOpenCityPicker}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-5 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-colors hover:bg-brand/90"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-ink shadow-sm transition-colors hover:border-brand hover:text-brand"
         >
           <MapPinned className="size-4" />
-          Choose city from navbar
+          Choose from list
         </button>
       </div>
     </div>
@@ -616,4 +823,57 @@ function getBrowserCoordinates() {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
     );
   });
+}
+
+function OwnerMenu() {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-black text-ink transition-colors hover:border-brand hover:text-brand"
+      >
+        <Building2 className="size-4" />
+        <span className="hidden sm:inline">Owner</span>
+        <ChevronDown className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-2xl border border-slate-200 bg-white shadow-lg">
+          <div className="p-1.5">
+            <Link
+              to="/my-rooms"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-slate-50"
+            >
+              <Building2 className="size-4 text-slate-500" />
+              My Rooms
+            </Link>
+            <Link
+              to="/list-room"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-xl bg-brand px-3 py-2.5 text-sm font-black text-brand-foreground transition-colors hover:bg-brand/90"
+            >
+              <span className="text-base leading-none">+</span>
+              List Your Room
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
