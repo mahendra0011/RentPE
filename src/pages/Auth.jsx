@@ -1,4 +1,13 @@
-import { ArrowRight, Lock, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Lock,
+  Mail,
+  Phone,
+  Shield,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -511,6 +520,53 @@ export default function Auth() {
               {submitLabel}
               <ArrowRight className="size-4" />
             </button>
+
+            {!isSignup && !isForgot && !isResetPassword && (
+              <>
+                <div className="flex items-center gap-3 pt-2">
+                  <span className="h-px flex-1 bg-slate-200" />
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Demo quick login
+                  </span>
+                  <span className="h-px flex-1 bg-slate-200" />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update("email", "admin@rentpe.demo");
+                      update("password", "admin123");
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 text-xs font-black text-purple-700 transition-colors hover:border-purple-300 hover:bg-purple-100"
+                  >
+                    <Shield className="size-3.5" />
+                    Demo Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update("email", "owner@rentpe.demo");
+                      update("password", "owner123");
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
+                  >
+                    <Building2 className="size-3.5" />
+                    Demo Owner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update("email", "user@rentpe.demo");
+                      update("password", "user123");
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                  >
+                    <UserRound className="size-3.5" />
+                    Demo User
+                  </button>
+                </div>
+              </>
+            )}
           </form>
 
           <p className="mt-6 text-center text-sm font-bold text-slate-500">
