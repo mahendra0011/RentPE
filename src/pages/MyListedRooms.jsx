@@ -662,6 +662,11 @@ export default function MyListedRooms() {
                         checked={form.whatsapp}
                         onChange={(value) => update("whatsapp", value)}
                       />
+                      <Toggle
+                        label="In-App Chat"
+                        checked={form.chatEnabled}
+                        onChange={(value) => update("chatEnabled", value)}
+                      />
                     </div>
                   </Field>
                 </div>
@@ -712,6 +717,7 @@ function roomToForm(room) {
     phone: String(room.owner?.phone || "")
       .replace(/^91/, "")
       .slice(-10),
+    chatEnabled: room.chatEnabled !== false,
     whatsapp: room.owner?.whatsapp !== false,
     furnished: room.furnished !== false,
     availability: room.availability || "available",
