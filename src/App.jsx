@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
+import AdminDashboard from "@/pages/AdminDashboard.jsx";
 import Auth from "@/pages/Auth.jsx";
 import Dashboard from "@/pages/Dashboard.jsx";
 import FindRoom from "@/pages/FindRoom.jsx";
@@ -11,9 +12,12 @@ import NotFound from "@/pages/NotFound.jsx";
 import RoomDetails from "@/pages/RoomDetails.jsx";
 import Wishlist from "@/pages/Wishlist.jsx";
 
+import ChatDrawer from "@/components/ChatDrawer.jsx";
+import { ChatProvider } from "@/context/ChatContext.jsx";
+
 export default function App() {
   return (
-    <>
+    <ChatProvider>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -26,11 +30,13 @@ export default function App() {
         <Route path="/list-room" element={<ListRoom />} />
         <Route path="/my-rooms" element={<MyListedRooms />} />
         <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/rooms/:id" element={<RoomDetails />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+      <ChatDrawer />
+    </ChatProvider>
   );
 }
 
