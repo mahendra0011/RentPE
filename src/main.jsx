@@ -16,6 +16,7 @@ function redirectLegacyPathToHash() {
 }
 
 redirectLegacyPathToHash();
+history.scrollRestoration = "manual";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
