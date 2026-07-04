@@ -21,9 +21,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 
 import RatingStars from "@/components/RatingStars.jsx";
+import ReviewsSection from "@/components/ReviewsSection.jsx";
 import RoomCard from "@/components/RoomCard.jsx";
 import RoomLocationMap from "@/components/RoomLocationMap.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
+import { useChat } from "@/context/ChatContext.jsx";
 import { getRoom, rooms as staticRooms } from "@/data/rooms.js";
 import { formatPrice } from "@/lib/format.js";
 import { getCityFromStorage, getCityOption } from "@/lib/listingMeta.js";
@@ -53,6 +55,7 @@ export default function RoomDetails() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const savedIds = useSelector((state) => state.rooms.savedIds);
+  const { startConversation } = useChat();
   const { activeRoom, items, error } = useSelector((state) => state.rooms);
   const staticRoom = getRoom(id);
   const itemRoom = items.find((roomItem) => roomItem.id === id || roomItem.slug === id);
@@ -72,7 +75,6 @@ export default function RoomDetails() {
   );
   const activeRoomKey = getRoomKey(room);
   const [selectedMapRoomId, setSelectedMapRoomId] = useState("");
-  const [hoveredMapRoomId, setHoveredMapRoomId] = useState("");
 
   useEffect(() => {
     dispatch(fetchRoom(id));
@@ -270,6 +272,8 @@ export default function RoomDetails() {
                 })}
               </div>
             </section>
+
+            <ReviewsSection roomSlug={room.slug || room.id} />
           </div>
 
           <aside>
@@ -313,6 +317,21 @@ export default function RoomDetails() {
                 <MessageCircle className="size-4" />
                 WhatsApp Owner
               </a>
+              {room.chatEnabled !== false && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    startConversation(
+                      room.slug || room.id,
+                      `Hi, I am interested in your room "${room.title}" on RentPE.`,
+                    )
+                  }
+                  className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand/20 bg-brand-soft py-3 font-black text-brand transition-colors hover:border-brand hover:bg-brand/10"
+                >
+                  <MessageCircle className="size-4" />
+                  Chat in App
+                </button>
+              )}
               <a
                 href={`tel:+${room.owner.phone}`}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 font-black text-ink transition-colors hover:bg-slate-50"
@@ -380,7 +399,6 @@ export default function RoomDetails() {
               rooms={mapRooms}
               mapCity={mapCity}
               selectedRoomId={selectedMapRoomId}
-              hoveredRoomId={hoveredMapRoomId}
               onRoomSelect={setSelectedMapRoomId}
             />
             <div className="max-h-[640px] overflow-y-auto pr-1">
@@ -394,7 +412,6 @@ export default function RoomDetails() {
                       room={mapRoom}
                       selected={roomKey === selectedMapRoomId}
                       onSelect={() => setSelectedMapRoomId(roomKey)}
-                      onHover={(hovering) => setHoveredMapRoomId(hovering ? roomKey : "")}
                     />
                   );
                 })}
@@ -453,16 +470,16 @@ export default function RoomDetails() {
   );
 }
 
-function MapRoomSelectCard({ room, selected, onSelect, onHover }) {
+function MapRoomSelectCard({ room, selected, onSelect }) {
   const detailsPath = `/rooms/${room.slug || room.id}`;
   const image = room.coverImage || room.images?.[0] || "";
 
   return (
     <article
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
       className={`rounded-2xl border bg-white p-3 shadow-sm transition-all ${
-        selected ? "border-ink shadow-[var(--shadow-card)]" : "border-slate-200 hover:border-brand"
+        selected
+          ? "border-ink shadow-[var(--shadow-card)]"
+          : "border-slate-200 hover:border-brand hover:shadow-[var(--shadow-card)]"
       }`}
     >
       <button type="button" onClick={onSelect} className="flex w-full gap-2.5 text-left">
