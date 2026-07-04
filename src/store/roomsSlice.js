@@ -4,6 +4,7 @@ import { apiRequest, toQueryString } from "@/lib/api.js";
 import { normalizeRoom, normalizeRooms } from "@/lib/roomAdapter.js";
 
 const storageKey = "rentpe:user-state";
+const filterKey = "rentpe:filters";
 
 function readSavedState() {
   try {
@@ -22,6 +23,18 @@ function writeSavedState(state) {
       postedIds: state.postedIds,
     }),
   );
+}
+
+function readFilters() {
+  try {
+    return JSON.parse(localStorage.getItem(filterKey)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeFilters(filters) {
+  localStorage.setItem(filterKey, JSON.stringify(filters));
 }
 
 export const fetchRooms = createAsyncThunk("rooms/fetchRooms", async (filters = {}) => {
@@ -44,6 +57,7 @@ export const reportRoom = createAsyncThunk("rooms/reportRoom", async ({ id, reas
 });
 
 const persisted = readSavedState();
+const persistedFilters = readFilters();
 
 const roomsSlice = createSlice({
   name: "rooms",
@@ -56,6 +70,13 @@ const roomsSlice = createSlice({
     savedIds: persisted.savedIds || [],
     contactedIds: persisted.contactedIds || [],
     postedIds: persisted.postedIds || [],
+    filters: {
+      city: persistedFilters.city || "",
+      priceRange: persistedFilters.priceRange || [0, 100000],
+      amenities: persistedFilters.amenities || [],
+      sortBy: persistedFilters.sortBy || "newest",
+      ...persistedFilters,
+    },
   },
   reducers: {
     toggleSavedRoom(state, action) {
@@ -81,6 +102,19 @@ const roomsSlice = createSlice({
     },
     clearRoomError(state) {
       state.error = "";
+    },
+    setFilters(state, action) {
+      state.filters = { ...state.filters, ...action.payload };
+      writeFilters(state.filters);
+    },
+    clearFilters(state) {
+      state.filters = {
+        city: "",
+        priceRange: [0, 100000],
+        amenities: [],
+        sortBy: "newest",
+      };
+      writeFilters(state.filters);
     },
   },
   extraReducers: (builder) => {
@@ -114,5 +148,5 @@ const roomsSlice = createSlice({
   },
 });
 
-export const { clearRoomError, markContacted, markPosted, toggleSavedRoom } = roomsSlice.actions;
+export const { clearFilters, clearRoomError, markContacted, markPosted, setFilters, toggleSavedRoom } = roomsSlice.actions;
 export default roomsSlice.reducer;
