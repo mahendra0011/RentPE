@@ -387,12 +387,27 @@
     }
   }
 
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 4px 6px -1px oklch(0.52 0.22 280 / 0.2);
+    }
+
+    50% {
+      box-shadow: 0 8px 24px -4px oklch(0.52 0.22 280 / 0.4);
+    }
+  }
+
   .animate-float-soft {
     animation: float-soft 6s ease-in-out infinite;
   }
 
   .animate-soft-pulse {
     animation: soft-pulse 3.6s ease-in-out infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 3s ease-in-out infinite;
   }
 
   .animate-shimmer {
