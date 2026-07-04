@@ -2,14 +2,24 @@ import "dotenv/config";
 
 import cors from "cors";
 import express from "express";
+import http from "node:http";
 
 import { isCloudinaryReady } from "./config/cloudinary.js";
 import { connectDB, isMongoConnected } from "./config/db.js";
+import { setupSocket } from "./socket.js";
+import { setSocketIO } from "./routes/chat.js";
+import { setSocketIO as setRoomsSocketIO } from "./routes/rooms.js";
+import { processEmailDigest } from "./services/emailDigest.js";
+import adminRouter from "./routes/admin.js";
+import citiesRouter from "./routes/cities.js";
 import authRouter from "./routes/auth.js";
+import chatRouter from "./routes/chat.js";
 import geoRouter from "./routes/geo.js";
+import reviewsRouter from "./routes/reviews.js";
 import roomsRouter from "./routes/rooms.js";
 
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT || 5000;
 const normalizeOrigin = (value) =>
   value
@@ -57,8 +67,12 @@ app.get("/api/health", (_request, response) => {
   });
 });
 
+app.use("/api/admin", adminRouter);
+app.use("/api/admin/cities", citiesRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/geo", geoRouter);
+app.use("/api/reviews", reviewsRouter);
 app.use("/api/rooms", roomsRouter);
 
 app.use((error, _request, response, _next) => {
@@ -68,8 +82,18 @@ app.use((error, _request, response, _next) => {
   });
 });
 
+const ioData = setupSocket(server);
+setSocketIO(ioData.io);
+setRoomsSocketIO(ioData.io);
+
 connectDB().finally(() => {
-  app.listen(port, () => {
+  server.listen(port, () => {
     console.log(`RentPE API running on http://localhost:${port}`);
   });
+
+  const digestInterval =
+    parseInt(process.env.BREVO_UNREAD_DIGEST_HOURS || "4", 10) * 60 * 60 * 1000;
+  setInterval(() => {
+    processEmailDigest().catch((err) => console.error("[Digest] Error:", err));
+  }, digestInterval);
 });
