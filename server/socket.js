@@ -1,12 +1,15 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 
 import Conversation from "./models/Conversation.js";
 import Message from "./models/Message.js";
 
+const JWT_SECRET = process.env.JWT_SECRET || "rentpe-dev-secret-change-in-production";
+
 function getAuthUser(auth) {
   if (!auth?.token) return null;
   try {
-    return JSON.parse(Buffer.from(auth.token, "base64url").toString("utf8"));
+    return jwt.verify(auth.token, JWT_SECRET);
   } catch {
     return null;
   }

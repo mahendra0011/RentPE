@@ -1,9 +1,13 @@
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "rentpe-dev-secret-change-in-production";
+
 export function getAuthUser(request) {
   const header = request.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return null;
   try {
-    return JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+    return jwt.verify(token, JWT_SECRET);
   } catch {
     return null;
   }
@@ -32,3 +36,4 @@ export function requireAdmin(request, response, next) {
   request.authUser = user;
   next();
 }
+

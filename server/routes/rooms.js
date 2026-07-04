@@ -1,3 +1,4 @@
+import { getAuthUser } from "../middleware/auth.js";
 import { Router } from "express";
 import multer from "multer";
 
@@ -22,23 +23,9 @@ function normalizeEmail(email) {
     .toLowerCase();
 }
 
-function getAuthUser(request) {
-  const header = request.get("authorization") || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-
-  if (!token) return null;
-
-  try {
-    return JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
-  } catch {
-    return null;
-  }
-}
-
 function getOwnerEmail(request) {
-  return normalizeEmail(
-    getAuthUser(request)?.email || request.body.ownerEmail || request.query.ownerEmail,
-  );
+  const user = getAuthUser(request);
+  return user?.email ? normalizeEmail(user.email) : "";
 }
 
 function requireOwner(request, response) {
@@ -645,25 +632,30 @@ router.delete("/:slug", async (request, response, next) => {
 
 router.patch("/:slug/availability", async (request, response, next) => {
   try {
+    const ownerEmail = requireOwner(request, response);
+    if (!ownerEmail) return;
+
     const availability = request.body.availability === "occupied" ? "occupied" : "available";
 
     if (isMongoConnected()) {
       const room = await Room.findOneAndUpdate(
-        { slug: request.params.slug },
+        { slug: request.params.slug, ownerEmail },
         { availability },
         { new: true },
       ).lean();
       if (!room) {
-        response.status(404).json({ message: "Room not found" });
+        response.status(404).json({ message: "Room not found or access denied" });
         return;
       }
       response.json(room);
       return;
     }
 
-    const room = memoryRooms.find((item) => item.slug === request.params.slug);
+    const room = memoryRooms.find(
+      (item) => item.slug === request.params.slug && normalizeEmail(item.ownerEmail) === ownerEmail,
+    );
     if (!room) {
-      response.status(404).json({ message: "Room not found" });
+      response.status(404).json({ message: "Room not found or access denied" });
       return;
     }
     room.availability = availability;

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import crypto from "node:crypto";
+import jwt from "jsonwebtoken";
 
 import { isMongoConnected } from "../config/db.js";
 import User from "../models/User.js";
@@ -42,18 +43,22 @@ function consumeResetToken(token, email) {
   return true;
 }
 
+const JWT_SECRET = process.env.JWT_SECRET || "rentpe-dev-secret-change-in-production";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+
 function createToken(user) {
-  return Buffer.from(
-    JSON.stringify({
+  return jwt.sign(
+    {
       email: user.email,
       role: user.role,
       name: user.name || "",
       mobile: user.mobile || "",
       avatarUrl: user.avatarUrl || "",
       emailVerified: Boolean(user.emailVerifiedAt),
-      issuedAt: Date.now(),
-    }),
-  ).toString("base64url");
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN },
+  );
 }
 
 function safeUser(user) {
