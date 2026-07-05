@@ -1,6 +1,7 @@
 import { getAuthUser } from "../middleware/auth.js";
 import { Router } from "express";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 
 import { uploadBuffer } from "../config/cloudinary.js";
 import { isMongoConnected } from "../config/db.js";
@@ -10,6 +11,15 @@ import { geocodeRoomAddress } from "../services/nominatim.js";
 import { buildUniqueRoomImages } from "../../src/data/cloudinaryRoomImages.js";
 
 const router = Router();
+
+const roomMutationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 8 },
@@ -29,14 +39,19 @@ function getOwnerEmail(request) {
 }
 
 function requireOwner(request, response) {
-  const ownerEmail = getOwnerEmail(request);
+  const user = getAuthUser(request);
 
-  if (!ownerEmail || !ownerEmail.includes("@")) {
-    response.status(401).json({ message: "Owner login required." });
+  if (!user?.email) {
+    response.status(401).json({ message: "Authentication required." });
     return "";
   }
 
-  return ownerEmail;
+  if (user.role !== "owner" && user.role !== "admin") {
+    response.status(403).json({ message: "Owner access required." });
+    return "";
+  }
+
+  return normalizeEmail(user.email);
 }
 
 function slugify(value) {
@@ -464,19 +479,36 @@ async function buildRoomUpdates(body, images, existingRoom) {
 router.get("/", async (request, response, next) => {
   try {
     const filter = buildRoomFilter(request.query);
+    const page = Math.max(1, Number(request.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(request.query.limit) || 20));
+    const skip = (page - 1) * limit;
 
     if (isMongoConnected()) {
       const queryPoint = getQueryPoint(request.query);
-      const query = Room.find(filter);
-      if (!queryPoint) query.sort({ createdAt: -1 });
-      const rooms = await query.lean();
-      response.json(withCloudinaryImagesList(rooms));
+      let query = Room.find(filter);
+      if (!queryPoint) query = query.sort({ createdAt: -1 });
+      const total = await Room.countDocuments(filter);
+      const rooms = await query.skip(skip).limit(limit).lean();
+      response.json({
+        rooms: withCloudinaryImagesList(rooms),
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      });
       return;
     }
 
-    response.json(
-      withCloudinaryImagesList(memoryRooms.filter((room) => memoryMatches(room, request.query))),
+    const allRooms = withCloudinaryImagesList(
+      memoryRooms.filter((room) => memoryMatches(room, request.query)),
     );
+    response.json({
+      rooms: allRooms.slice(skip, skip + limit),
+      page,
+      limit,
+      total: allRooms.length,
+      totalPages: Math.ceil(allRooms.length / limit),
+    });
   } catch (error) {
     next(error);
   }
@@ -528,7 +560,7 @@ router.get("/:slug", async (request, response, next) => {
   }
 });
 
-router.post("/", upload.array("photos", 8), async (request, response, next) => {
+router.post("/", roomMutationLimiter, upload.array("photos", 8), async (request, response, next) => {
   try {
     const ownerEmail = requireOwner(request, response);
     if (!ownerEmail) return;
@@ -549,7 +581,7 @@ router.post("/", upload.array("photos", 8), async (request, response, next) => {
   }
 });
 
-router.patch("/:slug", upload.array("photos", 8), async (request, response, next) => {
+router.patch("/:slug", roomMutationLimiter, upload.array("photos", 8), async (request, response, next) => {
   try {
     const ownerEmail = requireOwner(request, response);
     if (!ownerEmail) return;
@@ -568,11 +600,20 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
       }
 
       const updates = await buildRoomUpdates(request.body, images, existingRoom);
+      const version = request.body.__v;
+      const query = { slug: request.params.slug, ownerEmail };
+      if (version !== undefined) {
+        query.__v = version;
+      }
       const room = await Room.findOneAndUpdate(
-        { slug: request.params.slug, ownerEmail },
-        { $set: updates },
+        query,
+        { $set: updates, $inc: { __v: 1 } },
         { new: true },
       ).lean();
+      if (!room) {
+        response.status(409).json({ message: "Room was modified by another request. Please refresh and try again." });
+        return;
+      }
       response.json(withCloudinaryImages(room));
       return;
     }
@@ -594,7 +635,7 @@ router.patch("/:slug", upload.array("photos", 8), async (request, response, next
   }
 });
 
-router.delete("/:slug", async (request, response, next) => {
+router.delete("/:slug", roomMutationLimiter, async (request, response, next) => {
   try {
     const ownerEmail = requireOwner(request, response);
     if (!ownerEmail) return;
@@ -630,7 +671,7 @@ router.delete("/:slug", async (request, response, next) => {
   }
 });
 
-router.patch("/:slug/availability", async (request, response, next) => {
+router.patch("/:slug/availability", roomMutationLimiter, async (request, response, next) => {
   try {
     const ownerEmail = requireOwner(request, response);
     if (!ownerEmail) return;
@@ -665,8 +706,13 @@ router.patch("/:slug/availability", async (request, response, next) => {
   }
 });
 
-router.post("/:slug/report", async (request, response, next) => {
+router.post("/:slug/report", roomMutationLimiter, async (request, response, next) => {
   try {
+    const user = getAuthUser(request);
+    if (!user?.email) {
+      response.status(401).json({ message: "Authentication required." });
+      return;
+    }
     const reason = request.body.reason || "Possible fake listing";
 
     if (isMongoConnected()) {
@@ -694,5 +740,10 @@ router.post("/:slug/report", async (request, response, next) => {
     next(error);
   }
 });
+
+let io;
+export function setSocketIO(socketIO) {
+  io = socketIO;
+}
 
 export default router;
