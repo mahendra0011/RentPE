@@ -5,12 +5,18 @@ import City from "../models/City.js";
 import Room from "../models/Room.js";
 import { requireAdmin } from "../middleware/auth.js";
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const router = Router();
 
 // In-memory fallback
 const memoryCities = ["Bhopal", "Indore", "Delhi", "Mumbai", "Bangalore", "Pune"];
 
-router.use(requireAdmin);
+router.use((request, response, next) => {
+  requireAdmin(request, response, next).catch(next);
+});
 
 // GET /api/admin/cities - List all cities (from City collection + Room distinct cities)
 router.get("/", async (_request, response, next) => {
@@ -52,7 +58,7 @@ router.post("/", async (request, response, next) => {
     const cityState = (state || "").trim();
 
     if (isMongoConnected()) {
-      const exists = await City.findOne({ name: { $regex: `^${cityName}$`, $options: "i" } });
+      const exists = await City.findOne({ name: { $regex: `^${escapeRegExp(cityName)}$`, $options: "i" } });
       if (exists) {
         response.status(409).json({ message: `City "${cityName}" already exists.` });
         return;
@@ -88,7 +94,7 @@ router.delete("/:name", async (request, response, next) => {
 
     if (isMongoConnected()) {
       const city = await City.findOneAndDelete({
-        name: { $regex: `^${cityName}$`, $options: "i" },
+        name: { $regex: `^${escapeRegExp(cityName)}$`, $options: "i" },
       });
 
       if (!city) {
