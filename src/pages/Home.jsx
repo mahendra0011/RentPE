@@ -20,6 +20,7 @@ import RoomCard from "@/components/RoomCard.jsx";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter.jsx";
 import ElectricBorder from "@/components/reactbits/ElectricBorder.jsx";
 import InfiniteTicker from "@/components/reactbits/InfiniteTicker.jsx";
+import ShinyText from "@/components/reactbits/ShinyText.jsx";
 import SpotlightPanel from "@/components/reactbits/SpotlightPanel.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
@@ -208,7 +209,12 @@ export default function Home() {
               variants={fadeUp}
               className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl lg:text-[64px]"
             >
-              Your perfect room in <span className="text-brand">{selectedCityLabel}.</span>
+              Your perfect room in <ShinyText
+                text={`${selectedCityLabel}.`}
+                speed={3}
+                spread={140}
+                direction="left"
+              />
             </motion.h1>
             <motion.p
               variants={fadeUp}
