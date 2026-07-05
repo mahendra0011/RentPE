@@ -81,6 +81,13 @@ export default function MapLibreRoomMap({
     mapRef.current = map;
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
+    map.on("styleimagemissing", (event) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      map.addImage(event.id, canvas, { pixelRatio: 1 });
+    });
+
     map.on("load", () => {
       addMapSources(map, initialRoomFeaturesRef.current);
       addMapLayers(map);

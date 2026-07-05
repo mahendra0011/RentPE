@@ -229,6 +229,7 @@ export default function AdminDashboard() {
   const [confirm, setConfirm] = useState(null);
   const [changingRole, setChangingRole] = useState(null);
   const [changingStatus, setChangingStatus] = useState(null);
+  const [verifyingSlug, setVerifyingSlug] = useState(null);
 
   const userSearchTimer = useRef(null);
   const roomSearchTimer = useRef(null);
@@ -448,6 +449,18 @@ export default function AdminDashboard() {
       await loadStats();
     } catch (err) {
       setError(err.message || "Failed to delete room.");
+    }
+  }
+
+  async function handleVerify(slug) {
+    setVerifyingSlug(slug);
+    try {
+      await apiRequest(`/api/admin/rooms/${encodeURIComponent(slug)}/verify`, { method: "PATCH" });
+      await loadRooms();
+    } catch (err) {
+      setError(err.message || "Failed to verify owner.");
+    } finally {
+      setVerifyingSlug(null);
     }
   }
 
@@ -869,6 +882,26 @@ export default function AdminDashboard() {
                           <option value="reported">Reported</option>
                         </select>
                         {changingStatus === room.slug && <Loader2 className="size-3 animate-spin text-brand shrink-0" />}
+                        {!room.owner?.verified && (
+                          <button
+                            type="button"
+                            onClick={() => handleVerify(room.slug)}
+                            disabled={verifyingSlug === room.slug}
+                            className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50"
+                            title="Verify owner"
+                          >
+                            {verifyingSlug === room.slug ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <BadgeCheck className="size-4" />
+                            )}
+                          </button>
+                        )}
+                        {room.owner?.verified && (
+                          <span className="inline-flex size-8 items-center justify-center rounded-lg text-emerald-500" title="Verified">
+                            <BadgeCheck className="size-4" />
+                          </span>
+                        )}
                         <Link
                           to={`/rooms/${room.slug}`}
                           className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"

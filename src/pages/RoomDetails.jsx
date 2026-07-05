@@ -66,6 +66,7 @@ export default function RoomDetails() {
   const [active, setActive] = useState(0);
   const [reported, setReported] = useState(false);
   const [shareState, setShareState] = useState("");
+  const [chatError, setChatError] = useState("");
   const selectedCityOption = getCityOption(getCityFromStorage());
   const mapCity = selectedCityOption.city;
   const allRoomsForMap = useMemo(() => normalizeRooms(items.length ? items : staticRooms), [items]);
@@ -320,12 +321,17 @@ export default function RoomDetails() {
               {room.chatEnabled !== false && (
                 <button
                   type="button"
-                  onClick={() =>
-                    startConversation(
-                      room.slug || room.id,
-                      `Hi, I am interested in your room "${room.title}" on RentPE.`,
-                    )
-                  }
+                  onClick={async () => {
+                    setChatError("");
+                    try {
+                      await startConversation(
+                        room.slug || room.id,
+                        `Hi, I am interested in your room "${room.title}" on RentPE.`,
+                      );
+                    } catch (err) {
+                      setChatError(err.message || "Failed to start conversation.");
+                    }
+                  }}
                   className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand/20 bg-brand-soft py-3 font-black text-brand transition-colors hover:border-brand hover:bg-brand/10"
                 >
                   <MessageCircle className="size-4" />
@@ -382,9 +388,9 @@ export default function RoomDetails() {
                   ),
                 )}
               </ul>
-              {error && (
+              {(error || chatError) && (
                 <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                  {error}
+                  {chatError || error}
                 </p>
               )}
             </div>
