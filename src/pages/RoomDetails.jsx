@@ -477,6 +477,7 @@ export default function RoomDetails() {
 }
 
 function MapRoomSelectCard({ room, selected, onSelect }) {
+  const detailsPath = `/rooms/${room.slug || room.id}`;
   const image = room.coverImage || room.images?.[0] || "";
 
   return (
