@@ -13,6 +13,7 @@ const reviewSchema = new mongoose.Schema(
 );
 
 reviewSchema.index({ roomSlug: 1, createdAt: -1 });
+reviewSchema.index({ roomSlug: 1, userEmail: 1 }, { unique: true, partialFilterExpression: { userEmail: { $ne: "" } } });
 
 const Review = mongoose.models.Review || mongoose.model("Review", reviewSchema);
 
