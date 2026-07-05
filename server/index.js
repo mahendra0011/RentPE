@@ -3,6 +3,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import http from "node:http";
 
 import { isCloudinaryReady } from "./config/cloudinary.js";
@@ -14,6 +15,7 @@ import { processEmailDigest } from "./services/emailDigest.js";
 import adminRouter from "./routes/admin.js";
 import citiesRouter from "./routes/cities.js";
 import authRouter from "./routes/auth.js";
+import bookingsRouter from "./routes/bookings.js";
 import chatRouter from "./routes/chat.js";
 import geoRouter from "./routes/geo.js";
 import reviewsRouter from "./routes/reviews.js";
@@ -57,6 +59,16 @@ app.use(
   }),
 );
 app.use(helmet());
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -72,13 +84,19 @@ app.get("/api/health", (_request, response) => {
 app.use("/api/admin", adminRouter);
 app.use("/api/admin/cities", citiesRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/bookings", bookingsRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/geo", geoRouter);
 app.use("/api/reviews", reviewsRouter);
 app.use("/api/rooms", roomsRouter);
 
+app.use((_request, response) => {
+  response.status(404).json({ message: "Route not found" });
+});
+
 app.use((error, _request, response, _next) => {
   console.error(error);
+  if (response.headersSent) return;
   response.status(error.status || 500).json({
     message: error.message || "Internal server error",
   });
