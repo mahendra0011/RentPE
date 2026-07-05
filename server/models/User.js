@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
     lastSeen: { type: Date },
     blockedUsers: [{ type: String, lowercase: true, trim: true }],
     chatQuickReplies: [{ type: String, trim: true }],
+    tokenVersion: { type: Number, default: 0 },
     responseTimeAvg: { type: Number, default: 0 },
     responseRate: { type: Number, default: 0 },
     totalResponses: { type: Number, default: 0 },
