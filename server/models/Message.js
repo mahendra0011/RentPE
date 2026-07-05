@@ -22,7 +22,7 @@ const messageSchema = new mongoose.Schema(
       default: "text",
     },
     senderEmail: { type: String, required: true, lowercase: true, trim: true },
-    text: { type: String, trim: true, default: "" },
+    text: { type: String, trim: true, default: "", maxlength: 5000 },
     mediaUrl: { type: String, trim: true, default: "" },
     mediaType: { type: String, enum: ["", "image", "file", "pdf", "doc"], default: "" },
     mediaName: { type: String, trim: true, default: "" },

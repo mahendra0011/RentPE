@@ -433,6 +433,11 @@ router.post("/conversations/:id/messages", async (request, response, next) => {
       return;
     }
 
+    if (text && text.length > 5000) {
+      response.status(400).json({ message: "Text must be 5000 characters or less." });
+      return;
+    }
+
     const conversation = await Conversation.findById(conversationId).lean();
     if (!conversation) {
       response.status(404).json({ message: "Conversation not found." });
