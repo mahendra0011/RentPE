@@ -39,8 +39,11 @@ function writeFilters(filters) {
 
 export const fetchRooms = createAsyncThunk("rooms/fetchRooms", async (filters = {}) => {
   const query = toQueryString(filters);
-  const rooms = await apiRequest(`/api/rooms${query ? `?${query}` : ""}`);
-  return normalizeRooms(rooms);
+  const data = await apiRequest(`/api/rooms${query ? `?${query}` : ""}`);
+  if (data && Array.isArray(data.rooms)) {
+    return { items: normalizeRooms(data.rooms), page: data.page, totalPages: data.totalPages, total: data.total };
+  }
+  return { items: normalizeRooms(data) };
 });
 
 export const fetchRoom = createAsyncThunk("rooms/fetchRoom", async (id) => {
@@ -67,6 +70,7 @@ const roomsSlice = createSlice({
     origin: null,
     status: "idle",
     error: "",
+    pagination: { page: 1, totalPages: 1, total: 0 },
     savedIds: persisted.savedIds || [],
     contactedIds: persisted.contactedIds || [],
     postedIds: persisted.postedIds || [],
@@ -125,7 +129,12 @@ const roomsSlice = createSlice({
       })
       .addCase(fetchRooms.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload;
+        if (Array.isArray(action.payload)) {
+          state.items = action.payload;
+        } else {
+          state.items = action.payload.items || [];
+          state.pagination = { page: action.payload.page, totalPages: action.payload.totalPages, total: action.payload.total };
+        }
         state.origin = null;
       })
       .addCase(fetchRooms.rejected, (state, action) => {
@@ -137,8 +146,8 @@ const roomsSlice = createSlice({
       })
       .addCase(fetchRoom.fulfilled, (state, action) => {
         state.activeRoom = action.payload;
-        const exists = state.items.some((room) => room.id === action.payload.id);
-        if (!exists) {
+        const exists = Array.isArray(state.items) && state.items.some((room) => room.id === action.payload.id);
+        if (!exists && Array.isArray(state.items)) {
           state.items.push(action.payload);
         }
       })
