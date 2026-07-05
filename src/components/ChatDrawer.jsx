@@ -29,7 +29,7 @@ import { useChat } from "@/context/ChatContext.jsx";
 import { apiRequest } from "@/lib/api.js";
 import { formatPrice } from "@/lib/format.js";
 
-const EMOJI_LIST = ["ðŸ‘", "â¤ï¸", "ðŸ˜‚", "ðŸ˜®", "ðŸ˜¢", "ðŸ™"];
+const EMOJI_LIST = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 const SUSPICIOUS_KEYWORDS = [
   "advance",
@@ -146,8 +146,8 @@ function ConversationItem({ conversation, active, onClick }) {
           <span className="truncate text-xs font-bold text-slate-500">
             {isPendingInquiry
               ? isOwner
-                ? "ðŸ“© Inquiry â€” tap to respond"
-                : "ðŸ“© Inquiry sent â€” waiting for owner"
+? "📩 Inquiry \u2014 tap to respond"
+                : "📩 Inquiry sent \u2014 waiting for owner"
               : conversation.lastMessage?.text || "No messages yet"}
           </span>
           {isPendingInquiry && isOwner && (
@@ -402,7 +402,7 @@ function MessageBubble({ message, isOwn }) {
                 onClick={() => setShowEmojiPicker(false)}
                 className="size-6 rounded-full text-xs text-slate-400 hover:bg-slate-100"
               >
-                âœ•
+                ✕
               </button>
             </div>
           ) : (
@@ -578,11 +578,15 @@ function ChatWindow({ conversation }) {
   async function handleSend(event) {
     event.preventDefault();
     if (!text.trim()) return;
-    await sendMessage(conversation._id, text);
-    setText("");
-    localStorage.removeItem(`chatDraft:${conversation._id}`);
-    emitTyping(conversation._id, false);
-    inputRef.current?.focus();
+    try {
+      await sendMessage(conversation._id, text);
+      setText("");
+      localStorage.removeItem(`chatDraft:${conversation._id}`);
+      emitTyping(conversation._id, false);
+      inputRef.current?.focus();
+    } catch {
+      // message stays in textbox on failure
+    }
   }
 
   function handleKeyDown(event) {
@@ -612,13 +616,15 @@ function ChatWindow({ conversation }) {
       }
     } catch {
       // ignore
+    } finally {
+      event.target.value = "";
     }
   }
 
   async function handleSchedule() {
     if (!scheduleDate || !scheduleTime) return;
     const visitDate = new Date(`${scheduleDate}T${scheduleTime}`);
-    const msg = `ðŸ“… Visit Request: ${visitDate.toLocaleDateString()} at ${visitDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    const msg = `📅 Visit Request: ${visitDate.toLocaleDateString()} at ${visitDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     await sendMessage(conversation._id, msg);
     setShowSchedule(false);
     setScheduleDate("");
@@ -699,18 +705,6 @@ function ChatWindow({ conversation }) {
         body: JSON.stringify({ quickReplies: updated }),
       });
       setQuickReplies(updated);
-    } catch {
-      // ignore
-    }
-  }
-
-  async function handleReact(messageId, emoji) {
-    try {
-      await apiRequest(`/api/chat/messages/${messageId}/react`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emoji }),
-      });
     } catch {
       // ignore
     }
@@ -801,7 +795,7 @@ function ChatWindow({ conversation }) {
               : conversation.inquiryStatus === "rejected"
                 ? "Inquiry declined"
                 : !isOwner && conversation.otherUser?.awayEnabled
-                  ? "Away â€” auto-reply on"
+                  ? "Away \u2014 auto-reply on"
                   : onlineStatus === "online"
                     ? "Online"
                     : onlineStatus === "offline"
@@ -809,7 +803,7 @@ function ChatWindow({ conversation }) {
                       : onlineStatus}
             {!isOwner && conversation.otherUser?.responseTimeMin !== undefined && (
               <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-green-700">
-                âš¡{conversation.otherUser.responseTimeMin}m
+                ⚡{conversation.otherUser.responseTimeMin}m
               </span>
             )}
           </p>
@@ -930,7 +924,7 @@ function ChatWindow({ conversation }) {
           {isOwner ? (
             <div className="flex flex-col items-center gap-2">
               <p className="text-center text-xs font-bold text-amber-800">
-                ðŸ“© Inquiry from <span className="font-black">{displayName}</span> about{" "}
+                📩 Inquiry from <span className="font-black">{displayName}</span> about{" "}
                 <span className="font-black">{conversation.roomTitle}</span>
               </p>
               <div className="flex gap-2">
@@ -952,7 +946,7 @@ function ChatWindow({ conversation }) {
             </div>
           ) : (
             <p className="text-center text-xs font-bold text-amber-700">
-              â³ Inquiry sent â€” waiting for owner to respond
+              ⏳ Inquiry sent \u2014 waiting for owner to respond
             </p>
           )}
         </div>
@@ -961,7 +955,7 @@ function ChatWindow({ conversation }) {
       {conversation.inquiryStatus === "rejected" && (
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
           <p className="text-center text-xs font-bold text-slate-500">
-            âŒ Inquiry declined by the owner
+            ❌ Inquiry declined by the owner
           </p>
         </div>
       )}
@@ -969,8 +963,8 @@ function ChatWindow({ conversation }) {
       {conversation.roomAvailable === false && (
         <div className="border-b border-red-200 bg-red-50 px-4 py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
-            <span className="text-sm">ðŸ”´</span>
-            This property is no longer available â€”{" "}
+            <span className="text-sm">🔴</span>
+            This property is no longer available \u2014{" "}
             <Link to={`/rooms/${conversation.roomSlug}`} className="underline">
               view listing
             </Link>
@@ -989,7 +983,7 @@ function ChatWindow({ conversation }) {
         <div className="border-b border-red-200 bg-red-50 px-4 py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
             <Flag className="size-3.5 shrink-0 text-red-500" />
-            Suspicious pattern detected â€” multiple payment requests from this owner. Proceed with
+            Suspicious pattern detected \u2014 multiple payment requests from this owner. Proceed with
             caution.
           </p>
         </div>
@@ -1045,7 +1039,7 @@ function ChatWindow({ conversation }) {
               return (
                 <div key={msg._id}>
                   {showDate && <DateSeparator date={msg.createdAt} />}
-                  <MessageBubble message={msg} isOwn={isOwn} onReact={handleReact} />
+                  <MessageBubble message={msg} isOwn={isOwn} />
                 </div>
               );
             })}
@@ -1333,7 +1327,7 @@ function NewChatForm({ room, onBack }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-black text-ink">{room.title}</p>
             <p className="text-xs font-bold text-slate-500">
-              {room.city} â€” {formatPrice(room.price)}/mo
+              {room.city} \u2014 {formatPrice(room.price)}/mo
             </p>
           </div>
         </div>

@@ -65,6 +65,10 @@ export function ChatProvider({ children }) {
       setSocketConnected(false);
     });
 
+    socket.on("online:snapshot", (snapshot) => {
+      setOnlineUsers(snapshot);
+    });
+
     socket.on("user:online", ({ email, online, lastSeen }) => {
       setOnlineUsers((prev) => ({ ...prev, [email]: { online, lastSeen } }));
     });
@@ -250,20 +254,17 @@ export function ChatProvider({ children }) {
   const sendMessage = useCallback(
     async (conversationId, text, mediaUrl = "", mediaType = "", mediaName = "") => {
       if (!text?.trim() && !mediaUrl) return;
-      try {
-        const data = await apiRequest(`/api/chat/conversations/${conversationId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: text?.trim() || "", mediaUrl, mediaType, mediaName }),
-        });
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: [...(prev[conversationId] || []), data.message],
-        }));
-        await loadConversations();
-      } catch {
-        // ignore
-      }
+      const data = await apiRequest(`/api/chat/conversations/${conversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text?.trim() || "", mediaUrl, mediaType, mediaName }),
+      });
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: [...(prev[conversationId] || []), data.message],
+      }));
+      await loadConversations();
+      return data;
     },
     [loadConversations],
   );
