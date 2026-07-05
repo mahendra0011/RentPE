@@ -1048,7 +1048,7 @@ router.delete("/messages/:id", async (request, response, next) => {
       });
     }
 
-    response.json({ ok: true });
+    response.json({ message });
   } catch (error) {
     next(error);
   }
