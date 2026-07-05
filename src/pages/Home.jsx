@@ -211,6 +211,7 @@ export default function Home() {
             >
               Your perfect room in <ShinyText
                 text={`${selectedCityLabel}.`}
+                color="var(--brand)"
                 speed={3}
                 spread={140}
                 direction="left"

@@ -277,7 +277,7 @@ export default function RoomDetails() {
             <ReviewsSection roomSlug={room.slug || room.id} />
           </div>
 
-          <aside className="lg:sticky lg:top-6 self-start">
+          <aside className="lg:sticky lg:top-24 self-start">
             <div className="rounded-3xl border border-slate-200 bg-card p-6 shadow-[var(--shadow-card)]">
               <div className="mb-1 flex items-end gap-2">
                 <span className="text-3xl font-black text-brand">{formatPrice(room.price)}</span>
