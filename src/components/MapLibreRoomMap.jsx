@@ -496,6 +496,7 @@ function showRoomPopup(map, room, coordinates, { userLocation, onRoute }) {
   const popup = new maplibregl.Popup({
     closeButton: true,
     closeOnClick: false,
+    focusAfterOpen: false,
     offset: 28,
     maxWidth: "280px",
   })

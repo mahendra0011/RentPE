@@ -509,6 +509,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
           popupRef.current = new maplibregl.Popup({
             closeButton: false,
             closeOnClick: false,
+            focusAfterOpen: false,
             offset: 22,
           })
             .setLngLat(coordinates)
@@ -601,7 +602,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
     });
 
     if (selectedRecord) {
-      selectedRecord.showPopup({ centerInMap: false });
+      selectedRecord.showPopup({ centerInMap: true });
     }
   }, [isLoaded, map, roomsRenderKey, selectedRoom]);
 
