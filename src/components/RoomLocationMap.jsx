@@ -465,7 +465,7 @@ function MapBoundsController({ rooms, fitToRooms }) {
 }
 
 function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect }) {
-  const { map } = useMap();
+  const { map, isLoaded } = useMap();
   const popupRef = useRef(null);
   const popupOwnerKeyRef = useRef("");
   const markersRef = useRef(new Map());
@@ -581,6 +581,8 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
   }, [map, onRoomSelect, rooms, roomsRenderKey]);
 
   useEffect(() => {
+    if (!map || !isLoaded) return;
+
     const selectedKey = getStableRoomKey(selectedRoom);
     let selectedRecord = null;
 
@@ -601,7 +603,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
     if (selectedRecord) {
       selectedRecord.showPopup({ centerInMap: true });
     }
-  }, [roomsRenderKey, selectedRoom]);
+  }, [isLoaded, map, roomsRenderKey, selectedRoom]);
 
   useEffect(() => {
     const hoverKey = String(hoveredRoomId || "");
