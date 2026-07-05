@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 import { apiRequest } from "@/lib/api.js";
 import { updateFaviconBadge } from "@/lib/favicon.js";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
 const ChatContext = createContext(null);
 
