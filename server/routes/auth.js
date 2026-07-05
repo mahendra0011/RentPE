@@ -5,36 +5,40 @@ import rateLimit from "express-rate-limit";
 
 import { isMongoConnected } from "../config/db.js";
 import User from "../models/User.js";
+import Otp from "../models/Otp.js";
 import { sendOtpEmail } from "../services/brevo.js";
 
 const router = Router();
 
+const JWT_SECRET = process.env.JWT_SECRET || "rentpe-dev-secret-change-in-production";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+
 // Rate limiters
 const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 minutes
-  max: 5,                      // 5 OTP requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: { message: "Too many OTP requests. Please try again after 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 minutes
-  max: 10,                     // 10 login/signup attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { message: "Too many login attempts. Please try again after 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const resetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 minutes
-  max: 5,                      // 5 reset attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: { message: "Too many reset requests. Please try again after 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-const otpStore = new Map();
+const memoryOtpStore = new Map();
 const resetTokenStore = new Map();
 const memoryUsers = new Map();
 let googleCertCache = { expiresAt: 0, keys: [] };
@@ -46,32 +50,78 @@ function normalizeEmail(email) {
 }
 
 function createOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(crypto.randomInt(100000, 999999));
+}
+
+function otpKey(email, purpose = "login") {
+  return `${purpose}:${email}`;
+}
+
+async function storeOtp({ email, role, purpose = "login" }) {
+  const otp = createOtp();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  if (isMongoConnected()) {
+    await Otp.deleteMany({ email, purpose });
+    await Otp.create({ email, otp, role, purpose, expiresAt });
+  } else {
+    memoryOtpStore.set(otpKey(email, purpose), { otp, role, purpose, expiresAt });
+  }
+  return otp;
+}
+
+async function consumeOtp({ email, otp, purpose = "login" }) {
+  if (isMongoConnected()) {
+    const doc = await Otp.findOne({ email, purpose });
+    if (!doc || doc.expiresAt < new Date()) {
+      if (doc) await Otp.deleteOne({ _id: doc._id });
+      return { ok: false, message: "OTP expired. Request a new code." };
+    }
+    if (doc.otp !== otp) {
+      doc.attempts += 1;
+      if (doc.attempts >= 5) {
+        await Otp.deleteOne({ _id: doc._id });
+        return { ok: false, message: "Too many incorrect attempts. Request a new OTP." };
+      }
+      await doc.save();
+      return { ok: false, message: "Incorrect OTP." };
+    }
+    await Otp.deleteOne({ _id: doc._id });
+    return { ok: true, role: doc.role };
+  }
+
+  const key = otpKey(email, purpose);
+  const stored = memoryOtpStore.get(key);
+  if (!stored || stored.expiresAt < new Date()) {
+    memoryOtpStore.delete(key);
+    return { ok: false, message: "OTP expired. Request a new code." };
+  }
+  if (stored.otp !== otp) {
+    stored.attempts = (stored.attempts || 0) + 1;
+    if (stored.attempts >= 5) {
+      memoryOtpStore.delete(key);
+      return { ok: false, message: "Too many incorrect attempts. Request a new OTP." };
+    }
+    return { ok: false, message: "Incorrect OTP." };
+  }
+  memoryOtpStore.delete(key);
+  return { ok: true, role: stored.role };
 }
 
 function createResetToken(email) {
   const token = crypto.randomBytes(32).toString("hex");
-  resetTokenStore.set(token, {
-    email,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-  });
+  resetTokenStore.set(token, { email, expiresAt: Date.now() + 10 * 60 * 1000 });
   return token;
 }
 
 function consumeResetToken(token, email) {
   const stored = resetTokenStore.get(token);
-
   if (!stored || stored.expiresAt < Date.now() || stored.email !== email) {
     resetTokenStore.delete(token);
     return false;
   }
-
   resetTokenStore.delete(token);
   return true;
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || "rentpe-dev-secret-change-in-production";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 function createToken(user) {
   return jwt.sign(
@@ -82,6 +132,7 @@ function createToken(user) {
       mobile: user.mobile || "",
       avatarUrl: user.avatarUrl || "",
       emailVerified: Boolean(user.emailVerifiedAt),
+      tokenVersion: user.tokenVersion || 0,
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
@@ -258,37 +309,7 @@ function verifyPassword(password, user) {
   return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(user.passwordHash, "hex"));
 }
 
-function otpKey(email, purpose = "login") {
-  return `${purpose}:${email}`;
-}
 
-function storeOtp({ email, role, purpose = "login" }) {
-  const otp = createOtp();
-  otpStore.set(otpKey(email, purpose), {
-    otp,
-    role,
-    purpose,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-  });
-  return otp;
-}
-
-function consumeOtp({ email, otp, purpose = "login" }) {
-  const key = otpKey(email, purpose);
-  const stored = otpStore.get(key);
-
-  if (!stored || stored.expiresAt < Date.now()) {
-    otpStore.delete(key);
-    return { ok: false, message: "OTP expired. Request a new code." };
-  }
-
-  if (stored.otp !== otp) {
-    return { ok: false, message: "Incorrect OTP." };
-  }
-
-  otpStore.delete(key);
-  return { ok: true, role: stored.role };
-}
 
 async function upsertUser({ email, role, name, mobile }) {
   if (isMongoConnected()) {
@@ -367,7 +388,7 @@ router.post("/signup", authLimiter, async (request, response, next) => {
         return;
       }
 
-      const verifiedOtp = consumeOtp({ email, otp, purpose: "signup" });
+      const verifiedOtp = await consumeOtp({ email, otp, purpose: "signup" });
       if (!verifiedOtp.ok) {
         response.status(400).json({ message: verifiedOtp.message });
         return;
@@ -396,7 +417,7 @@ router.post("/signup", authLimiter, async (request, response, next) => {
         return;
       }
 
-      const verifiedOtp = consumeOtp({ email, otp, purpose: "signup" });
+      const verifiedOtp = await consumeOtp({ email, otp, purpose: "signup" });
       if (!verifiedOtp.ok) {
         response.status(400).json({ message: verifiedOtp.message });
         return;
@@ -445,9 +466,11 @@ router.post("/login", authLimiter, async (request, response, next) => {
       return;
     }
 
-    const nextRole = requestedRole === "owner" ? "owner" : user.role || "seeker";
+    if (requestedRole === "owner" && user.role !== "owner" && user.role !== "admin") {
+      response.status(403).json({ message: "Owner access not available for this account." });
+      return;
+    }
     const updates = {
-      role: nextRole,
       mobile: user.mobile || "",
       name: user.name || email.split("@")[0],
       lastLoginAt: new Date(),
@@ -528,7 +551,7 @@ router.post("/request-otp", otpLimiter, async (request, response, next) => {
       }
     }
 
-    const otp = storeOtp({ email, role, purpose });
+    const otp = await storeOtp({ email, role, purpose });
 
     const delivery = await sendOtpEmail({ email, otp, purpose });
     response.json({
@@ -578,7 +601,7 @@ router.post("/reset-password", resetLimiter, async (request, response, next) => 
         return;
       }
     } else {
-      const verifiedOtp = consumeOtp({ email, otp, purpose: "reset" });
+      const verifiedOtp = await consumeOtp({ email, otp, purpose: "reset" });
       if (!verifiedOtp.ok) {
         response.status(400).json({ message: verifiedOtp.message });
         return;
@@ -590,6 +613,7 @@ router.post("/reset-password", resetLimiter, async (request, response, next) => 
       passwordHash: hash,
       passwordSalt: salt,
       emailVerifiedAt: existing.emailVerifiedAt || new Date(),
+      tokenVersion: (existing.tokenVersion || 0) + 1,
     };
 
     if (isMongoConnected()) {
@@ -628,7 +652,7 @@ router.post("/verify-reset-otp", resetLimiter, async (request, response, next) =
       return;
     }
 
-    const verifiedOtp = consumeOtp({ email, otp, purpose: "reset" });
+    const verifiedOtp = await consumeOtp({ email, otp, purpose: "reset" });
     if (!verifiedOtp.ok) {
       response.status(400).json({ message: verifiedOtp.message });
       return;
@@ -648,7 +672,7 @@ router.post("/verify-otp", authLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const otp = String(request.body.otp || "").trim();
-    const verifiedOtp = consumeOtp({ email, otp, purpose: "login" });
+    const verifiedOtp = await consumeOtp({ email, otp, purpose: "login" });
 
     if (!verifiedOtp.ok) {
       response.status(400).json({ message: verifiedOtp.message });
