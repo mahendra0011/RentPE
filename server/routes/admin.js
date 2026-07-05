@@ -1,13 +1,21 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 
 import User from "../models/User.js";
 import Room from "../models/Room.js";
 import Message from "../models/Message.js";
+import Conversation from "../models/Conversation.js";
+import Review from "../models/Review.js";
 import { requireAdmin } from "../middleware/auth.js";
+import { isMongoConnected } from "../config/db.js";
 
 const router = Router();
 
-router.use(requireAdmin);
+const auditLog = [];
+
+router.use((request, response, next) => {
+  requireAdmin(request, response, next).catch(next);
+});
 
 router.get("/stats", async (_request, response, next) => {
   try {
@@ -95,6 +103,11 @@ router.patch("/users/:email/role", async (request, response, next) => {
       return;
     }
 
+    if (email === request.authUser.email) {
+      response.status(400).json({ message: "Cannot change your own role." });
+      return;
+    }
+
     if (!["seeker", "owner", "admin"].includes(role)) {
       response.status(400).json({ message: "Invalid role. Must be seeker, owner, or admin." });
       return;
@@ -108,6 +121,8 @@ router.patch("/users/:email/role", async (request, response, next) => {
       response.status(404).json({ message: "User not found." });
       return;
     }
+
+    auditLog.push({ action: "role-change", target: email, value: role, by: request.authUser.email, at: new Date() });
 
     response.json({ user });
   } catch (error) {
@@ -139,8 +154,17 @@ router.delete("/users/:email", async (request, response, next) => {
     }
 
     await Room.deleteMany({ ownerEmail: email });
+    if (isMongoConnected()) {
+      await Review.deleteMany({ userEmail: email });
+      const convs = await Conversation.find({ participants: email }).lean();
+      const convIds = convs.map((c) => c._id);
+      await Message.deleteMany({ conversationId: { $in: convIds } });
+      await Conversation.deleteMany({ _id: { $in: convIds } });
+    }
 
-    response.json({ message: "User and their rooms deleted." });
+    auditLog.push({ action: "delete-user", target: email, by: request.authUser.email, at: new Date() });
+
+    response.json({ message: "User, rooms, reviews, and conversations deleted." });
   } catch (error) {
     next(error);
   }
@@ -230,7 +254,17 @@ router.delete("/rooms/:slug", async (request, response, next) => {
       return;
     }
 
-    response.json({ message: "Room deleted." });
+    if (isMongoConnected()) {
+      await Review.deleteMany({ roomSlug: slug });
+      const convs = await Conversation.find({ roomSlug: slug }).lean();
+      const convIds = convs.map((c) => c._id);
+      await Message.deleteMany({ conversationId: { $in: convIds } });
+      await Conversation.deleteMany({ _id: { $in: convIds } });
+    }
+
+    auditLog.push({ action: "delete-room", target: slug, by: request.authUser.email, at: new Date() });
+
+    response.json({ message: "Room, reviews, and conversations deleted." });
   } catch (error) {
     next(error);
   }
@@ -259,6 +293,10 @@ router.get("/flagged-messages", async (_request, response, next) => {
 
 router.patch("/flagged-messages/:id/dismiss", async (request, response, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
+      response.status(400).json({ message: "Invalid message ID." });
+      return;
+    }
     await Message.updateOne(
       { _id: request.params.id },
       { $set: { flagged: false, flagReason: "", flaggedBy: "" } },
@@ -267,6 +305,57 @@ router.patch("/flagged-messages/:id/dismiss", async (request, response, next) =>
   } catch (error) {
     next(error);
   }
+});
+
+router.patch("/rooms/:slug/verify", async (request, response, next) => {
+  try {
+    const slug = String(request.params.slug || "").trim();
+    if (!slug) {
+      response.status(400).json({ message: "Room slug is required." });
+      return;
+    }
+    const room = await Room.findOneAndUpdate(
+      { slug },
+      { $set: { "owner.verified": true } },
+      { new: true },
+    ).lean();
+    if (!room) {
+      response.status(404).json({ message: "Room not found." });
+      return;
+    }
+    response.json({ room });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/owners/:email/verify", async (request, response, next) => {
+  try {
+    const email = String(request.params.email || "").toLowerCase().trim();
+    if (!email) {
+      response.status(400).json({ message: "Owner email is required." });
+      return;
+    }
+    if (isMongoConnected()) {
+      const user = await User.findOne({ email }).lean();
+      if (!user) {
+        response.status(404).json({ message: "User not found." });
+        return;
+      }
+    }
+    const result = await Room.updateMany(
+      { ownerEmail: email },
+      { $set: { "owner.verified": true } },
+    );
+    auditLog.push({ action: "verify-owner", target: email, by: request.authUser.email, at: new Date() });
+    response.json({ modifiedCount: result.modifiedCount });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/audit-log", async (_request, response) => {
+  response.json({ entries: auditLog.slice(-100) });
 });
 
 export default router;
