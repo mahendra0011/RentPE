@@ -880,27 +880,39 @@ export default function Home() {
               {[
                 {
                   q: "Is RentPE free for tenants?",
-                  a: "Yes, completely free. Tenants can browse, shortlist, and connect with owners without paying anything. No hidden charges, no subscription fees.",
+                  a: "Yes, completely free. Tenants can browse, shortlist, and connect with owners without paying anything. No hidden charges, no subscription fees — ever.",
                 },
                 {
                   q: "How do I list my property?",
-                  a: 'Click the "List Property" button on our home page or sign up as an owner. Fill in basic details about your property (location, rent, photos) and publish it in under 2 minutes.',
+                  a: 'Click the "List Property" button on our home page or sign up as an owner. Fill in details about your property — location, rent, photos, amenities — and publish it in under 2 minutes. Our team reviews it within a few hours.',
                 },
                 {
                   q: "Are listings verified?",
-                  a: "We manually verify every listing before it goes live. Our team checks photos, location details, and ownership documents to ensure you see only genuine properties.",
+                  a: "Every listing goes through a manual verification process before going live. Our team checks photos, location details, and ownership documents to ensure only genuine properties appear on RentPE.",
                 },
                 {
                   q: "Can I switch from tenant to owner?",
-                  a: "Absolutely. The same account works for both. Just head to your dashboard and you can list a property without creating a new account.",
+                  a: "Absolutely. One account works for both roles. Just head to your dashboard and you can list a property right away — no need to create a separate account.",
                 },
                 {
                   q: "What cities does RentPE cover?",
-                  a: "We currently operate across 24 Indian cities including Bhopal, Pune, Bangalore, Hyderabad, Delhi-NCR, Indore, and more. We're adding new cities every month.",
+                  a: "We currently operate across 25+ Indian cities including Bhopal, Pune, Bangalore, Hyderabad, Delhi-NCR, Indore, Mumbai, Chennai, and more. New cities are added every month.",
                 },
                 {
                   q: "How do I contact the owner?",
-                  a: "Once you find a listing you like, hit the WhatsApp connect button. You'll be connected directly with the property owner to discuss details, schedule a visit, or close the deal.",
+                  a: "Once you find a listing you like, hit the WhatsApp button or use the in-app chat. You'll be connected directly with the property owner to discuss details, schedule a visit, or close the deal.",
+                },
+                {
+                  q: "Can I schedule a visit before paying?",
+                  a: "Yes. You can request a visit directly from the listing page. The owner gets notified and can confirm a time. No payment is needed to visit a property.",
+                },
+                {
+                  q: "Is my personal information safe?",
+                  a: "We take privacy seriously. Your contact details are never shared publicly. Conversations happen through our platform, and you control what information you share with owners.",
+                },
+                {
+                  q: "What documents do I need to rent?",
+                  a: "Most owners ask for basic ID proof (Aadhaar, PAN, or Passport), along with a rental agreement. Some may request a security deposit equivalent to 1–2 months of rent.",
                 },
               ].map((faq, i) => {
                 const open = opened === i;
