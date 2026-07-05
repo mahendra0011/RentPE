@@ -937,10 +937,14 @@ router.post("/messages/:id/react", async (request, response, next) => {
     }
 
     const existingIndex = message.reactions.findIndex(
-      (r) => r.userEmail === email && r.emoji === emoji,
+      (r) => r.userEmail === email,
     );
     if (existingIndex >= 0) {
-      message.reactions.splice(existingIndex, 1);
+      if (message.reactions[existingIndex].emoji === emoji) {
+        message.reactions.splice(existingIndex, 1);
+      } else {
+        message.reactions[existingIndex].emoji = emoji;
+      }
     } else {
       message.reactions.push({ emoji, userEmail: email });
     }
