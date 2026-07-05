@@ -1,6 +1,7 @@
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import { sanitizeHtml, stripHtml } from "../utils/sanitizeHtml.js";
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "";
@@ -42,16 +43,29 @@ async function sendEmail({ toEmail, toName, subject, htmlContent, textContent })
 function buildDigestHtml(conversations) {
   const items = conversations
     .map(
-      (c) => `
+      (c) => {
+        const safeTitle = sanitizeHtml(c.roomTitle || "Room");
+        const safeFrom = sanitizeHtml(c.otherName || c.otherEmail || "");
+        const safeText = c.lastMessage?.text
+          ? sanitizeHtml(stripHtml(c.lastMessage.text))
+          : "(media)";
+        const safeTime = c.lastMessage?.timestamp
+          ? sanitizeHtml(new Date(c.lastMessage.timestamp).toLocaleString())
+          : "";
+        const safeUrl = sanitizeHtml(
+          (process.env.CLIENT_URL || "http://localhost:5180") + "/#/dashboard",
+        );
+        return `
     <tr>
       <td style="padding:16px 20px;border-bottom:1px solid #e2e8f0;">
-        <p style="margin:0 0 4px;font-size:14px;font-weight:900;color:#0f172a;">${c.roomTitle}</p>
-        <p style="margin:0 0 4px;font-size:12px;color:#475569;font-weight:600;">From: ${c.otherName || c.otherEmail}</p>
-        <p style="margin:0;font-size:13px;color:#64748b;font-weight:600;">${c.lastMessage?.text || "(media)"}</p>
-        <p style="margin:4px 0 0;font-size:11px;color:#94a3b8;">${c.lastMessage?.timestamp ? new Date(c.lastMessage.timestamp).toLocaleString() : ""}</p>
-        <a href="${process.env.CLIENT_URL || "http://localhost:5180"}/#/dashboard" style="display:inline-block;margin-top:8px;padding:6px 16px;border-radius:999px;background:#6d5dfc;color:#fff;font-size:11px;font-weight:900;text-decoration:none;">Reply now</a>
+        <p style="margin:0 0 4px;font-size:14px;font-weight:900;color:#0f172a;">${safeTitle}</p>
+        <p style="margin:0 0 4px;font-size:12px;color:#475569;font-weight:600;">From: ${safeFrom}</p>
+        <p style="margin:0;font-size:13px;color:#64748b;font-weight:600;">${safeText}</p>
+        <p style="margin:4px 0 0;font-size:11px;color:#94a3b8;">${safeTime}</p>
+        <a href="${safeUrl}" style="display:inline-block;margin-top:8px;padding:6px 16px;border-radius:999px;background:#6d5dfc;color:#fff;font-size:11px;font-weight:900;text-decoration:none;">Reply now</a>
       </td>
-    </tr>`,
+    </tr>`;
+      },
     )
     .join("");
 
