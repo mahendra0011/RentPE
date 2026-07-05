@@ -1,4 +1,4 @@
-import {
+﻿import {
   Archive,
   Ban,
   Bell,
@@ -21,7 +21,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
@@ -29,7 +29,7 @@ import { useChat } from "@/context/ChatContext.jsx";
 import { apiRequest } from "@/lib/api.js";
 import { formatPrice } from "@/lib/format.js";
 
-const EMOJI_LIST = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+const EMOJI_LIST = ["ðŸ‘", "â¤ï¸", "ðŸ˜‚", "ðŸ˜®", "ðŸ˜¢", "ðŸ™"];
 
 const SUSPICIOUS_KEYWORDS = [
   "advance",
@@ -146,8 +146,8 @@ function ConversationItem({ conversation, active, onClick }) {
           <span className="truncate text-xs font-bold text-slate-500">
             {isPendingInquiry
               ? isOwner
-                ? "📩 Inquiry — tap to respond"
-                : "📩 Inquiry sent — waiting for owner"
+                ? "ðŸ“© Inquiry â€” tap to respond"
+                : "ðŸ“© Inquiry sent â€” waiting for owner"
               : conversation.lastMessage?.text || "No messages yet"}
           </span>
           {isPendingInquiry && isOwner && (
@@ -176,13 +176,18 @@ function ConversationItem({ conversation, active, onClick }) {
   );
 }
 
-function MessageBubble({ message, isOwn, onReact }) {
+function MessageBubble({ message, isOwn }) {
   const [showActions, setShowActions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
+  const [msg, setMsg] = useState(message);
   const editInputRef = useRef(null);
-  const MediaIcon = getMediaIcon(message.mediaType);
+  const MediaIcon = getMediaIcon(msg.mediaType);
+
+  useEffect(() => {
+    setMsg(message);
+  }, [message]);
 
   useEffect(() => {
     if (editing) editInputRef.current?.focus();
@@ -190,22 +195,25 @@ function MessageBubble({ message, isOwn, onReact }) {
 
   const formatMessageStatus = () => {
     if (!isOwn) return null;
-    if (message.status === "read") return <CheckCheck className="size-3 text-blue-500" />;
-    if (message.status === "delivered") return <CheckCheck className="size-3" />;
+    if (msg.status === "read") return <CheckCheck className="size-3 text-blue-500" />;
+    if (msg.status === "delivered") return <CheckCheck className="size-3" />;
     return <Check className="size-3" />;
   };
 
   async function handleEdit() {
-    if (!editText.trim() || editText === message.text) {
+    if (!editText.trim() || editText === msg.text) {
       setEditing(false);
       return;
     }
     try {
-      await apiRequest(`/api/chat/messages/${message._id}`, {
+      const data = await apiRequest(`/api/chat/messages/${msg._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: editText.trim() }),
       });
+      if (data?.message) {
+        setMsg((prev) => ({ ...prev, ...data.message, edited: true }));
+      }
       setEditing(false);
     } catch {
       setEditing(false);
@@ -215,13 +223,31 @@ function MessageBubble({ message, isOwn, onReact }) {
   async function handleDelete() {
     if (!window.confirm("Delete this message?")) return;
     try {
-      await apiRequest(`/api/chat/messages/${message._id}`, { method: "DELETE" });
+      const data = await apiRequest(`/api/chat/messages/${msg._id}`, { method: "DELETE" });
+      if (data?.message) {
+        setMsg((prev) => ({ ...prev, ...data.message, deleted: true }));
+      }
     } catch {
       // ignore
     }
   }
 
-  if (message.deleted) {
+  const onReact = useCallback(async (messageId, emoji) => {
+    try {
+      const data = await apiRequest(`/api/chat/messages/${messageId}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      if (data?.reactions) {
+        setMsg((prev) => ({ ...prev, reactions: data.reactions }));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  if (msg.deleted) {
     return (
       <div className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1`}>
         <div className="rounded-2xl border border-dashed border-slate-200 px-3.5 py-2">
@@ -231,7 +257,7 @@ function MessageBubble({ message, isOwn, onReact }) {
     );
   }
 
-  const groupedReactions = (message.reactions || []).reduce((acc, r) => {
+  const groupedReactions = (msg.reactions || []).reduce((acc, r) => {
     const existing = acc.find((a) => a.emoji === r.emoji);
     if (existing) {
       existing.count++;
@@ -258,29 +284,29 @@ function MessageBubble({ message, isOwn, onReact }) {
               : "rounded-bl-md bg-slate-100 text-ink"
           }`}
         >
-          {message.mediaUrl && message.mediaType === "image" && (
+          {msg.mediaUrl && msg.mediaType === "image" && (
             <img
-              src={message.mediaUrl}
+              src={msg.mediaUrl}
               alt="Shared image"
               className="mb-1 max-w-full rounded-lg"
               style={{ maxHeight: 200 }}
             />
           )}
-          {message.mediaUrl && message.mediaType !== "image" && (
+          {msg.mediaUrl && msg.mediaType !== "image" && (
             <a
-              href={message.mediaUrl}
+              href={msg.mediaUrl}
               target="_blank"
               rel="noreferrer"
               className="mb-1 flex items-center gap-2 rounded-lg bg-white/20 px-3 py-2 text-sm font-bold underline"
             >
               <MediaIcon className="size-4 shrink-0" />
-              <span className="truncate">{message.mediaName || "View file"}</span>
+              <span className="truncate">{msg.mediaName || "View file"}</span>
             </a>
           )}
-          {message.text && (
+          {msg.text && (
             <p className="text-sm leading-5">
-              {message.text}
-              {message.edited && !editing && (
+              {msg.text}
+              {msg.edited && !editing && (
                 <span className="ml-1 text-[10px] opacity-60">(edited)</span>
               )}
             </p>
@@ -326,7 +352,7 @@ function MessageBubble({ message, isOwn, onReact }) {
                 <Flag className="size-2.5" /> Flagged
               </span>
             )}
-            <span className="text-[10px] font-bold">{formatMessageTime(message.createdAt)}</span>
+            <span className="text-[10px] font-bold">{formatMessageTime(msg.createdAt)}</span>
             {isOwn && formatMessageStatus()}
           </div>
         </div>
@@ -340,7 +366,7 @@ function MessageBubble({ message, isOwn, onReact }) {
             <button
               key={r.emoji}
               type="button"
-              onClick={() => onReact(message._id, r.emoji)}
+              onClick={() => onReact(msg._id, r.emoji)}
               className="flex items-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-xs shadow-sm hover:bg-slate-50"
             >
               <span>{r.emoji}</span>
@@ -363,7 +389,7 @@ function MessageBubble({ message, isOwn, onReact }) {
                   key={emoji}
                   type="button"
                   onClick={() => {
-                    onReact(message._id, emoji);
+                    onReact(msg._id, emoji);
                     setShowEmojiPicker(false);
                   }}
                   className="size-6 rounded-full text-sm leading-none transition-transform hover:scale-125"
@@ -376,7 +402,7 @@ function MessageBubble({ message, isOwn, onReact }) {
                 onClick={() => setShowEmojiPicker(false)}
                 className="size-6 rounded-full text-xs text-slate-400 hover:bg-slate-100"
               >
-                ✕
+                âœ•
               </button>
             </div>
           ) : (
@@ -480,6 +506,8 @@ function ChatWindow({ conversation }) {
   const [text, setText] = useState("");
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [quickReplies, setQuickReplies] = useState([]);
+  const [editingQuickReply, setEditingQuickReply] = useState(null);
+  const [editQuickReplyText, setEditQuickReplyText] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -495,6 +523,7 @@ function ChatWindow({ conversation }) {
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const isPrependingRef = useRef(false);
   const conversationMessages = messages[conversation._id] || [];
   const isOwner = conversation.ownerEmail === user?.email;
   const otherEmail = isOwner ? conversation.seekerEmail : conversation.ownerEmail;
@@ -505,6 +534,10 @@ function ChatWindow({ conversation }) {
   const { markAsRead } = useChat();
 
   useEffect(() => {
+    if (isPrependingRef.current) {
+      isPrependingRef.current = false;
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversationMessages]);
 
@@ -523,6 +556,8 @@ function ChatWindow({ conversation }) {
     if (!container) return;
     function handleScroll() {
       if (container.scrollTop < 80 && hasMore && !loadingMore) {
+        const prevScrollHeight = container.scrollHeight;
+        isPrependingRef.current = true;
         setLoadingMore(true);
         loadMessages(conversation._id, page + 1).then((data) => {
           if (data) {
@@ -530,6 +565,9 @@ function ChatWindow({ conversation }) {
             if (data.page >= data.totalPages) setHasMore(false);
           }
           setLoadingMore(false);
+          requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight - prevScrollHeight;
+          });
         });
       }
     }
@@ -580,7 +618,7 @@ function ChatWindow({ conversation }) {
   async function handleSchedule() {
     if (!scheduleDate || !scheduleTime) return;
     const visitDate = new Date(`${scheduleDate}T${scheduleTime}`);
-    const msg = `📅 Visit Request: ${visitDate.toLocaleDateString()} at ${visitDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    const msg = `ðŸ“… Visit Request: ${visitDate.toLocaleDateString()} at ${visitDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     await sendMessage(conversation._id, msg);
     setShowSchedule(false);
     setScheduleDate("");
@@ -614,6 +652,56 @@ function ChatWindow({ conversation }) {
   async function handleQuickReply(template) {
     await sendMessage(conversation._id, template);
     setShowQuickReplies(false);
+  }
+
+  async function handleAddQuickReply() {
+    const newReply = editQuickReplyText.trim();
+    if (!newReply) return;
+    const updated = [...quickReplies, newReply].slice(0, 10);
+    try {
+      await apiRequest("/api/chat/quick-replies", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quickReplies: updated }),
+      });
+      setQuickReplies(updated);
+      setEditQuickReplyText("");
+      setEditingQuickReply(null);
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleUpdateQuickReply(index) {
+    const updated = quickReplies.map((reply, i) =>
+      i === index ? editQuickReplyText.trim() : reply,
+    ).filter((r) => r);
+    try {
+      await apiRequest("/api/chat/quick-replies", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quickReplies: updated.slice(0, 10) }),
+      });
+      setQuickReplies(updated.slice(0, 10));
+      setEditingQuickReply(null);
+      setEditQuickReplyText("");
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleDeleteQuickReply(index) {
+    const updated = quickReplies.filter((_, i) => i !== index);
+    try {
+      await apiRequest("/api/chat/quick-replies", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quickReplies: updated }),
+      });
+      setQuickReplies(updated);
+    } catch {
+      // ignore
+    }
   }
 
   async function handleReact(messageId, emoji) {
@@ -713,7 +801,7 @@ function ChatWindow({ conversation }) {
               : conversation.inquiryStatus === "rejected"
                 ? "Inquiry declined"
                 : !isOwner && conversation.otherUser?.awayEnabled
-                  ? "Away — auto-reply on"
+                  ? "Away â€” auto-reply on"
                   : onlineStatus === "online"
                     ? "Online"
                     : onlineStatus === "offline"
@@ -721,7 +809,7 @@ function ChatWindow({ conversation }) {
                       : onlineStatus}
             {!isOwner && conversation.otherUser?.responseTimeMin !== undefined && (
               <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-green-700">
-                ⚡{conversation.otherUser.responseTimeMin}m
+                âš¡{conversation.otherUser.responseTimeMin}m
               </span>
             )}
           </p>
@@ -842,7 +930,7 @@ function ChatWindow({ conversation }) {
           {isOwner ? (
             <div className="flex flex-col items-center gap-2">
               <p className="text-center text-xs font-bold text-amber-800">
-                📩 Inquiry from <span className="font-black">{displayName}</span> about{" "}
+                ðŸ“© Inquiry from <span className="font-black">{displayName}</span> about{" "}
                 <span className="font-black">{conversation.roomTitle}</span>
               </p>
               <div className="flex gap-2">
@@ -864,7 +952,7 @@ function ChatWindow({ conversation }) {
             </div>
           ) : (
             <p className="text-center text-xs font-bold text-amber-700">
-              ⏳ Inquiry sent — waiting for owner to respond
+              â³ Inquiry sent â€” waiting for owner to respond
             </p>
           )}
         </div>
@@ -873,7 +961,7 @@ function ChatWindow({ conversation }) {
       {conversation.inquiryStatus === "rejected" && (
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
           <p className="text-center text-xs font-bold text-slate-500">
-            ❌ Inquiry declined by the owner
+            âŒ Inquiry declined by the owner
           </p>
         </div>
       )}
@@ -881,8 +969,8 @@ function ChatWindow({ conversation }) {
       {conversation.roomAvailable === false && (
         <div className="border-b border-red-200 bg-red-50 px-4 py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
-            <span className="text-sm">🔴</span>
-            This property is no longer available —{" "}
+            <span className="text-sm">ðŸ”´</span>
+            This property is no longer available â€”{" "}
             <Link to={`/rooms/${conversation.roomSlug}`} className="underline">
               view listing
             </Link>
@@ -901,7 +989,7 @@ function ChatWindow({ conversation }) {
         <div className="border-b border-red-200 bg-red-50 px-4 py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
             <Flag className="size-3.5 shrink-0 text-red-500" />
-            Suspicious pattern detected — multiple payment requests from this owner. Proceed with
+            Suspicious pattern detected â€” multiple payment requests from this owner. Proceed with
             caution.
           </p>
         </div>
@@ -967,19 +1055,98 @@ function ChatWindow({ conversation }) {
         )}
       </div>
 
-      {showQuickReplies && quickReplies.length > 0 && (
+      {showQuickReplies && (
         <div className="border-t border-slate-100 bg-slate-50 px-3 py-2">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {quickReplies.map((template, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleQuickReply(template)}
-                className="rounded-full border border-brand/20 bg-white px-3 py-1 text-[11px] font-bold text-brand transition-colors hover:bg-brand-soft"
-              >
-                {template}
-              </button>
+              <div key={i} className="relative">
+                <button
+                  type="button"
+                  onClick={() => handleQuickReply(template)}
+                  className="rounded-full border border-brand/20 bg-white px-3 py-1 text-[11px] font-bold text-brand transition-colors hover:bg-brand-soft"
+                >
+                  {template}
+                </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingQuickReply(i);
+                      setEditQuickReplyText(template);
+                    }}
+                    className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-brand text-white"
+                    title="Edit quick reply"
+                  >
+                    <Edit3 className="size-2.5" />
+                  </button>
+                )}
+              </div>
             ))}
+            {isOwner && quickReplies.length < 10 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingQuickReply(-1);
+                  setEditQuickReplyText("");
+                }}
+                className="inline-flex size-6 items-center justify-center rounded-full border border-dashed border-brand/40 bg-white text-brand"
+                title="Add quick reply"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {editingQuickReply !== null && (
+        <div className="border-t border-slate-100 bg-white px-3 py-2">
+          <div className="flex items-center gap-2">
+            <input
+              value={editQuickReplyText}
+              onChange={(e) => setEditQuickReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  editingQuickReply >= 0 ? handleUpdateQuickReply(editingQuickReply) : handleAddQuickReply();
+                }
+                if (e.key === "Escape") {
+                  setEditingQuickReply(null);
+                  setEditQuickReplyText("");
+                }
+              }}
+              placeholder={editingQuickReply >= 0 ? "Edit quick reply..." : "New quick reply..."}
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold outline-none focus:border-brand"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={editingQuickReply >= 0 ? () => handleUpdateQuickReply(editingQuickReply) : handleAddQuickReply}
+              disabled={!editQuickReplyText.trim()}
+              className="rounded-xl bg-brand px-2.5 py-1.5 text-xs font-black text-brand-foreground disabled:opacity-40"
+            >
+              Save
+            </button>
+            {editingQuickReply >= 0 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteQuickReply(editingQuickReply)}
+                className="rounded-xl bg-red-500 px-2.5 py-1.5 text-xs font-black text-white"
+              >
+                Delete
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setEditingQuickReply(null);
+                setEditQuickReplyText("");
+              }}
+              className="rounded-xl p-1.5 text-slate-500 hover:bg-slate-200"
+            >
+              <X className="size-3" />
+            </button>
           </div>
         </div>
       )}
@@ -1126,7 +1293,7 @@ function ChatWindow({ conversation }) {
 }
 
 function NewChatForm({ room, onBack }) {
-  const { startConversation } = useChat();
+  const { sendInquiry } = useChat();
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -1137,7 +1304,7 @@ function NewChatForm({ room, onBack }) {
     setSending(true);
     setError("");
     try {
-      await startConversation(room.slug, message);
+      await sendInquiry(room.slug, message);
     } catch (err) {
       setError(err.message || "Failed to start conversation.");
       setSending(false);
@@ -1166,7 +1333,7 @@ function NewChatForm({ room, onBack }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-black text-ink">{room.title}</p>
             <p className="text-xs font-bold text-slate-500">
-              {room.city} — {formatPrice(room.price)}/mo
+              {room.city} â€” {formatPrice(room.price)}/mo
             </p>
           </div>
         </div>
@@ -1307,7 +1474,7 @@ export default function ChatDrawer() {
                 <X className="size-4" />
               </button>
             </div>
-            <ChatWindow conversation={activeConversation} />
+            <ChatWindow key={activeConversation._id} conversation={activeConversation} />
           </>
         ) : (
           <>
@@ -1442,3 +1609,4 @@ export default function ChatDrawer() {
     </>
   );
 }
+

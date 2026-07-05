@@ -150,6 +150,42 @@ export function ChatProvider({ children }) {
       );
     });
 
+    socket.on("message:edited", ({ messageId, text }) => {
+      setMessages((prev) => {
+        const next = { ...prev };
+        for (const convId of Object.keys(next)) {
+          next[convId] = next[convId].map((m) =>
+            m._id === messageId ? { ...m, text, edited: true } : m,
+          );
+        }
+        return next;
+      });
+    });
+
+    socket.on("message:deleted", ({ messageId }) => {
+      setMessages((prev) => {
+        const next = { ...prev };
+        for (const convId of Object.keys(next)) {
+          next[convId] = next[convId].map((m) =>
+            m._id === messageId ? { ...m, deleted: true } : m,
+          );
+        }
+        return next;
+      });
+    });
+
+    socket.on("message:reacted", ({ messageId, reactions }) => {
+      setMessages((prev) => {
+        const next = { ...prev };
+        for (const convId of Object.keys(next)) {
+          next[convId] = next[convId].map((m) =>
+            m._id === messageId ? { ...m, reactions } : m,
+          );
+        }
+        return next;
+      });
+    });
+
     socketRef.current = socket;
 
     loadConversations();
@@ -295,6 +331,15 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
+  const reactToMessage = useCallback(async (messageId, emoji) => {
+    const data = await apiRequest(`/api/chat/messages/${messageId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    return data?.reactions || [];
+  }, []);
+
   const respondToInquiry = useCallback(async (conversationId, action) => {
     await apiRequest(`/api/chat/inquiry/${conversationId}/respond`, {
       method: "POST",
@@ -426,6 +471,7 @@ export function ChatProvider({ children }) {
         awayMode,
         loadAwayMode,
         updateAwayMode,
+        reactToMessage,
       }}
     >
       {children}
