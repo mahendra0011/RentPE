@@ -477,7 +477,6 @@ export default function RoomDetails() {
 }
 
 function MapRoomSelectCard({ room, selected, onSelect }) {
-  const detailsPath = `/rooms/${room.slug || room.id}`;
   const image = room.coverImage || room.images?.[0] || "";
 
   return (
@@ -488,7 +487,7 @@ function MapRoomSelectCard({ room, selected, onSelect }) {
           : "border-slate-200 hover:border-brand hover:shadow-[var(--shadow-card)]"
       }`}
     >
-      <button type="button" onClick={onSelect} className="flex w-full gap-2.5 text-left">
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSelect(); }} className="flex w-full gap-2.5 text-left">
         <img
           src={image}
           alt=""

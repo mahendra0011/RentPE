@@ -601,7 +601,7 @@ function RoomDomMarkers({ rooms, selectedRoom, hoveredRoomId = "", onRoomSelect 
     });
 
     if (selectedRecord) {
-      selectedRecord.showPopup({ centerInMap: true });
+      selectedRecord.showPopup({ centerInMap: false });
     }
   }, [isLoaded, map, roomsRenderKey, selectedRoom]);
 
