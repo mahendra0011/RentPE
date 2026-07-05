@@ -70,7 +70,8 @@ export function setupSocket(httpServer) {
     const userEmail = user.email;
 
     onlineUsers.set(userEmail, { socketId: socket.id, lastSeen: new Date() });
-    io.emit("user:online", { email: userEmail, online: true });
+    socket.emit("online:snapshot", Object.fromEntries(onlineUsers));
+    socket.broadcast.emit("user:online", { email: userEmail, online: true });
 
     socket.on("join:conversation", async (conversationId) => {
       if (!conversationId) return;

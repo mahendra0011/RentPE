@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
@@ -50,11 +51,31 @@ function getTodayRange() {
   return { start, end };
 }
 
+const messageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { message: "Too many messages. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const router = Router();
 
 let io;
 export function setSocketIO(socketIO) {
   io = socketIO;
+}
+
+async function isBlocked(email, targetEmail) {
+  const user = await User.findOne({ email }).select("blockedUsers").lean();
+  return user?.blockedUsers?.includes(targetEmail) || false;
+}
+
+function buildBlockError(action = "message") {
+  return {
+    status: 403,
+    message: `You cannot ${action} this user as they have blocked you or you have blocked them.`,
+  };
 }
 
 router.use((request, response, next) => {
@@ -84,11 +105,18 @@ router.get("/conversations", async (request, response, next) => {
 
     const otherEmails = conversations.map((c) => c.participants.find((p) => p !== email));
     const otherUsers = await User.find({ email: { $in: otherEmails } })
-      .select("email name avatarUrl lastSeen")
+      .select("email name avatarUrl lastSeen awayEnabled awayUntil")
       .lean();
     const userMap = {};
     for (const u of otherUsers) {
-      userMap[u.email] = { name: u.name, avatarUrl: u.avatarUrl, lastSeen: u.lastSeen };
+      const awayUntil = u.awayUntil || null;
+      const awayExpired = awayUntil && new Date(awayUntil) <= new Date();
+      userMap[u.email] = {
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        lastSeen: u.lastSeen,
+        awayEnabled: awayExpired ? false : (u.awayEnabled || false),
+      };
     }
 
     const roomSlugs = [...new Set(conversations.map((c) => c.roomSlug))];
@@ -155,6 +183,15 @@ router.post("/inquiry", async (request, response, next) => {
 
     if (room.ownerEmail === seekerEmail) {
       response.status(400).json({ message: "Cannot inquire about your own listing." });
+      return;
+    }
+
+    if (await isBlocked(seekerEmail, room.ownerEmail)) {
+      response.status(403).json({ message: "Cannot send inquiry — the owner has blocked you." });
+      return;
+    }
+    if (await isBlocked(room.ownerEmail, seekerEmail)) {
+      response.status(403).json({ message: "Cannot send inquiry — you have blocked this owner." });
       return;
     }
 
@@ -304,6 +341,15 @@ router.post("/conversations", async (request, response, next) => {
       return;
     }
 
+    if (await isBlocked(seekerEmail, room.ownerEmail)) {
+      response.status(403).json({ message: "Cannot start conversation — the owner has blocked you." });
+      return;
+    }
+    if (await isBlocked(room.ownerEmail, seekerEmail)) {
+      response.status(403).json({ message: "Cannot start conversation — you have blocked this owner." });
+      return;
+    }
+
     const participants = [room.ownerEmail, seekerEmail].sort();
 
     let conversation = await Conversation.findOne({
@@ -312,6 +358,22 @@ router.post("/conversations", async (request, response, next) => {
     });
 
     if (!conversation) {
+      if (seekerEmail !== room.ownerEmail) {
+        const { start, end } = getTodayRange();
+        const todayCount = await Conversation.countDocuments({
+          seekerEmail,
+          inquiryStatus: "pending",
+          createdAt: { $gte: start, $lte: end },
+        });
+        if (todayCount >= DAILY_INQUIRY_LIMIT) {
+          response.status(429).json({
+            message: `Daily inquiry limit (${DAILY_INQUIRY_LIMIT}) reached. Try again tomorrow.`,
+            limit: DAILY_INQUIRY_LIMIT,
+          });
+          return;
+        }
+      }
+
       const inquiryStatus = seekerEmail === room.ownerEmail ? "accepted" : "pending";
 
       conversation = await Conversation.create({
@@ -422,7 +484,7 @@ router.get("/conversations/:id/messages", async (request, response, next) => {
   }
 });
 
-router.post("/conversations/:id/messages", async (request, response, next) => {
+router.post("/conversations/:id/messages", messageLimiter, async (request, response, next) => {
   try {
     const conversationId = request.params.id;
     const senderEmail = request.authUser.email;
@@ -455,6 +517,15 @@ router.post("/conversations/:id/messages", async (request, response, next) => {
     }
 
     const receiverEmail = conversation.participants.find((p) => p !== senderEmail);
+
+    if (await isBlocked(senderEmail, receiverEmail)) {
+      response.status(403).json({ message: "Cannot send message — you have blocked this user." });
+      return;
+    }
+    if (await isBlocked(receiverEmail, senderEmail)) {
+      response.status(403).json({ message: "Cannot send message — this user has blocked you." });
+      return;
+    }
 
     const message = await Message.create({
       conversationId,
@@ -506,6 +577,7 @@ router.post("/conversations/:id/messages", async (request, response, next) => {
           const oldCount = owner.totalResponses || 0;
           const newAvg =
             oldCount > 0 ? (oldAvg * oldCount + responseTime) / newTotalResponses : responseTime;
+          const computedRate = newTotalIncoming > 0 ? Math.round((newTotalResponses / newTotalIncoming) * 100) : 0;
 
           await User.updateOne(
             { email: senderEmail },
@@ -514,8 +586,8 @@ router.post("/conversations/:id/messages", async (request, response, next) => {
                 responseTimeAvg: Math.round(newAvg),
                 totalResponses: newTotalResponses,
                 totalIncoming: newTotalIncoming,
+                responseRate: computedRate,
               },
-              $min: { responseRate: 1 },
             },
           );
         }
@@ -687,10 +759,15 @@ router.get("/away-mode", async (request, response, next) => {
   try {
     const email = request.authUser.email;
     const user = await User.findOne({ email }).select("awayEnabled awayMessage awayUntil").lean();
+    const awayUntil = user?.awayUntil || null;
+    const expired = awayUntil && new Date(awayUntil) <= new Date();
+    if (expired) {
+      await User.updateOne({ email }, { $set: { awayEnabled: false, awayUntil: null } });
+    }
     response.json({
-      awayEnabled: user?.awayEnabled || false,
+      awayEnabled: expired ? false : (user?.awayEnabled || false),
       awayMessage: user?.awayMessage || "",
-      awayUntil: user?.awayUntil || null,
+      awayUntil: expired ? null : awayUntil,
     });
   } catch (error) {
     next(error);
@@ -796,6 +873,21 @@ const ALLOWED_MIME_TYPES = [
   "text/plain",
 ];
 
+function getMediaType(mime, filename = "") {
+  const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const pdfTypes = ["application/pdf"];
+  const docTypes = ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+
+  if (imageTypes.includes(mime)) return "image";
+  if (pdfTypes.includes(mime)) return "pdf";
+  if (docTypes.includes(mime)) return "doc";
+  // Check by file extension for text files and others
+  const ext = (filename || "").split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return "pdf";
+  if (ext === "doc" || ext === "docx") return "doc";
+  return "file";
+}
+
 router.post("/upload", upload.single("file"), async (request, response, next) => {
   try {
     if (!request.file) {
@@ -809,12 +901,11 @@ router.post("/upload", upload.single("file"), async (request, response, next) =>
       });
       return;
     }
-    const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    const isImage = imageTypes.includes(mime);
+    const mediaType = getMediaType(mime, request.file.originalname);
     const url = await uploadBuffer(request.file);
     response.json({
       url,
-      mediaType: isImage ? "image" : "file",
+      mediaType,
       mediaName: request.file.originalname || "",
     });
   } catch (error) {
@@ -1021,6 +1112,10 @@ router.patch("/conversations/:id/archive", async (request, response, next) => {
 
 router.post("/send-unread-digest", async (request, response, next) => {
   try {
+    if (request.authUser.role !== "admin") {
+      response.status(403).json({ message: "Admin access required." });
+      return;
+    }
     const result = await processEmailDigest();
     response.json(result);
   } catch (error) {
