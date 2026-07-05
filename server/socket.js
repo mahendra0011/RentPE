@@ -5,6 +5,28 @@ import Conversation from "./models/Conversation.js";
 import Message from "./models/Message.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "rentpe-dev-secret-change-in-production";
+const ALLOWED_SOCKET_ORIGINS = (process.env.CORS_ORIGINS || "")
+  .split(",")
+ .map((o) => o.trim())
+  .filter(Boolean)
+  .concat([
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    process.env.RENDER_EXTERNAL_URL,
+    "http://localhost:5180",
+  ])
+  .filter(Boolean);
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // allow non-browser clients
+  const normalized = origin.replace(/\/$/, "");
+  if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(normalized)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.onrender\.com$/i.test(normalized)) return true;
+  return ALLOWED_SOCKET_ORIGINS.some((a) => {
+    const allowed = a.replace(/\/$/, "");
+    return normalized === allowed;
+  });
+}
 
 function getAuthUser(auth) {
   if (!auth?.token) return null;
@@ -15,12 +37,19 @@ function getAuthUser(auth) {
   }
 }
 
+async function isParticipant(conversationId, email) {
+  try {
+    const conversation = await Conversation.findById(conversationId).lean();
+    return conversation?.participants?.includes(email) === true;
+  } catch {
+    return false;
+  }
+}
+
 export function setupSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin(origin, callback) {
-        callback(null, true);
-      },
+      origin: isOriginAllowed,
       credentials: true,
     },
   });
@@ -43,15 +72,23 @@ export function setupSocket(httpServer) {
     onlineUsers.set(userEmail, { socketId: socket.id, lastSeen: new Date() });
     io.emit("user:online", { email: userEmail, online: true });
 
-    socket.on("join:conversation", (conversationId) => {
+    socket.on("join:conversation", async (conversationId) => {
+      if (!conversationId) return;
+      const allowed = await isParticipant(conversationId, userEmail);
+      if (!allowed) {
+        socket.emit("error", { message: "Access denied to this conversation." });
+        return;
+      }
       socket.join(`conversation:${conversationId}`);
     });
 
     socket.on("leave:conversation", (conversationId) => {
+      if (!conversationId) return;
       socket.leave(`conversation:${conversationId}`);
     });
 
     socket.on("typing:start", ({ conversationId }) => {
+      if (!conversationId) return;
       socket.to(`conversation:${conversationId}`).emit("typing:start", {
         conversationId,
         email: userEmail,
@@ -59,6 +96,7 @@ export function setupSocket(httpServer) {
     });
 
     socket.on("typing:stop", ({ conversationId }) => {
+      if (!conversationId) return;
       socket.to(`conversation:${conversationId}`).emit("typing:stop", {
         conversationId,
         email: userEmail,

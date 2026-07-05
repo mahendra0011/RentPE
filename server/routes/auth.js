@@ -1,12 +1,39 @@
 import { Router } from "express";
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
 
 import { isMongoConnected } from "../config/db.js";
 import User from "../models/User.js";
 import { sendOtpEmail } from "../services/brevo.js";
 
 const router = Router();
+
+// Rate limiters
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutes
+  max: 5,                      // 5 OTP requests per window
+  message: { message: "Too many OTP requests. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutes
+  max: 10,                     // 10 login/signup attempts per window
+  message: { message: "Too many login attempts. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutes
+  max: 5,                      // 5 reset attempts per window
+  message: { message: "Too many reset requests. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const otpStore = new Map();
 const resetTokenStore = new Map();
 const memoryUsers = new Map();
@@ -297,7 +324,7 @@ async function upsertUser({ email, role, name, mobile }) {
   return user;
 }
 
-router.post("/signup", async (request, response, next) => {
+router.post("/signup", authLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const name = String(request.body.name || "").trim();
@@ -398,7 +425,7 @@ router.post("/signup", async (request, response, next) => {
   }
 });
 
-router.post("/login", async (request, response, next) => {
+router.post("/login", authLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const password = String(request.body.password || "");
@@ -443,7 +470,7 @@ router.post("/login", async (request, response, next) => {
   }
 });
 
-router.post("/google", async (request, response, next) => {
+router.post("/google", authLimiter, async (request, response, next) => {
   try {
     const credential = String(request.body.credential || "");
     const role = request.body.isOwner ? "owner" : "seeker";
@@ -466,7 +493,7 @@ router.post("/google", async (request, response, next) => {
   }
 });
 
-router.post("/request-otp", async (request, response, next) => {
+router.post("/request-otp", otpLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const role = request.body.isOwner ? "owner" : "seeker";
@@ -514,7 +541,7 @@ router.post("/request-otp", async (request, response, next) => {
   }
 });
 
-router.post("/reset-password", async (request, response, next) => {
+router.post("/reset-password", resetLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const otp = String(request.body.otp || "").trim();
@@ -577,7 +604,7 @@ router.post("/reset-password", async (request, response, next) => {
   }
 });
 
-router.post("/verify-reset-otp", async (request, response, next) => {
+router.post("/verify-reset-otp", resetLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const otp = String(request.body.otp || "").trim();
@@ -617,7 +644,7 @@ router.post("/verify-reset-otp", async (request, response, next) => {
   }
 });
 
-router.post("/verify-otp", async (request, response, next) => {
+router.post("/verify-otp", authLimiter, async (request, response, next) => {
   try {
     const email = normalizeEmail(request.body.email);
     const otp = String(request.body.otp || "").trim();

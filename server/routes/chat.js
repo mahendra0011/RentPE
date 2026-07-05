@@ -780,6 +780,17 @@ router.get("/blocked", async (request, response, next) => {
   }
 });
 
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+];
+
 router.post("/upload", upload.single("file"), async (request, response, next) => {
   try {
     if (!request.file) {
@@ -787,6 +798,12 @@ router.post("/upload", upload.single("file"), async (request, response, next) =>
       return;
     }
     const mime = request.file.mimetype || "";
+    if (!ALLOWED_MIME_TYPES.includes(mime)) {
+      response.status(415).json({
+        message: `File type '${mime}' is not allowed. Allowed: images, PDF, DOC, TXT.`,
+      });
+      return;
+    }
     const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     const isImage = imageTypes.includes(mime);
     const url = await uploadBuffer(request.file);
