@@ -8,7 +8,6 @@ import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
 import {
-  getCityFromStorage,
   getCityOption,
   roomTypeOptions,
   saveCityToStorage,
@@ -64,7 +63,7 @@ export default function FindRoom() {
     () => searchParams.get("q") || searchParams.get("location") || "",
   );
   const [selectedCity, setSelectedCity] = useState(
-    () => searchParams.get("city") || getCityFromStorage(),
+    () => searchParams.get("city") || "",
   );
   const [showFilters, setShowFilters] = useState(
     () =>
@@ -112,7 +111,7 @@ export default function FindRoom() {
       saveCityToStorage(normalizedCity);
       setShowFilters(true);
     } else {
-      setSelectedCity(getCityFromStorage());
+      setSelectedCity("");
     }
 
     if (nextSort) {
