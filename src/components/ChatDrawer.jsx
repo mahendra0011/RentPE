@@ -1,4 +1,4 @@
-﻿import {
+import {
   Archive,
   Ban,
   Bell,
@@ -18,9 +18,12 @@
   SendHorizonal,
   Settings,
   ShieldCheck,
+  Smile,
   Trash2,
   X,
 } from "lucide-react";
+import { Picker, init } from "emoji-mart";
+import data from "@emoji-mart/data";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -120,12 +123,12 @@ function ConversationItem({ conversation, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${
+      className={`flex w-full items-center gap-3 border-b border-slate-100 px-3 sm:px-4 py-2.5 sm:py-3 text-left transition-colors hover:bg-slate-50 ${
         active ? "bg-brand-soft/40" : ""
       }`}
     >
       <span className="relative shrink-0">
-        <span className="flex size-11 items-center justify-center rounded-full bg-brand-soft text-sm font-black text-brand">
+        <span className="flex size-10 sm:size-11 items-center justify-center rounded-full bg-brand-soft text-xs sm:text-sm font-black text-brand">
           {displayName.charAt(0).toUpperCase()}
         </span>
         {onlineStatus === "online" && (
@@ -177,12 +180,14 @@ function ConversationItem({ conversation, active, onClick }) {
 }
 
 function MessageBubble({ message, isOwn }) {
+  const user = useSelector((state) => state.auth.user);
   const [showActions, setShowActions] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
   const [msg, setMsg] = useState(message);
   const editInputRef = useRef(null);
+  const reactionPickerRef = useRef(null);
   const MediaIcon = getMediaIcon(msg.mediaType);
 
   useEffect(() => {
@@ -192,6 +197,51 @@ function MessageBubble({ message, isOwn }) {
   useEffect(() => {
     if (editing) editInputRef.current?.focus();
   }, [editing]);
+
+  const handleReactionClick = (emoji) => {
+    onReact(msg._id, emoji.native || emoji);
+    setShowReactionPicker(false);
+  };
+
+  useEffect(() => {
+    if (!showReactionPicker) return;
+    function handleClick(e) {
+      if (reactionPickerRef.current && !reactionPickerRef.current.contains(e.target)) {
+        setShowReactionPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showReactionPicker]);
+
+  useEffect(() => {
+    const container = reactionPickerRef.current;
+    if (!container || !showReactionPicker) return;
+
+    let picker;
+    const initPicker = async () => {
+      try {
+        await init({ data });
+        picker = new Picker({
+          ref: { current: container },
+          onEmojiSelect: handleReactionClick,
+          skinTonePosition: "none",
+          previewPosition: "none",
+          searchPosition: "sticky",
+          perLine: 8,
+          maxFrequentRows: 2,
+          theme: "light",
+          set: "native",
+        });
+      } catch (e) {
+        console.error("Failed to init reaction picker:", e);
+      }
+    };
+    initPicker();
+    return () => {
+      if (container) container.innerHTML = "";
+    };
+  }, [showReactionPicker]);
 
   const formatMessageStatus = () => {
     if (!isOwn) return null;
@@ -215,7 +265,8 @@ function MessageBubble({ message, isOwn }) {
         setMsg((prev) => ({ ...prev, ...data.message, edited: true }));
       }
       setEditing(false);
-    } catch {
+    } catch (err) {
+      alert(err?.message || "Failed to edit message");
       setEditing(false);
     }
   }
@@ -226,9 +277,11 @@ function MessageBubble({ message, isOwn }) {
       const data = await apiRequest(`/api/chat/messages/${msg._id}`, { method: "DELETE" });
       if (data?.message) {
         setMsg((prev) => ({ ...prev, ...data.message, deleted: true }));
+      } else {
+        setMsg((prev) => ({ ...prev, deleted: true }));
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      alert(err?.message || "Failed to delete message");
     }
   }
 
@@ -261,24 +314,24 @@ function MessageBubble({ message, isOwn }) {
     const existing = acc.find((a) => a.emoji === r.emoji);
     if (existing) {
       existing.count++;
+      existing.users.push(r.userEmail);
     } else {
       acc.push({ emoji: r.emoji, count: 1, users: [r.userEmail] });
     }
     return acc;
   }, []);
 
+  const userReactedEmoji = msg.reactions?.find((r) => r.userEmail === user?.email)?.emoji;
+
   return (
     <div
       className={`group mb-1 ${isOwn ? "justify-end" : "justify-start"} flex flex-col`}
       onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => {
-        setShowActions(false);
-        setShowEmojiPicker(false);
-      }}
+      onMouseLeave={() => setShowActions(false)}
     >
       <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
         <div
-          className={`relative max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+          className={`relative max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 sm:px-3.5 py-2 sm:py-2.5 ${
             isOwn
               ? "rounded-br-md bg-brand text-brand-foreground"
               : "rounded-bl-md bg-slate-100 text-ink"
@@ -304,7 +357,7 @@ function MessageBubble({ message, isOwn }) {
             </a>
           )}
           {msg.text && (
-            <p className="text-sm leading-5">
+            <p className="text-sm leading-5 break-words">
               {msg.text}
               {msg.edited && !editing && (
                 <span className="ml-1 text-[10px] opacity-60">(edited)</span>
@@ -342,7 +395,7 @@ function MessageBubble({ message, isOwn }) {
             </div>
           )}
           <div
-            className={`mt-0.5 flex items-center justify-end gap-1 ${isOwn ? "text-brand-foreground/60" : "text-slate-400"}`}
+            className={`mt-0.5 flex items-center gap-1 ${isOwn ? "justify-end" : "justify-start"} ${isOwn ? "text-brand-foreground/60" : "text-slate-400"}`}
           >
             {message.flagged && message.flagReason === "Suspicious payment request" && (
               <span
@@ -355,78 +408,73 @@ function MessageBubble({ message, isOwn }) {
             <span className="text-[10px] font-bold">{formatMessageTime(msg.createdAt)}</span>
             {isOwn && formatMessageStatus()}
           </div>
+
+          {groupedReactions.length > 0 && (
+            <div
+              className={`absolute -bottom-3 flex gap-0.5 ${isOwn ? "right-2" : "left-2"}`}
+            >
+              {groupedReactions.map((r) => {
+                const isActive = r.users?.includes(user?.email);
+                return (
+                  <button
+                    key={r.emoji}
+                    type="button"
+                    onClick={() => onReact(msg._id, r.emoji)}
+                    className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-xs shadow-sm transition-all hover:scale-110 ${
+                      isActive
+                        ? "border-brand/30 bg-brand-soft text-brand"
+                        : "border-slate-200 bg-white text-slate-600"
+                    }`}
+                  >
+                    <span className="text-sm">{r.emoji}</span>
+                    {r.count > 1 && (
+                      <span className="text-[10px] font-bold">{r.count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {groupedReactions.length > 0 && (
+      {showActions && (
         <div
-          className={`flex gap-0.5 -mt-1.5 ${isOwn ? "justify-end mr-2" : "justify-start ml-2"}`}
+          className={`relative flex items-center gap-0.5 mt-0.5 ${isOwn ? "justify-end" : "justify-start"}`}
         >
-          {groupedReactions.map((r) => (
+          {showReactionPicker && (
+            <div
+              ref={reactionPickerRef}
+              className="absolute bottom-full mb-2 z-50 h-[300px] w-[280px]"
+            />
+          )}
+          {EMOJI_LIST.map((emoji) => (
             <button
-              key={r.emoji}
+              key={emoji}
               type="button"
-              onClick={() => onReact(msg._id, r.emoji)}
-              className="flex items-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-xs shadow-sm hover:bg-slate-50"
+              onClick={() => onReact(msg._id, emoji)}
+              className={`flex size-7 items-center justify-center rounded-full text-sm leading-none transition-all hover:scale-125 ${
+                userReactedEmoji === emoji
+                  ? "bg-brand-soft text-brand ring-1 ring-brand/30"
+                  : "text-slate-500 hover:bg-slate-100"
+              }`}
+              title={emoji}
             >
-              <span>{r.emoji}</span>
-              {r.count > 1 && (
-                <span className="text-[10px] font-bold text-slate-500">{r.count}</span>
-              )}
+              {emoji}
             </button>
           ))}
-        </div>
-      )}
-
-      {(showActions || showEmojiPicker) && (
-        <div
-          className={`flex items-center gap-1 ${isOwn ? "justify-end" : "justify-start"} mt-0.5`}
-        >
-          {showEmojiPicker ? (
-            <div className="flex items-center gap-0.5 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm">
-              {EMOJI_LIST.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => {
-                    onReact(msg._id, emoji);
-                    setShowEmojiPicker(false);
-                  }}
-                  className="size-6 rounded-full text-sm leading-none transition-transform hover:scale-125"
-                >
-                  {emoji}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(false)}
-                className="size-6 rounded-full text-xs text-slate-400 hover:bg-slate-100"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(true)}
-              className="rounded-full p-1 text-slate-400 opacity-0 transition-opacity hover:bg-slate-100 group-hover:opacity-100"
-              title="React"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                <line x1="9" y1="9" x2="9.01" y2="9" />
-                <line x1="15" y1="9" x2="15.01" y2="9" />
-              </svg>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowReactionPicker((v) => !v)}
+            className={`inline-flex size-7 items-center justify-center rounded-full text-xs transition-colors hover:bg-slate-200 ${
+              showReactionPicker
+                ? "bg-brand-soft text-brand ring-1 ring-brand/30"
+                : "text-slate-500"
+            }`}
+            title="More reactions"
+          >
+            +
+          </button>
           {isOwn && (
             <>
               <button
@@ -519,6 +567,8 @@ function ChatWindow({ conversation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
   const [showChatSearch, setShowChatSearch] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
@@ -574,6 +624,58 @@ function ChatWindow({ conversation }) {
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, [conversation._id, hasMore, loadingMore, loadMessages, page]);
+
+  const handleEmojiSelect = (emoji) => {
+    setText((prev) => prev + emoji.native);
+    inputRef.current?.focus();
+  };
+
+  // Close emoji-mart picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        showEmojiPicker &&
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPicker]);
+
+  // Initialize emoji-mart Picker
+  useEffect(() => {
+    const container = emojiPickerRef.current;
+    if (!container) return;
+
+    let picker;
+    const initializePicker = async () => {
+      try {
+        await init({ data });
+        picker = new Picker({
+          ref: { current: container },
+          onEmojiSelect: handleEmojiSelect,
+          skinTonePosition: "none",
+          previewPosition: "none",
+          searchPosition: "sticky",
+          perLine: 8,
+          maxFrequentRows: 2,
+          theme: "light",
+          set: "native",
+        });
+      } catch (e) {
+        console.error("Failed to initialize emoji-mart:", e);
+      }
+    };
+
+    initializePicker();
+
+    return () => {
+      if (container) container.innerHTML = "";
+    };
+  }, [showEmojiPicker]);
 
   async function handleSend(event) {
     event.preventDefault();
@@ -771,10 +873,10 @@ function ChatWindow({ conversation }) {
   }, [text, conversation._id]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-2.5">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center gap-2 sm:gap-3 border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5">
         <span className="relative shrink-0">
-          <span className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-sm font-black text-brand">
+          <span className="flex size-9 sm:size-10 items-center justify-center rounded-full bg-brand-soft text-xs sm:text-sm font-black text-brand">
             {displayName.charAt(0).toUpperCase()}
           </span>
           {onlineStatus === "online" && (
@@ -898,17 +1000,17 @@ function ChatWindow({ conversation }) {
       {conversation.roomTitle && (
         <Link
           to={`/rooms/${conversation.roomSlug}`}
-          className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-2 transition-colors hover:bg-slate-100"
+          className="flex items-center gap-2 sm:gap-3 border-b border-slate-100 bg-slate-50/80 px-3 sm:px-4 py-1.5 sm:py-2 transition-colors hover:bg-slate-100"
         >
           {conversation.roomImage && (
             <img
               src={conversation.roomImage}
               alt=""
-              className="size-10 shrink-0 rounded-lg bg-slate-200 object-cover"
+              className="size-8 sm:size-10 shrink-0 rounded-lg bg-slate-200 object-cover"
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-ink">{conversation.roomTitle}</p>
+            <p className="truncate text-[11px] sm:text-xs font-bold text-ink">{conversation.roomTitle}</p>
             {conversation.roomPrice && (
               <p className="text-[10px] font-bold text-brand">
                 {formatPrice(conversation.roomPrice)}/mo
@@ -920,7 +1022,7 @@ function ChatWindow({ conversation }) {
       )}
 
       {conversation.inquiryStatus === "pending" && (
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="border-b border-amber-200 bg-amber-50 px-3 sm:px-4 py-2 sm:py-3">
           {isOwner ? (
             <div className="flex flex-col items-center gap-2">
               <p className="text-center text-xs font-bold text-amber-800">
@@ -953,7 +1055,7 @@ function ChatWindow({ conversation }) {
       )}
 
       {conversation.inquiryStatus === "rejected" && (
-        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="border-b border-slate-200 bg-slate-50 px-3 sm:px-4 py-2 sm:py-3">
           <p className="text-center text-xs font-bold text-slate-500">
             ❌ Inquiry declined by the owner
           </p>
@@ -961,7 +1063,7 @@ function ChatWindow({ conversation }) {
       )}
 
       {conversation.roomAvailable === false && (
-        <div className="border-b border-red-200 bg-red-50 px-4 py-2.5">
+        <div className="border-b border-red-200 bg-red-50 px-3 sm:px-4 py-1.5 sm:py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
             <span className="text-sm">🔴</span>
             This property is no longer available \u2014{" "}
@@ -972,15 +1074,15 @@ function ChatWindow({ conversation }) {
         </div>
       )}
 
-      <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-2.5">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700">
-          <ShieldCheck className="size-3.5 shrink-0 text-amber-500" />
+      <div className="border-b border-amber-100 bg-amber-50/70 px-3 sm:px-4 py-1.5 sm:py-2">
+        <p className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-amber-700">
+          <ShieldCheck className="size-3 sm:size-3.5 shrink-0 text-amber-500" />
           Safety tip: Never pay any advance or deposit before visiting the property in person.
         </p>
       </div>
 
       {suspiciousOwnerMessages.length >= 2 && (
-        <div className="border-b border-red-200 bg-red-50 px-4 py-2.5">
+        <div className="border-b border-red-200 bg-red-50 px-3 sm:px-4 py-1.5 sm:py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
             <Flag className="size-3.5 shrink-0 text-red-500" />
             Suspicious pattern detected \u2014 multiple payment requests from this owner. Proceed with
@@ -990,7 +1092,7 @@ function ChatWindow({ conversation }) {
       )}
 
       {showChatSearch && (
-        <div className="border-b border-slate-100 px-4 py-2">
+        <div className="border-b border-slate-100 px-3 sm:px-4 py-2">
           <label className="flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 focus-within:border-brand focus-within:bg-white">
             <Search className="size-3.5 shrink-0 text-slate-400" />
             <input
@@ -1019,7 +1121,7 @@ function ChatWindow({ conversation }) {
         </div>
       )}
 
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-2">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-2">
         {loadingMore && (
           <div className="flex justify-center py-2">
             <Clock className="size-4 animate-spin text-slate-400" />
@@ -1061,22 +1163,20 @@ function ChatWindow({ conversation }) {
                 >
                   {template}
                 </button>
-                {isOwner && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingQuickReply(i);
-                      setEditQuickReplyText(template);
-                    }}
-                    className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-brand text-white"
-                    title="Edit quick reply"
-                  >
-                    <Edit3 className="size-2.5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingQuickReply(i);
+                    setEditQuickReplyText(template);
+                  }}
+                  className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-brand text-white"
+                  title="Edit quick reply"
+                >
+                  <Edit3 className="size-2.5" />
+                </button>
               </div>
             ))}
-            {isOwner && quickReplies.length < 10 && (
+            {quickReplies.length < 10 && (
               <button
                 type="button"
                 onClick={() => {
@@ -1208,7 +1308,13 @@ function ChatWindow({ conversation }) {
         </div>
       )}
 
-      <form onSubmit={handleSend} className="border-t border-slate-200 p-3">
+      <div className="relative">
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-4 mb-2 z-50">
+            <div ref={emojiPickerRef} className="h-[350px] w-[320px] max-h-[50vh] overflow-y-auto" />
+          </div>
+        )}
+        <form onSubmit={handleSend} className="border-t border-slate-200 p-2 sm:p-3">
         {conversation.inquiryStatus === "pending" ? (
           <div className="flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50/50 px-4 py-3">
             <p className="text-xs font-bold text-amber-600">
@@ -1230,6 +1336,14 @@ function ChatWindow({ conversation }) {
               placeholder="Type a message..."
               className="min-h-11 flex-1 bg-transparent text-sm font-bold text-ink outline-none placeholder:text-slate-400"
             />
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker((v) => !v)}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
+              title="Emoji"
+            >
+              <Smile className="size-4" />
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -1282,6 +1396,7 @@ function ChatWindow({ conversation }) {
           </div>
         )}
       </form>
+      </div>
     </div>
   );
 }
@@ -1307,18 +1422,18 @@ function NewChatForm({ room, onBack }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+      <div className="flex items-center gap-2 sm:gap-3 border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-3">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex size-9 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100"
+          className="inline-flex size-8 sm:size-9 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100"
         >
-          <ChevronLeft className="size-5" />
+          <ChevronLeft className="size-4 sm:size-5" />
         </button>
         <span className="text-sm font-black text-ink">New message</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
           <img
             src={room.images?.[0] || ""}
             alt=""
@@ -1438,7 +1553,7 @@ export default function ChatDrawer() {
 
       <div
         ref={drawerRef}
-        className={`fixed bottom-0 right-0 z-[160] flex w-full flex-col overflow-hidden bg-white shadow-[0_0_60px_-20px_rgba(15,23,42,0.35)] transition-all duration-300 md:bottom-4 md:right-4 md:h-[680px] md:w-[440px] md:rounded-2xl md:border md:border-slate-200 ${
+        className={`fixed bottom-0 right-0 z-[160] flex w-full h-dvh flex-col overflow-hidden bg-white shadow-[0_0_60px_-20px_rgba(15,23,42,0.35)] transition-all duration-300 md:bottom-4 md:right-4 md:h-[680px] md:w-[440px] md:rounded-2xl md:border md:border-slate-200 ${
           open
             ? "translate-y-0 md:translate-y-0 md:opacity-100"
             : "translate-y-full opacity-0 pointer-events-none md:translate-y-4"
@@ -1472,7 +1587,7 @@ export default function ChatDrawer() {
           </>
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-3">
               <span className="text-sm font-black text-ink">Chats</span>
               <div className="flex items-center gap-1">
                 {user.role === "owner" && (
@@ -1513,8 +1628,8 @@ export default function ChatDrawer() {
               </div>
             </div>
 
-            <div className="border-b border-slate-100 px-4 py-2">
-              <label className="flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 focus-within:border-brand focus-within:bg-white">
+            <div className="border-b border-slate-100 px-3 sm:px-4 py-2">
+              <label className="flex h-9 sm:h-10 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 focus-within:border-brand focus-within:bg-white">
                 <Search className="size-4 shrink-0 text-slate-400" />
                 <input
                   value={search}
