@@ -1,21 +1,12 @@
 import { Router } from "express";
-import rateLimit from "express-rate-limit";
 
 import { geocodeRoomAddress, reverseGeocodeCoordinates } from "../services/nominatim.js";
-
-const geoLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: { message: "Too many requests. Please try again after 15 minutes." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 const router = Router();
 const openRouteServiceUrl = "https://api.openrouteservice.org/v2/directions";
 const allowedProfiles = new Set(["foot-walking", "driving-car", "cycling-regular"]);
 
-router.get("/geocode", geoLimiter, async (request, response, next) => {
+router.get("/geocode", async (request, response, next) => {
   try {
     const location = await geocodeRoomAddress({
       address: request.query.address,
@@ -40,7 +31,7 @@ router.get("/geocode", geoLimiter, async (request, response, next) => {
   }
 });
 
-router.get("/reverse", geoLimiter, async (request, response, next) => {
+router.get("/reverse", async (request, response, next) => {
   try {
     const longitude = Number(request.query.longitude ?? request.query.lng);
     const latitude = Number(request.query.latitude ?? request.query.lat);
@@ -67,7 +58,7 @@ router.get("/reverse", geoLimiter, async (request, response, next) => {
   }
 });
 
-router.post("/directions", geoLimiter, async (request, response, next) => {
+router.post("/directions", async (request, response, next) => {
   try {
     const start = parseCoordinatePair(request.body.start);
     const end = parseCoordinatePair(request.body.end);
