@@ -20,6 +20,8 @@ services:
         value: rentpe/rooms
       - key: BREVO_SENDER_NAME
         value: RentPE
+      - key: JWT_SECRET
+        generateValue: true
       - key: MONGODB_URI
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
