@@ -103,10 +103,21 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
         <span className="absolute left-3 top-3 rounded-full bg-white/92 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-ink shadow-sm backdrop-blur">
           {room.tag}
         </span>
-        <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg bg-ink/80 px-2 py-1 text-xs font-bold text-background backdrop-blur-sm">
-          <MapPin className="size-3" />
-          {room.distance}
-        </span>
+        {room.distance && (
+          <span className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-slate-950/90 px-3 py-1 text-xs font-black text-white shadow-lg backdrop-blur-md">
+            <MapPin className="size-3.5 text-blue-400 fill-blue-400/20" />
+            <span>{room.distance}</span>
+          </span>
+        )}
+        {room.panoramaUrls && room.panoramaUrls.length > 0 && (
+          <span className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-full border border-emerald-400/35 bg-slate-950/85 px-2.5 py-1 text-[11px] font-black text-emerald-300 shadow-lg backdrop-blur-md">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+            </span>
+            <span>360° Tour</span>
+          </span>
+        )}
         {room.availability === "occupied" && (
           <span className="absolute right-12 top-2 rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
             Occupied
@@ -135,7 +146,14 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
       <div className="flex items-start justify-between gap-3 px-1">
         <div className="min-w-0">
           <h3 className="truncate text-[15px] font-black text-ink">{room.title}</h3>
-          <p className="mt-1 truncate text-xs text-slate-500">{room.location}</p>
+          <p className="mt-1 flex items-center truncate text-xs text-slate-500">
+            <span className="truncate">{room.location}</span>
+            {room.distance && (
+              <span className="ml-1.5 shrink-0 font-black text-blue-600 dark:text-blue-400">
+                • {room.distance}
+              </span>
+            )}
+          </p>
           <RatingStars
             rating={room.owner?.rating}
             reviewCount={room.owner?.reviewCount}
@@ -169,30 +187,21 @@ export default function RoomCard({ room, index = 0, onHover, highlighted = false
         >
           View Details
         </a>
-        <button
-          type="button"
-          onClick={() =>
-            startConversation(
-              room.slug || room.id,
-              `Hi, I am interested in your room "${room.title}" on RentPE.`,
-            )
-          }
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft px-3 py-2.5 text-xs font-black text-brand transition-colors hover:border-brand hover:bg-brand/10"
-        >
-          <MessageCircle className="size-3.5" />
-          Chat in App
-        </button>
         <div className="grid grid-cols-2 gap-2">
-          <a
-            href={`https://wa.me/${room.owner.phone}`}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => dispatch(markContacted(room.id))}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-success px-3 py-2.5 text-xs font-black text-success-foreground transition-colors hover:bg-success/90"
+          <button
+            type="button"
+            onClick={() => {
+              dispatch(markContacted(room.id));
+              startConversation(
+                room.slug || room.id,
+                `Hi, I am interested in your room "${room.title}" on RoomsFind.`,
+              );
+            }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft px-3 py-2.5 text-xs font-black text-brand transition-colors hover:border-brand hover:bg-brand/10"
           >
             <MessageCircle className="size-3.5" />
-            WhatsApp
-          </a>
+            Chat
+          </button>
           <motion.button
             type="button"
             onClick={handleShare}

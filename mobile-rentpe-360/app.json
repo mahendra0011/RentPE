@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "360 Photo Cam",
+    "slug": "360-photo-cam",
+    "version": "4.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dospace.photo360",
+      "infoPlist": {
+        "NSCameraUsageDescription": "RentPE requires camera access to capture room photos and 360° virtual room tours.",
+        "NSMotionUsageDescription": "RentPE uses orientation sensors to guide you when capturing full-sphere ceiling, eye-level, and floor photos.",
+        "NSLocationWhenInUseUsageDescription": "RentPE uses your location to show rooms near you and auto-select your city."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.dospace.photo360",
+      "permissions": [
+        "CAMERA",
+        "HIGH_SAMPLING_RATE_SENSORS",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow RentPE to use your camera to take room photos and 360° tours."
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow RentPE to use your location to find rooms near you."
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}
+

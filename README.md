@@ -20,7 +20,7 @@ The app uses owner-entered text for discovery: city, area, landmark, address, ti
 
 ### Room Owner
 - Owner signup/login with role-aware navigation
-- Owner listing creation with photos, details, location, amenities, house rules, and WhatsApp lead preference
+- Owner listing creation with photos, details, location, amenities, house rules, and direct in-app chat preference
 - Owner `My Rooms` page for editing listings, replacing photos, changing availability, updating rules, and deleting listings
 - **In-app Chat Management** - Respond to inquiries, set away mode with auto-reply, quick reply templates, mute/archive conversations
 - **Response Time Tracking** - Automatic tracking of owner response time displayed as a badge in chat
@@ -105,7 +105,7 @@ Generated/local-only folders such as `dist/`, `node_modules/`, and `.env` are ig
 1. Open `Home` or `Find Room`.
 2. Search by keyword such as city, area, PG, hostel, flat, WiFi, rule text, landmark, or owner-entered address.
 3. Apply filters for price, type, tenant, amenities, furnished status, and availability.
-4. Open room details, check house rules, read reviews, save to wishlist, share the listing, call the owner, or message on WhatsApp.
+4. Open room details, check house rules, read reviews, save to wishlist, share the listing, call the owner, or chat in-app.
 5. **Chat** - Use in-app chat to message the owner directly (real-time).
 
 ### Room Owner

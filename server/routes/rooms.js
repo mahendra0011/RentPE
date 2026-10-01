@@ -9,6 +9,14 @@ import { seedRooms } from "../data/seedRooms.js";
 import Room from "../models/Room.js";
 import { geocodeRoomAddress } from "../services/nominatim.js";
 import { buildUniqueRoomImages } from "../../src/data/cloudinaryRoomImages.js";
+import { cityCoordinates } from "../../src/lib/listingMeta.js";
+import {
+  addRoomGeo,
+  calculateHaversineDistance,
+  formatDistance,
+  queryNearbyRoomsRedis,
+  syncRoomsGeo,
+} from "../services/redisGeo.js";
 
 const router = Router();
 
@@ -476,6 +484,71 @@ async function buildRoomUpdates(body, images, existingRoom) {
   };
 }
 
+// Initial sync of memory/seed rooms into Redis
+setTimeout(() => {
+  syncRoomsGeo(memoryRooms).catch(() => {});
+}, 1000);
+
+async function attachDistancesToRooms(rooms = [], query = {}) {
+  let userLat = parseFiniteNumber(query.lat ?? query.latitude);
+  let userLng = parseFiniteNumber(query.lng ?? query.longitude);
+
+  if (!isValidCoordinate(userLng, userLat) && query.city) {
+    const cleanCity = String(query.city).trim().toLowerCase();
+    for (const [c, coords] of Object.entries(cityCoordinates)) {
+      if (c.toLowerCase() === cleanCity) {
+        userLng = coords[0];
+        userLat = coords[1];
+        break;
+      }
+    }
+  }
+
+  if (!isValidCoordinate(userLng, userLat)) {
+    return rooms;
+  }
+
+  const maxKm = parseFiniteNumber(query.maxDistanceKm ?? query.radiusKm ?? query.radius);
+  const minKm = parseFiniteNumber(query.minDistanceKm);
+
+  // 1. Try Redis Geospatial Query first
+  let redisDistanceMap = null;
+  try {
+    redisDistanceMap = await queryNearbyRoomsRedis(userLng, userLat, maxKm || 100);
+  } catch {
+    redisDistanceMap = null;
+  }
+
+  const enriched = rooms.map((room) => {
+    const id = String(room.slug || room.id || room._id);
+    let distanceKm = redisDistanceMap?.has(id) ? redisDistanceMap.get(id) : null;
+
+    if (distanceKm === null || distanceKm === undefined) {
+      const coords = getRoomCoordinates(room);
+      if (coords) {
+        distanceKm = calculateHaversineDistance(userLat, userLng, coords.latitude, coords.longitude);
+      }
+    }
+
+    if (distanceKm !== null && distanceKm !== undefined) {
+      return {
+        ...room,
+        distanceKm,
+        distance: formatDistance(distanceKm),
+      };
+    }
+
+    return room;
+  });
+
+  return enriched.filter((room) => {
+    if (room.distanceKm === undefined || room.distanceKm === null) return true;
+    if (maxKm !== null && maxKm > 0 && room.distanceKm > maxKm) return false;
+    if (minKm !== null && minKm > 0 && room.distanceKm < minKm) return false;
+    return true;
+  });
+}
+
 router.get("/", async (request, response, next) => {
   try {
     const filter = buildRoomFilter(request.query);
@@ -488,9 +561,10 @@ router.get("/", async (request, response, next) => {
       let query = Room.find(filter);
       if (!queryPoint) query = query.sort({ createdAt: -1 });
       const total = await Room.countDocuments(filter);
-      const rooms = await query.skip(skip).limit(limit).lean();
+      const rawRooms = await query.skip(skip).limit(limit).lean();
+      const enrichedRooms = await attachDistancesToRooms(rawRooms, request.query);
       response.json({
-        rooms: withCloudinaryImagesList(rooms),
+        rooms: withCloudinaryImagesList(enrichedRooms),
         page,
         limit,
         total,
@@ -499,9 +573,9 @@ router.get("/", async (request, response, next) => {
       return;
     }
 
-    const allRooms = withCloudinaryImagesList(
-      memoryRooms.filter((room) => memoryMatches(room, request.query)),
-    );
+    const matched = memoryRooms.filter((room) => memoryMatches(room, request.query));
+    const enriched = await attachDistancesToRooms(matched, request.query);
+    const allRooms = withCloudinaryImagesList(enriched);
     response.json({
       rooms: allRooms.slice(skip, skip + limit),
       page,
@@ -545,7 +619,8 @@ router.get("/:slug", async (request, response, next) => {
         response.status(404).json({ message: "Room not found" });
         return;
       }
-      response.json(withCloudinaryImages(room));
+      const [enrichedRoom] = await attachDistancesToRooms([room], request.query);
+      response.json(withCloudinaryImages(enrichedRoom || room));
       return;
     }
 
@@ -554,7 +629,8 @@ router.get("/:slug", async (request, response, next) => {
       response.status(404).json({ message: "Room not found" });
       return;
     }
-    response.json(withCloudinaryImages(room));
+    const [enrichedRoom] = await attachDistancesToRooms([room], request.query);
+    response.json(withCloudinaryImages(enrichedRoom || room));
   } catch (error) {
     next(error);
   }
@@ -567,6 +643,11 @@ router.post("/", roomMutationLimiter, upload.array("photos", 8), async (request,
 
     const images = (await Promise.all((request.files || []).map(uploadBuffer))).filter(Boolean);
     const roomInput = await normalizeRoom(request.body, images, ownerEmail);
+
+    if (roomInput.location?.coordinates) {
+      const [lng, lat] = roomInput.location.coordinates;
+      addRoomGeo(roomInput.slug, lng, lat).catch(() => {});
+    }
 
     if (isMongoConnected()) {
       const room = await Room.create(roomInput);

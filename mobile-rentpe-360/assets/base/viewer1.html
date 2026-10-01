@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>360 Photosphere Viewer</title>
+
+    <link rel="stylesheet" href="css/index.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      #marker-layer {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 90;
+      }
+      .spatial-pin {
+        position: absolute;
+        pointer-events: auto;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        -webkit-transition: transform 0.15s ease;
+        transition: transform 0.15s ease;
+      }
+      .spatial-pin:active { -webkit-transform: translate(-50%, -50%) scale(1.3); transform: translate(-50%, -50%) scale(1.3); }
+      .pin-dot {
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: rgba(73, 255, 131, 0.95);
+        border: 2px solid #fff;
+        box-shadow:
+          0 0 8px 2px rgba(73,255,131,0.6),
+          0 0 20px 6px rgba(73,255,131,0.25);
+        display: -webkit-flex; display: flex;
+        -webkit-align-items: center; align-items: center;
+        -webkit-justify-content: center; justify-content: center;
+        font-size: 14px;
+        -webkit-animation: pin-glow 2s ease-in-out infinite;
+        animation: pin-glow 2s ease-in-out infinite;
+        position: relative;
+      }
+      .pin-dot::after {
+        content: '';
+        position: absolute;
+        top: -7px; left: -7px; right: -7px; bottom: -7px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(73, 255, 131, 0.45);
+        -webkit-animation: ring-expand 2.2s ease-out infinite;
+        animation: ring-expand 2.2s ease-out infinite;
+      }
+      .pin-count {
+        position: absolute;
+        top: -6px; right: -6px;
+        background: #FF4444;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        min-width: 16px; height: 16px;
+        border-radius: 8px;
+        display: -webkit-flex; display: flex;
+        -webkit-align-items: center; align-items: center;
+        -webkit-justify-content: center; justify-content: center;
+        padding: 0 3px;
+        z-index: 2;
+      }
+      @-webkit-keyframes pin-glow {
+        0%, 100% {
+          box-shadow: 0 0 8px 2px rgba(73,255,131,0.6), 0 0 20px 6px rgba(73,255,131,0.25);
+        }
+        50% {
+          box-shadow: 0 0 14px 5px rgba(73,255,131,0.85), 0 0 32px 10px rgba(73,255,131,0.35);
+        }
+      }
+      @keyframes pin-glow {
+        0%, 100% {
+          box-shadow: 0 0 8px 2px rgba(73,255,131,0.6), 0 0 20px 6px rgba(73,255,131,0.25);
+        }
+        50% {
+          box-shadow: 0 0 14px 5px rgba(73,255,131,0.85), 0 0 32px 10px rgba(73,255,131,0.35);
+        }
+      }
+      @-webkit-keyframes ring-expand {
+        0% { -webkit-transform: scale(1); opacity: 0.7; }
+        70% { -webkit-transform: scale(1.7); opacity: 0; }
+        100% { -webkit-transform: scale(1.7); opacity: 0; }
+      }
+      @keyframes ring-expand {
+        0% { transform: scale(1); opacity: 0.7; }
+        70% { transform: scale(1.7); opacity: 0; }
+        100% { transform: scale(1.7); opacity: 0; }
+      }
+      .longpress-ripple {
+        position: absolute;
+        pointer-events: none;
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        border: 2px solid rgba(73,255,131,0.8);
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+        z-index: 95;
+      }
+      .longpress-ripple.active {
+        opacity: 1;
+        -webkit-animation: ripple-grow 0.6s ease-out forwards;
+        animation: ripple-grow 0.6s ease-out forwards;
+      }
+      @-webkit-keyframes ripple-grow {
+        0% { -webkit-transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+        100% { -webkit-transform: translate(-50%, -50%) scale(1.5); opacity: 0.3; }
+      }
+      @keyframes ripple-grow {
+        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.3; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="photosphere"></div>
+    <div id="marker-layer"></div>
+    <div id="longpress-ripple" class="longpress-ripple"></div>
+
+    <script src="js/three.min.js"></script>
+    <script src="js/core/index.js"></script>
+    <script src="js/gyroscope-plugin/index.js"></script>
+    <script src="js/autorotate-plugin/index.js"></script>
+
+    <script>
+      var sphereViewer = null;
+      var autorotatePlugin = null;
+      var gyroscropePlugin = null;
+      var markerData = [];
+      var autorotateUserEnabled = false;
+      var gyroscopeUserEnabled = false;
+
+      /* ── Long-press detection ── */
+      var longPressTimer = null;
+      var touchStartX = 0;
+      var touchStartY = 0;
+      var LONG_PRESS_MS = 600;
+      var MOVE_THRESHOLD = 10;
+
+      function startLongPress(clientX, clientY) {
+        touchStartX = clientX;
+        touchStartY = clientY;
+        cancelLongPress();
+        var ripple = document.getElementById('longpress-ripple');
+        ripple.style.left = clientX + 'px';
+        ripple.style.top = clientY + 'px';
+        ripple.classList.remove('active');
+
+        longPressTimer = setTimeout(function() {
+          longPressTimer = null;
+          ripple.classList.add('active');
+          if (!sphereViewer) return;
+
+          stopAllMotion();
+
+          var rect = sphereViewer.container.getBoundingClientRect();
+          var viewerX = clientX - rect.left;
+          var viewerY = clientY - rect.top;
+          var intersections = sphereViewer.renderer.getIntersections({ x: viewerX, y: viewerY });
+          var hit = null;
+          for (var i = 0; i < intersections.length; i++) {
+            if (intersections[i].object.userData['photoSphereViewer']) {
+              hit = intersections[i];
+              break;
+            }
+          }
+          if (!hit) return;
+
+          var spherical = sphereViewer.dataHelper.vector3ToSphericalCoords(hit.point);
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            status: 'long-press',
+            data: { yaw: spherical.yaw, pitch: spherical.pitch }
+          }));
+        }, LONG_PRESS_MS);
+      }
+
+      function moveLongPress(screenX, screenY) {
+        if (!longPressTimer) return;
+        var dx = screenX - touchStartX;
+        var dy = screenY - touchStartY;
+        if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
+          cancelLongPress();
+        }
+      }
+
+      function cancelLongPress() {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+        var ripple = document.getElementById('longpress-ripple');
+        ripple.classList.remove('active');
+      }
+
+      function getPanoramaSource(data) {
+        try {
+          var parsed = JSON.parse(data);
+          if (parsed.type === 'url') return parsed.url;
+          if (parsed.type === 'base64') return parsed.data;
+        } catch (e) {}
+        return data;
+      }
+
+      /* ── Marker rendering ── */
+      function updateMarkerPositions() {
+        if (!sphereViewer) return;
+        var layer = document.getElementById('marker-layer');
+        markerData.forEach(function(m) {
+          var el = document.getElementById('pin-' + m.id);
+          if (!el) {
+            el = document.createElement('div');
+            el.id = 'pin-' + m.id;
+            el.className = 'spatial-pin';
+            var dot = document.createElement('div');
+            dot.className = 'pin-dot';
+            dot.textContent = '💬';
+            el.appendChild(dot);
+            if (m.replyCount > 0) {
+              var badge = document.createElement('div');
+              badge.className = 'pin-count';
+              badge.textContent = m.replyCount;
+              el.appendChild(badge);
+            }
+            (function(commentId) {
+              el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  status: 'marker-click', data: { commentId: commentId }
+                }));
+              });
+            })(m.id);
+            layer.appendChild(el);
+          }
+          try {
+            var visible = sphereViewer.dataHelper.isPointVisible({ yaw: m.yaw, pitch: m.pitch });
+            if (visible) {
+              var pos = sphereViewer.dataHelper.sphericalCoordsToViewerCoords({ yaw: m.yaw, pitch: m.pitch });
+              el.style.left = pos.x + 'px';
+              el.style.top = pos.y + 'px';
+              el.style.display = 'block';
+            } else {
+              el.style.display = 'none';
+            }
+          } catch (e) {
+            el.style.display = 'none';
+          }
+        });
+      }
+
+      function clearAllMarkers() {
+        var layer = document.getElementById('marker-layer');
+        layer.innerHTML = '';
+        markerData = [];
+      }
+
+      /* ── Message processing ── */
+      function processEvent(event) {
+        var parsed = null;
+        try { parsed = JSON.parse(event.data); } catch(e) {}
+
+        if (event.data === "autorotate") {
+          toggleAutorotate();
+        } else if (event.data === "gyroscope") {
+          toggleGyroscope();
+        } else if (parsed && parsed.action === "load-comments") {
+          clearAllMarkers();
+          markerData = parsed.comments || [];
+          updateMarkerPositions();
+        } else if (parsed && parsed.action === "add-comment") {
+          markerData.push(parsed.comment);
+          updateMarkerPositions();
+        } else if (parsed && parsed.action === "remove-comment") {
+          var id = parsed.commentId;
+          markerData = markerData.filter(function(m) { return m.id !== id; });
+          var el = document.getElementById('pin-' + id);
+          if (el) el.remove();
+        } else if (parsed && parsed.action === "fly-to") {
+          if (sphereViewer) {
+            sphereViewer.animate({ yaw: parsed.yaw, pitch: parsed.pitch, speed: '2rpm' });
+          }
+        } else if (parsed && parsed.action === "stop-motion") {
+          stopAllMotion();
+        } else if (parsed && parsed.action === "resume-motion") {
+          resumeMotion();
+        } else if (parsed && parsed.action === "update-comment-id") {
+          var oldId = parsed.oldId;
+          var newId = parsed.newId;
+          for (var i = 0; i < markerData.length; i++) {
+            if (markerData[i].id === oldId) {
+              markerData[i].id = newId;
+              break;
+            }
+          }
+          var oldEl = document.getElementById('pin-' + oldId);
+          if (oldEl) {
+            oldEl.id = 'pin-' + newId;
+            oldEl.onclick = null;
+            (function(commentId) {
+              oldEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  status: 'marker-click', data: { commentId: commentId }
+                }));
+              });
+            })(newId);
+          }
+        } else if (parsed && parsed.action === "toggle-comments") {
+          var layer = document.getElementById('marker-layer');
+          layer.style.display = parsed.visible ? '' : 'none';
+        } else if (!parsed || (!parsed.action)) {
+          if (sphereViewer) return;
+          var panoramaSource = getPanoramaSource(event.data);
+
+          sphereViewer = new PhotoSphereViewer.Viewer({
+            container: "photosphere",
+            panorama: panoramaSource,
+            loadingImg: null,
+            defaultZoomLvl: 0,
+            navbar: false,
+            plugins: [
+              [PhotoSphereViewer.AutorotatePlugin, { autostartOnIdle: false, autorotateSpeed: "3rpm" }],
+              [PhotoSphereViewer.GyroscopePlugin, { touchmove: true, absolutePosition: false }],
+            ],
+          });
+
+          autorotatePlugin = sphereViewer.getPlugin("autorotate");
+          autorotatePlugin.addEventListener("autorotate", function(e) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              status: "autorotate", data: e.autorotateEnabled,
+            }));
+          });
+
+          gyroscropePlugin = sphereViewer.getPlugin("gyroscope");
+          gyroscropePlugin.addEventListener("gyroscope-updated", function(e) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              status: "gyroscope", data: e.gyroscopeEnabled,
+            }));
+          });
+
+          sphereViewer.addEventListener("ready", function() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ status: "Loading End" }));
+
+            var container = sphereViewer.container;
+            container.addEventListener('touchstart', function(e) {
+              if (e.touches.length === 1) {
+                startLongPress(e.touches[0].clientX, e.touches[0].clientY);
+              }
+            }, { passive: true });
+            container.addEventListener('touchmove', function(e) {
+              if (e.touches.length === 1) {
+                moveLongPress(e.touches[0].clientX, e.touches[0].clientY);
+              }
+            }, { passive: true });
+            container.addEventListener('touchend', function() { cancelLongPress(); }, { passive: true });
+            container.addEventListener('touchcancel', function() { cancelLongPress(); }, { passive: true });
+          });
+
+          sphereViewer.addEventListener("click", function(evt) {
+            if (motionPausedState) return;
+            var data = evt.data;
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              status: "click",
+              data: (data.rightclick ? "right " : "") + "clicked at yaw: " + data.yaw + " pitch: " + data.pitch,
+            }));
+          });
+
+          sphereViewer.addEventListener("position-updated", updateMarkerPositions);
+          sphereViewer.addEventListener("zoom-updated", updateMarkerPositions);
+          sphereViewer.addEventListener("size-updated", updateMarkerPositions);
+        }
+      }
+
+      var motionPausedState = null;
+
+      function stopAllMotion() {
+        if (!sphereViewer) return;
+        if (motionPausedState) return;
+        var hadAutorotate = autorotateUserEnabled;
+        var hadGyroscope = gyroscopeUserEnabled;
+        try { sphereViewer.stopAnimation(); } catch(e) {}
+        sphereViewer.container.style.pointerEvents = 'none';
+        try {
+          var ap = sphereViewer.getPlugin(PhotoSphereViewer.AutorotatePlugin);
+          if (ap) {
+            ap.stop();
+            ap.__origStart = ap.start;
+            ap.start = function() {};
+          }
+        } catch(e) {}
+        try {
+          var gp = sphereViewer.getPlugin(PhotoSphereViewer.GyroscopePlugin);
+          if (gp) {
+            gp.stop();
+            gp.__origStart = gp.start;
+            gp.start = function() {};
+          }
+        } catch(e) {}
+        autorotateUserEnabled = false;
+        gyroscopeUserEnabled = false;
+        motionPausedState = { autorotate: hadAutorotate, gyroscope: hadGyroscope };
+      }
+
+      function resumeMotion() {
+        if (!sphereViewer || !motionPausedState) return;
+        sphereViewer.container.style.pointerEvents = '';
+        try { sphereViewer.stopAnimation(); } catch(e) {}
+        try {
+          var ap = sphereViewer.getPlugin(PhotoSphereViewer.AutorotatePlugin);
+          if (ap) { ap.stop(); }
+        } catch(e) {}
+        try {
+          var gp = sphereViewer.getPlugin(PhotoSphereViewer.GyroscopePlugin);
+          if (gp) { gp.stop(); }
+        } catch(e) {}
+        try {
+          var ap2 = sphereViewer.getPlugin(PhotoSphereViewer.AutorotatePlugin);
+          if (ap2 && ap2.__origStart) { ap2.start = ap2.__origStart; delete ap2.__origStart; }
+        } catch(e) {}
+        try {
+          var gp2 = sphereViewer.getPlugin(PhotoSphereViewer.GyroscopePlugin);
+          if (gp2 && gp2.__origStart) { gp2.start = gp2.__origStart; delete gp2.__origStart; }
+        } catch(e) {}
+        motionPausedState = null;
+        autorotateUserEnabled = false;
+        gyroscopeUserEnabled = false;
+        try {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            status: "autorotate", data: false,
+          }));
+        } catch(e) {}
+        try {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            status: "gyroscope", data: false,
+          }));
+        } catch(e) {}
+        setTimeout(function() {
+          try {
+            var apLate = sphereViewer.getPlugin(PhotoSphereViewer.AutorotatePlugin);
+            if (apLate && !autorotateUserEnabled) apLate.stop();
+          } catch(e) {}
+          try {
+            var gpLate = sphereViewer.getPlugin(PhotoSphereViewer.GyroscopePlugin);
+            if (gpLate && !gyroscopeUserEnabled) gpLate.stop();
+          } catch(e) {}
+        }, 300);
+      }
+
+      function toggleAutorotate() {
+        if (!sphereViewer) return;
+        autorotateUserEnabled = !autorotateUserEnabled;
+        sphereViewer.getPlugin(PhotoSphereViewer.AutorotatePlugin).toggle();
+      }
+
+      function toggleGyroscope() {
+        if (!sphereViewer) return;
+        gyroscopeUserEnabled = !gyroscopeUserEnabled;
+        sphereViewer.getPlugin(PhotoSphereViewer.GyroscopePlugin).toggle();
+      }
+
+      window.addEventListener("message", function(event) { processEvent(event); }, false);
+      document.addEventListener("message", function(event) { processEvent(event); }, false);
+    </script>
+  </body>
+</html>

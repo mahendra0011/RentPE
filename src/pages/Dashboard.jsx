@@ -67,7 +67,7 @@ export default function Dashboard() {
               {isOwner ? "Owner dashboard" : "User dashboard"}
             </span>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-normal">
-              {isOwner ? "Your RentPE owner activity" : "Your RentPE activity"}
+              {isOwner ? "Your RoomsFind owner activity" : "Your RoomsFind activity"}
             </h1>
             <p className="mt-1 sm:mt-2 max-w-2xl text-xs sm:text-sm leading-5 sm:leading-6 text-slate-500">
               {isOwner
@@ -216,7 +216,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <p className="text-xs sm:text-sm leading-5 sm:leading-6 text-slate-500">
-                  WhatsApp contacts will appear here after you message an owner.
+                  Contacted owners will appear here after you message or call them.
                 </p>
               )}
             </Panel>

@@ -46,6 +46,17 @@ async function isParticipant(conversationId, email) {
   }
 }
 
+let globalIo = null;
+
+export function getSocketIo() {
+  return globalIo;
+}
+
+export function emitToUser(email, event, data) {
+  if (!globalIo || !email) return;
+  globalIo.to(`user:${String(email).toLowerCase()}`).emit(event, data);
+}
+
 export function setupSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -53,6 +64,7 @@ export function setupSocket(httpServer) {
       credentials: true,
     },
   });
+  globalIo = io;
 
   const onlineUsers = new Map();
 
@@ -67,8 +79,9 @@ export function setupSocket(httpServer) {
 
   io.on("connection", (socket) => {
     const user = socket.user;
-    const userEmail = user.email;
+    const userEmail = user.email.toLowerCase();
 
+    socket.join(`user:${userEmail}`);
     onlineUsers.set(userEmail, { socketId: socket.id, lastSeen: new Date() });
     socket.emit("online:snapshot", Object.fromEntries(onlineUsers));
     socket.broadcast.emit("user:online", { email: userEmail, online: true });

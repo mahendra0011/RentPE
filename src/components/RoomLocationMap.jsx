@@ -1074,9 +1074,13 @@ function createRoomPopupHtml(properties) {
             : ""
         }
         ${
-          properties.distance || properties.city
+          properties.distance
+            ? `<p style="margin: 8px 0 0; color: #2563eb; font-size: 11px; font-weight: 900;">📍 ${escapeHtml(
+                properties.distance,
+              )}</p>`
+            : properties.city
             ? `<p style="margin: 8px 0 0; color: #94a3b8; font-size: 11px; font-weight: 900;">${escapeHtml(
-                properties.distance || properties.city,
+                properties.city,
               )}</p>`
             : ""
         }

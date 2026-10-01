@@ -24,12 +24,14 @@ import RatingStars from "@/components/RatingStars.jsx";
 import ReviewsSection from "@/components/ReviewsSection.jsx";
 import RoomCard from "@/components/RoomCard.jsx";
 import RoomLocationMap from "@/components/RoomLocationMap.jsx";
+import RoomPanoramaViewer from "@/components/RoomPanoramaViewer.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { useChat } from "@/context/ChatContext.jsx";
 import { getRoom, rooms as staticRooms } from "@/data/rooms.js";
 import { formatPrice } from "@/lib/format.js";
 import { getCityFromStorage, getCityOption } from "@/lib/listingMeta.js";
 import { normalizeRoom, normalizeRooms } from "@/lib/roomAdapter.js";
+import { useUserLocation } from "@/hooks/useUserLocation.js";
 import { shareRoom } from "@/lib/share.js";
 import {
   fetchRoom,
@@ -57,19 +59,22 @@ export default function RoomDetails() {
   const savedIds = useSelector((state) => state.rooms.savedIds);
   const { startConversation } = useChat();
   const { activeRoom, items, error } = useSelector((state) => state.rooms);
+  const selectedCityOption = getCityOption(getCityFromStorage());
+  const mapCity = selectedCityOption.city;
+  const { coordinates: userCoords } = useUserLocation(mapCity);
   const staticRoom = getRoom(id);
   const itemRoom = items.find((roomItem) => roomItem.id === id || roomItem.slug === id);
-  const room =
+  const rawRoom =
     activeRoom?.id === id || activeRoom?.slug === id
       ? activeRoom
-      : itemRoom || (staticRoom ? normalizeRoom(staticRoom) : null);
+      : itemRoom || staticRoom;
+  const room = rawRoom ? normalizeRoom(rawRoom, 0, userCoords) : null;
   const [active, setActive] = useState(0);
   const [reported, setReported] = useState(false);
   const [shareState, setShareState] = useState("");
   const [chatError, setChatError] = useState("");
-  const selectedCityOption = getCityOption(getCityFromStorage());
-  const mapCity = selectedCityOption.city;
-  const allRoomsForMap = useMemo(() => normalizeRooms(items.length ? items : staticRooms), [items]);
+  const [show360Modal, setShow360Modal] = useState(false);
+  const allRoomsForMap = useMemo(() => normalizeRooms(items.length ? items : staticRooms, userCoords), [items, userCoords]);
   const mapRooms = useMemo(
     () => getMapRooms(allRoomsForMap, mapCity, room),
     [allRoomsForMap, mapCity, room],
@@ -182,9 +187,24 @@ export default function RoomDetails() {
                     <Heart className={`size-4 ${saved ? "fill-brand text-brand" : ""}`} />
                   </button>
                 </div>
+
+                {room.panoramaUrls && room.panoramaUrls.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShow360Modal(true)}
+                    className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/85 px-4 py-2.5 text-xs font-black text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-slate-900"
+                  >
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    </span>
+                    <Box className="size-4 text-emerald-400" />
+                    <span>Explore 360° Virtual Tour ({room.panoramaUrls.length} {room.panoramaUrls.length === 1 ? "angle" : "angles"})</span>
+                  </button>
+                )}
               </motion.div>
 
-              <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="mt-3 grid grid-cols-4 gap-3">
                 {room.images.map((image, index) => (
                   <button
                     key={image}
@@ -200,16 +220,39 @@ export default function RoomDetails() {
                     <img src={image} alt="" className="h-full w-full object-cover" />
                   </button>
                 ))}
+
+                {room.panoramaUrls && room.panoramaUrls.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShow360Modal(true)}
+                    className="group relative flex aspect-[4/3] flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-emerald-400/60 bg-emerald-950/20 p-2 text-center transition-all hover:border-emerald-500 hover:bg-emerald-950/30"
+                    aria-label="Open 360 Virtual Tour"
+                  >
+                    <div className="flex size-9 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 transition-transform group-hover:scale-110">
+                      <Box className="size-5 text-emerald-500" />
+                    </div>
+                    <span className="mt-1 text-[11px] font-black text-emerald-700">360° View</span>
+                    <span className="text-[9px] font-bold text-emerald-600/80">Interactive</span>
+                  </button>
+                )}
               </div>
             </section>
 
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-5">
               <div>
                 <h1 className="text-2xl font-black tracking-normal md:text-3xl">{room.title}</h1>
-                <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-500">
-                  <MapPin className="size-4" />
-                  {room.address}
-                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <MapPin className="size-4 text-slate-400" />
+                    {room.address}
+                  </span>
+                  {room.distance && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-0.5 text-xs font-black text-brand shadow-xs">
+                      <MapPin className="size-3.5 text-brand" />
+                      {room.distance}
+                    </span>
+                  )}
+                </div>
               </div>
               <RatingStars
                 rating={room.owner?.rating}
@@ -220,17 +263,18 @@ export default function RoomDetails() {
               />
             </div>
 
-            <div className="my-6 grid grid-cols-3 gap-3">
+            <div className="my-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
+                { label: "Distance", value: room.distance || "Nearby" },
                 { label: "Type", value: room.type },
                 { label: "Tenant", value: room.gender },
                 { label: "Furnished", value: room.furnished ? "Yes" : "No" },
               ].map((item) => (
-                <div key={item.label} className="rounded-xl border border-slate-200 bg-card p-4">
+                <div key={item.label} className="rounded-xl border border-slate-200 bg-card p-4 shadow-xs">
                   <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
                     {item.label}
                   </p>
-                  <p className="mt-1 font-black">{item.value}</p>
+                  <p className="mt-1 font-black text-ink">{item.value}</p>
                 </div>
               ))}
             </div>
@@ -306,36 +350,25 @@ export default function RoomDetails() {
                 )}
               </div>
 
-              <a
-                href={`https://wa.me/${room.owner.phone}?text=${encodeURIComponent(
-                  `Hi, I am interested in your room "${room.title}" on RentPE.`,
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => dispatch(markContacted(room.id))}
-                className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-success py-3 font-black text-success-foreground transition-colors hover:bg-success/90"
-              >
-                <MessageCircle className="size-4" />
-                WhatsApp Owner
-              </a>
               {room.chatEnabled !== false && (
                 <button
                   type="button"
                   onClick={async () => {
                     setChatError("");
                     try {
+                      dispatch(markContacted(room.id));
                       await startConversation(
                         room.slug || room.id,
-                        `Hi, I am interested in your room "${room.title}" on RentPE.`,
+                        `Hi, I am interested in your room "${room.title}" on RoomsFind.`,
                       );
                     } catch (err) {
                       setChatError(err.message || "Failed to start conversation.");
                     }
                   }}
-                  className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand/20 bg-brand-soft py-3 font-black text-brand transition-colors hover:border-brand hover:bg-brand/10"
+                  className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 font-black text-white shadow-sm shadow-brand/20 transition-colors hover:bg-brand/90"
                 >
                   <MessageCircle className="size-4" />
-                  Chat in App
+                  Chat with Owner
                 </button>
               )}
               <a
@@ -407,7 +440,7 @@ export default function RoomDetails() {
               selectedRoomId={selectedMapRoomId}
               onRoomSelect={setSelectedMapRoomId}
             />
-            <div className="max-h-[640px] overflow-y-auto pr-1">
+            <div className="max-h-[640px] overflow-y-auto pr-1" data-lenis-prevent>
               <div className="grid gap-3">
                 {mapRooms.map((mapRoom) => {
                   const roomKey = getRoomKey(mapRoom);
@@ -471,6 +504,14 @@ export default function RoomDetails() {
             ))}
           </div>
         </section>
+        {show360Modal && room.panoramaUrls && room.panoramaUrls.length > 0 && (
+          <RoomPanoramaViewer
+            panoramas={room.panoramaUrls}
+            title={`${room.title} — 360° Virtual Tour`}
+            isModal={true}
+            onClose={() => setShow360Modal(false)}
+          />
+        )}
       </main>
     </div>
   );
@@ -488,7 +529,15 @@ function MapRoomSelectCard({ room, selected, onSelect }) {
           : "border-slate-200 hover:border-brand hover:shadow-[var(--shadow-card)]"
       }`}
     >
-      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSelect(); }} className="flex w-full gap-2.5 text-left">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSelect();
+        }}
+        className="flex w-full gap-2.5 text-left"
+      >
         <img
           src={image}
           alt=""

@@ -63,6 +63,7 @@ const roomSchema = new mongoose.Schema(
     ownerEmail: { type: String, lowercase: true, trim: true, index: true },
     furnished: { type: Boolean, default: true },
     availability: { type: String, enum: ["available", "occupied"], default: "available" },
+    panoramaUrls: [{ type: String, trim: true }],
     reports: { type: Number, default: 0 },
     status: { type: String, enum: ["live", "reported"], default: "live" },
     owner: ownerSchema,

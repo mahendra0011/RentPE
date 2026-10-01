@@ -512,11 +512,11 @@ export default function AdminDashboard() {
 
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/92 shadow-[0_10px_28px_-26px_rgba(15,23,42,0.45)] backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="RentPE home">
+          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="RoomsFind home">
             <span className="flex size-8 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg shadow-brand/25">
               <MapPinned className="size-4" strokeWidth={2.6} />
             </span>
-            <span className="text-lg font-black tracking-normal text-ink">RentPE</span>
+            <span className="text-lg font-black tracking-normal text-ink">RoomsFind</span>
           </Link>
 
           <div className="hidden items-center gap-3 sm:flex">

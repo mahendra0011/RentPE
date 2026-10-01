@@ -14,6 +14,7 @@ import {
   Moon,
   Search,
   Shield,
+  Smartphone,
   Sun,
   X,
 } from "lucide-react";
@@ -43,12 +44,12 @@ function Logo({ onClick }) {
       to="/"
       onClick={onClick}
       className="flex shrink-0 items-center gap-2"
-      aria-label="RentPE home"
+      aria-label="RoomsFind home"
     >
       <span className="flex size-8 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg shadow-brand/25">
         <MapPin className="size-4" strokeWidth={2.6} />
       </span>
-      <span className="text-lg font-black tracking-normal text-ink">RentPE</span>
+      <span className="text-lg font-black tracking-normal text-ink">RoomsFind</span>
     </Link>
   );
 }
@@ -246,8 +247,8 @@ export default function SiteHeader() {
   return (
     <>
       <header className="relative sticky top-0 z-50 border-b border-slate-200 bg-white/92 shadow-[0_10px_28px_-26px_rgba(15,23,42,0.45)] backdrop-blur">
-        <nav className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+        <nav className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 2xl:px-12">
+          <div className="flex shrink-0 items-center gap-3">
             <Logo />
             <div className="hidden md:block">
               <CitySelect
@@ -263,11 +264,11 @@ export default function SiteHeader() {
             </div>
           </div>
 
-          <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 xl:flex">
-            <NavLinks wishlistCount={wishlistCount} className="pointer-events-auto" />
+          <div className="hidden items-center justify-center xl:flex">
+            <NavLinks wishlistCount={wishlistCount} />
           </div>
 
-          <div className="hidden min-w-0 items-center gap-2 xl:flex">
+          <div className="hidden min-w-0 shrink-0 items-center gap-2 xl:flex">
             <button
               type="button"
               onClick={toggleDarkMode}
@@ -308,7 +309,7 @@ export default function SiteHeader() {
                         </button>
                       )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
+                    <div className="max-h-80 overflow-y-auto" data-lenis-prevent>
                       {!storeNotifications || storeNotifications.length === 0 ? (
                         <div className="px-4 py-8 text-center">
                           <Bell className="mx-auto mb-2 size-6 text-slate-300" />
@@ -389,9 +390,7 @@ export default function SiteHeader() {
             ) : (
               <AuthLinks />
             )}
-            {isOwner && (
-              <OwnerMenu />
-            )}
+            {isOwner && <OwnerMenu />}
           </div>
 
           <div className="flex items-center gap-2 xl:hidden">
@@ -530,12 +529,12 @@ function NavLinks({ wishlistCount, className = "", onNavigate, variant = "deskto
   const isMobile = variant === "mobile";
   const listClassName = isMobile
     ? "grid gap-1 rounded-[22px] border border-slate-200 bg-slate-50 p-1 text-sm font-black text-slate-500 shadow-sm"
-    : `flex items-center gap-5 rounded-full border border-slate-200/70 bg-white/70 px-5 py-2 text-sm font-black text-slate-500 shadow-sm backdrop-blur ${className}`;
+    : `inline-flex items-center gap-5 rounded-full border border-slate-200/80 bg-white/90 px-5 py-2 text-sm font-black text-slate-500 shadow-sm backdrop-blur ${className}`;
   const linkClassName = (isActive, extra = "") =>
     `${
       isMobile
         ? "flex min-h-11 items-center justify-between rounded-[18px] px-4 transition-colors hover:bg-white hover:text-ink"
-        : "transition-colors hover:text-ink"
+        : "transition-colors hover:text-ink whitespace-nowrap shrink-0"
     } ${isActive ? (isMobile ? "bg-white text-ink shadow-sm" : "text-ink") : ""} ${extra}`;
 
   return (
@@ -544,14 +543,14 @@ function NavLinks({ wishlistCount, className = "", onNavigate, variant = "deskto
         to="/"
         end
         onClick={onNavigate}
-        className={({ isActive }) => linkClassName(isActive)}
+        className={({ isActive }) => linkClassName(isActive, "whitespace-nowrap shrink-0")}
       >
         Home
       </NavLink>
       <NavLink
         to="/find-room"
         onClick={onNavigate}
-        className={({ isActive }) => linkClassName(isActive)}
+        className={({ isActive }) => linkClassName(isActive, "whitespace-nowrap shrink-0")}
       >
         Find Room
       </NavLink>
@@ -559,18 +558,41 @@ function NavLinks({ wishlistCount, className = "", onNavigate, variant = "deskto
         to="/wishlist"
         onClick={onNavigate}
         className={({ isActive }) =>
-          linkClassName(isActive, isMobile ? "" : "inline-flex items-center gap-1.5")
+          linkClassName(
+            isActive,
+            isMobile ? "" : "inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+          )
         }
       >
-        <span className="inline-flex items-center gap-2">
-          <Heart className="size-4" />
+        <span className="inline-flex items-center gap-2 whitespace-nowrap">
+          <Heart className="size-4 shrink-0" />
           Wishlist
         </span>
         {wishlistCount > 0 && (
-          <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] leading-none text-white">
+          <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] leading-none text-white shrink-0">
             {wishlistCount}
           </span>
         )}
+      </NavLink>
+      <NavLink
+        to="/download-apps"
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          linkClassName(
+            isActive,
+            isMobile
+              ? ""
+              : "inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 whitespace-nowrap shrink-0"
+          )
+        }
+      >
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <Smartphone className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span className="font-black">Download App</span>
+        </span>
+        <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shrink-0">
+          APK
+        </span>
       </NavLink>
     </div>
   );
@@ -591,7 +613,7 @@ function CityRequiredModal({
           </span>
           <h2 className="text-2xl font-black tracking-normal text-ink">Select your city</h2>
           <p className="mt-2 text-sm font-bold leading-6 text-slate-500">
-            Choose your city to continue. RentPE will show rooms, map markers, and routes for that
+            Choose your city to continue. RoomsFind will show rooms, map markers, and routes for that
             city.
           </p>
         </div>
@@ -730,7 +752,7 @@ function CitySelect({
             </label>
           </div>
 
-          <div className="max-h-[340px] overflow-y-auto p-2" role="listbox">
+          <div className="max-h-[340px] overflow-y-auto p-2" role="listbox" data-lenis-prevent>
             <button
               type="button"
               onClick={onDetectCity}

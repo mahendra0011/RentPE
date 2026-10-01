@@ -67,7 +67,7 @@ const initialData = {
   latitude: "",
   ownerName: "",
   phone: "",
-  whatsapp: true,
+  chatEnabled: true,
   customAmenity: "",
 };
 
@@ -263,7 +263,7 @@ export default function ListRoom() {
           <h1 className="text-3xl font-black tracking-normal md:text-4xl">
             List your room in 2 minutes
           </h1>
-          <p className="mt-2 text-slate-500">No brokerage. Direct leads on WhatsApp.</p>
+          <p className="mt-2 text-slate-500">No brokerage. Direct verified leads & instant in-app chat.</p>
         </div>
 
         <div className="relative mb-10 flex items-center justify-between">
@@ -540,7 +540,7 @@ export default function ListRoom() {
                     </Field>
                   </div>
                   <div className="rounded-xl bg-brand-soft p-4 text-xs font-bold leading-5 text-slate-700">
-                    RentPE uses this address, city, and landmark as searchable keywords. Users will
+                    RoomsFind uses this address, city, and landmark as searchable keywords. Users will
                     see the area, price, photos, and owner contact.
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -604,16 +604,16 @@ export default function ListRoom() {
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <input
                       type="checkbox"
-                      checked={data.whatsapp}
-                      onChange={(event) => update("whatsapp", event.target.checked)}
+                      checked={data.chatEnabled ?? true}
+                      onChange={(event) => update("chatEnabled", event.target.checked)}
                       className="mt-1 size-4 accent-brand"
                     />
                     <span>
                       <span className="block text-sm font-black">
-                        Allow WhatsApp leads on this number
+                        Enable direct in-app chat for this listing
                       </span>
                       <span className="mt-1 block text-xs text-slate-500">
-                        Seekers can message you directly. You can disable it later.
+                        Seekers can message you directly on RoomsFind. You can manage chats anytime.
                       </span>
                     </span>
                   </label>

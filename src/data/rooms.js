@@ -21,6 +21,10 @@ export const rooms = [
     furnished: true,
     amenities: ["WiFi", "AC", "CCTV", "Hot Water", "Laundry", "Power Backup"],
     images: roomImageSets["skyline-stay"],
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=3000&q=85",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=3000&q=85",
+    ],
     owner: {
       name: "Sunita Sharma",
       phone: "919876543210",
@@ -51,6 +55,9 @@ export const rooms = [
     furnished: true,
     amenities: ["Mess Included", "Parking", "WiFi", "Study Room", "Common TV"],
     images: roomImageSets["comfort-living"],
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=3000&q=85",
+    ],
     owner: {
       name: "Rakesh Verma",
       phone: "919812345670",
@@ -81,6 +88,10 @@ export const rooms = [
     furnished: true,
     amenities: ["Kitchen", "Lift", "No Broker", "AC", "Geyser", "Parking", "Balcony"],
     images: roomImageSets["elite-studio"],
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=3000&q=85",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=3000&q=85",
+    ],
     owner: {
       name: "Anil Mehta",
       phone: "919900112233",
@@ -111,6 +122,9 @@ export const rooms = [
     furnished: true,
     amenities: ["WiFi", "AC", "Attached Bath", "Mess"],
     images: roomImageSets["campus-corner"],
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&w=3000&q=85",
+    ],
     owner: {
       name: "Geeta Pandey",
       phone: "919871122334",
@@ -145,6 +159,10 @@ export const rooms = [
     furnished: false,
     amenities: ["Kitchen", "Lift", "Parking", "Pet Friendly", "Gym"],
     images: roomImageSets["metro-nest"],
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=3000&q=85",
+      "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=3000&q=85",
+    ],
     owner: {
       name: "Pooja Iyer",
       phone: "919811223344",
@@ -175,6 +193,9 @@ export const rooms = [
     furnished: true,
     amenities: ["WiFi", "Mess", "Study Room", "CCTV"],
     images: roomImageSets["scholars-den"],
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=3000&q=85",
+    ],
     owner: {
       name: "Mohit Singh",
       phone: "919812340099",

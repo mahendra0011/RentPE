@@ -149,7 +149,7 @@ function ConversationItem({ conversation, active, onClick }) {
           <span className="truncate text-xs font-bold text-slate-500">
             {isPendingInquiry
               ? isOwner
-? "📩 Inquiry \u2014 tap to respond"
+                ? "📩 Inquiry \u2014 tap to respond"
                 : "📩 Inquiry sent \u2014 waiting for owner"
               : conversation.lastMessage?.text || "No messages yet"}
           </span>
@@ -410,9 +410,7 @@ function MessageBubble({ message, isOwn }) {
           </div>
 
           {groupedReactions.length > 0 && (
-            <div
-              className={`absolute -bottom-3 flex gap-0.5 ${isOwn ? "right-2" : "left-2"}`}
-            >
+            <div className={`absolute -bottom-3 flex gap-0.5 ${isOwn ? "right-2" : "left-2"}`}>
               {groupedReactions.map((r) => {
                 const isActive = r.users?.includes(user?.email);
                 return (
@@ -427,9 +425,7 @@ function MessageBubble({ message, isOwn }) {
                     }`}
                   >
                     <span className="text-sm">{r.emoji}</span>
-                    {r.count > 1 && (
-                      <span className="text-[10px] font-bold">{r.count}</span>
-                    )}
+                    {r.count > 1 && <span className="text-[10px] font-bold">{r.count}</span>}
                   </button>
                 );
               })}
@@ -781,9 +777,9 @@ function ChatWindow({ conversation }) {
   }
 
   async function handleUpdateQuickReply(index) {
-    const updated = quickReplies.map((reply, i) =>
-      i === index ? editQuickReplyText.trim() : reply,
-    ).filter((r) => r);
+    const updated = quickReplies
+      .map((reply, i) => (i === index ? editQuickReplyText.trim() : reply))
+      .filter((r) => r);
     try {
       await apiRequest("/api/chat/quick-replies", {
         method: "PUT",
@@ -1010,7 +1006,9 @@ function ChatWindow({ conversation }) {
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] sm:text-xs font-bold text-ink">{conversation.roomTitle}</p>
+            <p className="truncate text-[11px] sm:text-xs font-bold text-ink">
+              {conversation.roomTitle}
+            </p>
             {conversation.roomPrice && (
               <p className="text-[10px] font-bold text-brand">
                 {formatPrice(conversation.roomPrice)}/mo
@@ -1085,8 +1083,8 @@ function ChatWindow({ conversation }) {
         <div className="border-b border-red-200 bg-red-50 px-3 sm:px-4 py-1.5 sm:py-2.5">
           <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
             <Flag className="size-3.5 shrink-0 text-red-500" />
-            Suspicious pattern detected \u2014 multiple payment requests from this owner. Proceed with
-            caution.
+            Suspicious pattern detected \u2014 multiple payment requests from this owner. Proceed
+            with caution.
           </p>
         </div>
       )}
@@ -1186,7 +1184,14 @@ function ChatWindow({ conversation }) {
                 className="inline-flex size-6 items-center justify-center rounded-full border border-dashed border-brand/40 bg-white text-brand"
                 title="Add quick reply"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </button>
@@ -1203,7 +1208,9 @@ function ChatWindow({ conversation }) {
               onChange={(e) => setEditQuickReplyText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  editingQuickReply >= 0 ? handleUpdateQuickReply(editingQuickReply) : handleAddQuickReply();
+                  editingQuickReply >= 0
+                    ? handleUpdateQuickReply(editingQuickReply)
+                    : handleAddQuickReply();
                 }
                 if (e.key === "Escape") {
                   setEditingQuickReply(null);
@@ -1216,7 +1223,11 @@ function ChatWindow({ conversation }) {
             />
             <button
               type="button"
-              onClick={editingQuickReply >= 0 ? () => handleUpdateQuickReply(editingQuickReply) : handleAddQuickReply}
+              onClick={
+                editingQuickReply >= 0
+                  ? () => handleUpdateQuickReply(editingQuickReply)
+                  : handleAddQuickReply
+              }
               disabled={!editQuickReplyText.trim()}
               className="rounded-xl bg-brand px-2.5 py-1.5 text-xs font-black text-brand-foreground disabled:opacity-40"
             >
@@ -1311,91 +1322,96 @@ function ChatWindow({ conversation }) {
       <div className="relative">
         {showEmojiPicker && (
           <div className="absolute bottom-full right-4 mb-2 z-50">
-            <div ref={emojiPickerRef} className="h-[350px] w-[320px] max-h-[50vh] overflow-y-auto" />
+            <div
+              ref={emojiPickerRef}
+              className="h-[350px] w-[320px] max-h-[50vh] overflow-y-auto"
+            />
           </div>
         )}
         <form onSubmit={handleSend} className="border-t border-slate-200 p-2 sm:p-3">
-        {conversation.inquiryStatus === "pending" ? (
-          <div className="flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50/50 px-4 py-3">
-            <p className="text-xs font-bold text-amber-600">
-              {isOwner ? "Accept the inquiry to start chatting" : "Waiting for owner to accept..."}
-            </p>
-          </div>
-        ) : conversation.inquiryStatus === "rejected" ? (
-          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-bold text-slate-400">This conversation was declined</p>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-brand focus-within:bg-white">
-            <input
-              ref={inputRef}
-              value={text}
-              onChange={(e) => handleTyping(e.target.value)}
-              onKeyDown={handleKeyDown}
-              type="text"
-              placeholder="Type a message..."
-              className="min-h-11 flex-1 bg-transparent text-sm font-bold text-ink outline-none placeholder:text-slate-400"
-            />
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker((v) => !v)}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
-              title="Emoji"
-            >
-              <Smile className="size-4" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={fileAccept}
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-            {quickReplies.length > 0 && (
+          {conversation.inquiryStatus === "pending" ? (
+            <div className="flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+              <p className="text-xs font-bold text-amber-600">
+                {isOwner
+                  ? "Accept the inquiry to start chatting"
+                  : "Waiting for owner to accept..."}
+              </p>
+            </div>
+          ) : conversation.inquiryStatus === "rejected" ? (
+            <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-bold text-slate-400">This conversation was declined</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-brand focus-within:bg-white">
+              <input
+                ref={inputRef}
+                value={text}
+                onChange={(e) => handleTyping(e.target.value)}
+                onKeyDown={handleKeyDown}
+                type="text"
+                placeholder="Type a message..."
+                className="min-h-11 flex-1 bg-transparent text-sm font-bold text-ink outline-none placeholder:text-slate-400"
+              />
               <button
                 type="button"
-                onClick={() => setShowQuickReplies((v) => !v)}
+                onClick={() => setShowEmojiPicker((v) => !v)}
                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
-                title="Quick replies"
+                title="Emoji"
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
+                <Smile className="size-4" />
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
-              title="Send file"
-            >
-              <ImagePlus className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSchedule((v) => !v)}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
-              title="Schedule a visit"
-            >
-              <Calendar className="size-4" />
-            </button>
-            <button
-              type="submit"
-              disabled={!text.trim()}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground transition-opacity disabled:opacity-40"
-            >
-              <SendHorizonal className="size-4" />
-            </button>
-          </div>
-        )}
-      </form>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={fileAccept}
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              {quickReplies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowQuickReplies((v) => !v)}
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
+                  title="Quick replies"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
+                title="Send file"
+              >
+                <ImagePlus className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSchedule((v) => !v)}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
+                title="Schedule a visit"
+              >
+                <Calendar className="size-4" />
+              </button>
+              <button
+                type="submit"
+                disabled={!text.trim()}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground transition-opacity disabled:opacity-40"
+              >
+                <SendHorizonal className="size-4" />
+              </button>
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );
@@ -1553,6 +1569,7 @@ export default function ChatDrawer() {
 
       <div
         ref={drawerRef}
+        data-lenis-prevent
         className={`fixed bottom-0 right-0 z-[160] flex w-full h-dvh flex-col overflow-hidden bg-white shadow-[0_0_60px_-20px_rgba(15,23,42,0.35)] transition-all duration-300 md:bottom-4 md:right-4 md:h-[680px] md:w-[440px] md:rounded-2xl md:border md:border-slate-200 ${
           open
             ? "translate-y-0 md:translate-y-0 md:opacity-100"
@@ -1718,4 +1735,3 @@ export default function ChatDrawer() {
     </>
   );
 }
-

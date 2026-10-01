@@ -57,7 +57,7 @@ const emptyForm = {
   latitude: "",
   ownerName: "",
   phone: "",
-  whatsapp: true,
+  chatEnabled: true,
   furnished: true,
   availability: "available",
 };
@@ -658,11 +658,6 @@ export default function MyListedRooms() {
                         onChange={(value) => update("furnished", value)}
                       />
                       <Toggle
-                        label="WhatsApp leads"
-                        checked={form.whatsapp}
-                        onChange={(value) => update("whatsapp", value)}
-                      />
-                      <Toggle
                         label="In-App Chat"
                         checked={form.chatEnabled}
                         onChange={(value) => update("chatEnabled", value)}
@@ -718,7 +713,6 @@ function roomToForm(room) {
       .replace(/^91/, "")
       .slice(-10),
     chatEnabled: room.chatEnabled !== false,
-    whatsapp: room.owner?.whatsapp !== false,
     furnished: room.furnished !== false,
     availability: room.availability || "available",
   };

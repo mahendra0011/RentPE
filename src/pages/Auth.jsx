@@ -22,6 +22,7 @@ import {
   signupUser,
   verifyResetOtp,
 } from "@/store/authSlice.js";
+import authIllustration from "@/assets/auth-illustration.png";
 
 const resetSessionStorageKey = "RentPE:reset-session";
 const googleScriptId = "google-identity-services";
@@ -268,328 +269,332 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background font-sans text-ink">
+    <div className="min-h-screen bg-background font-sans text-ink flex flex-col justify-between">
       <SiteHeader />
 
-      <main className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section>
-          <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-4 py-1.5 text-xs font-black uppercase tracking-wide text-brand">
-            <ShieldCheck className="size-4" />
-            Secure account
-          </span>
-          <h1 className="mt-5 max-w-xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl">
-            {isForgot
-              ? "Verify your reset OTP."
-              : isResetPassword
-                ? "Set a new password."
-                : isSignup
-                  ? "Create your RentPE account."
-                  : "Login to RentPE."}
-          </h1>
-          <p className="mt-4 max-w-lg text-base font-medium leading-7 text-slate-600">
-            {isForgot
-              ? "Enter your email first, then verify the OTP we send you."
-              : isResetPassword
-                ? "Choose a new password and confirm it before returning to login."
-                : isSignup
-                  ? "Add your details, verify your email with an OTP, and start using RentPE."
-                  : "Login only needs your email, password, and the owner checkbox when you manage rooms."}
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <InfoPill title="Room seekers" body="Save rooms and contact owners directly." />
-            <InfoPill title="Room owners" body="Login as owner and post available rooms." />
-          </div>
-        </section>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[var(--shadow-card)] sm:p-8">
-          <div className="mb-7 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-black tracking-normal">
-                {isForgot
-                  ? "Forgot password"
-                  : isResetPassword
-                    ? "New password"
-                    : isSignup
-                      ? "Sign up"
-                      : "Login"}
-              </h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                {isForgot
-                  ? "We will email an OTP before opening the reset page."
-                  : isResetPassword
-                    ? "Enter and confirm your new password."
-                    : isSignup
-                      ? "We will email an OTP before creating your account."
-                      : "Email, password, and owner mode only."}
-              </p>
-            </div>
-            <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
-              <UserRound className="size-6" />
-            </span>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {isSignup && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Name" icon={UserRound}>
-                  <input
-                    value={form.name}
-                    onChange={(event) => update("name", event.target.value)}
-                    placeholder="Your name"
-                    className="form-input pl-11"
-                    required
-                  />
-                </Field>
-
-                <Field label="Mobile number" icon={Phone}>
-                  <input
-                    value={form.mobile}
-                    onChange={(event) =>
-                      update("mobile", event.target.value.replace(/\D/g, "").slice(0, 10))
-                    }
-                    placeholder="9876543210"
-                    inputMode="numeric"
-                    className="form-input pl-11"
-                    required
-                  />
-                </Field>
-              </div>
-            )}
-
-            {!isResetPassword && (
-              <Field label="Email" icon={Mail}>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => update("email", event.target.value)}
-                  placeholder="you@example.com"
-                  className="form-input pl-11"
-                  required
-                />
-              </Field>
-            )}
-
-            {isResetPassword && (
-              <div
-                className={`rounded-[18px] border p-4 text-sm font-bold leading-6 ${
-                  resetSession?.resetToken
-                    ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-                    : "border-amber-100 bg-amber-50 text-amber-800"
-                }`}
-              >
-                {resetSession?.resetToken ? (
-                  <>OTP verified for {resetSession.email}.</>
-                ) : (
-                  <>
-                    Reset session expired.{" "}
-                    <Link to="/forgot-password" className="font-black text-brand">
-                      Verify email again
-                    </Link>
-                  </>
-                )}
-              </div>
-            )}
-
-            {!isForgot && (
-              <Field label={isResetPassword ? "New password" : "Password"} icon={Lock}>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => update("password", event.target.value)}
-                  placeholder="Minimum 6 characters"
-                  className="form-input pl-11"
-                  minLength={6}
-                  required
-                />
-              </Field>
-            )}
-
-            {isResetPassword && (
-              <Field label="Confirm password" icon={Lock}>
-                <input
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={(event) => update("confirmPassword", event.target.value)}
-                  placeholder="Re-enter new password"
-                  className="form-input pl-11"
-                  minLength={6}
-                  required
-                />
-              </Field>
-            )}
-
-            {!isForgot && !isResetPassword && (
-              <label className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
-                <input
-                  type="checkbox"
-                  checked={form.isOwner}
-                  onChange={(event) => update("isOwner", event.target.checked)}
-                  className="mt-1 size-4 accent-brand"
-                />
-                <span>
-                  <span className="block text-sm font-black text-ink">Continue as room owner</span>
-                  <span className="mt-1 block text-xs font-bold leading-5 text-slate-500">
-                    {isSignup
-                      ? "Owner accounts show List Your Room after OTP verification."
-                      : "Tick this only when logging in as a room owner."}
-                  </span>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 items-center justify-center px-4 py-3 sm:px-6">
+        <div className="grid w-full items-center gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-10">
+          {/* Left Column: 3D Illustration & Branding */}
+          <section className="hidden lg:flex flex-col items-center justify-center text-center">
+            <div className="relative w-full max-w-[420px]">
+              <div className="absolute -inset-4 rounded-3xl bg-brand/5 blur-2xl -z-10" />
+              <img
+                src={authIllustration}
+                alt="RoomsFind Room Search"
+                className="mx-auto max-h-[46vh] w-auto max-w-full object-contain drop-shadow-xl select-none transition-transform duration-300 hover:scale-[1.02]"
+              />
+              <div className="mt-2.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-black uppercase tracking-wide text-brand">
+                  <ShieldCheck className="size-3.5" />
+                  Verified Owners & Zero Brokerage
                 </span>
-              </label>
-            )}
-
-            {showGoogleLogin && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="h-px flex-1 bg-slate-200" />
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                    or
-                  </span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-
-                {googleClientId ? (
-                  <div className="google-login-shell">
-                    <div ref={googleButtonRef} className="google-login-button" />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormError("Google login is not configured. Add VITE_GOOGLE_CLIENT_ID.")
-                    }
-                    className="google-login-shell gap-3 px-5 text-sm font-black text-ink transition-colors hover:text-[#1a73e8]"
-                  >
-                    <span className="flex size-6 items-center justify-center rounded-full bg-white font-black text-[#4285f4] shadow-sm ring-1 ring-slate-200">
-                      G
-                    </span>
-                    Continue with Google
-                  </button>
-                )}
+                <h2 className="mt-1.5 text-lg font-black tracking-tight text-ink">
+                  {isForgot
+                    ? "Reset your account password"
+                    : isResetPassword
+                      ? "Secure your new password"
+                      : isSignup
+                        ? "Join RoomsFind Community"
+                        : "Welcome to RoomsFind"}
+                </h2>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  Connect with verified owners, schedule visits, and rent hassle-free.
+                </p>
               </div>
-            )}
+            </div>
+          </section>
 
-            {(otpReady || resetOtpReady) && (
-              <Field label="Email OTP" icon={ShieldCheck}>
-                <input
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="6 digit code"
-                  inputMode="numeric"
-                  className="form-input pl-11"
-                  required
-                />
-              </Field>
-            )}
+          {/* Right Column: Compact Auth Card */}
+          <section className="w-full max-w-md mx-auto rounded-[24px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-black tracking-normal text-ink sm:text-2xl">
+                  {isForgot
+                    ? "Forgot password"
+                    : isResetPassword
+                      ? "New password"
+                      : isSignup
+                        ? "Sign up"
+                        : "Login"}
+                </h1>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  {isForgot
+                    ? "We will email an OTP before opening the reset page."
+                    : isResetPassword
+                      ? "Enter and confirm your new password."
+                      : isSignup
+                        ? "We will email an OTP before creating your account."
+                        : "Email, password, and owner mode only."}
+                </p>
+              </div>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                <UserRound className="size-5" />
+              </span>
+            </div>
 
-            {(isSignup && otpReady) || (isForgot && resetOtpReady) ? (
-              <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
-                OTP sent to {otpEmail}.{" "}
-                <button
-                  type="button"
-                  onClick={isForgot ? sendResetOtp : sendSignupOtp}
-                  disabled={loading}
-                  className="font-black text-brand disabled:opacity-60"
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {isSignup && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Name" icon={UserRound}>
+                    <input
+                      value={form.name}
+                      onChange={(event) => update("name", event.target.value)}
+                      placeholder="Your name"
+                      className="form-input py-2 pl-10 text-sm"
+                      required
+                    />
+                  </Field>
+
+                  <Field label="Mobile number" icon={Phone}>
+                    <input
+                      value={form.mobile}
+                      onChange={(event) =>
+                        update("mobile", event.target.value.replace(/\D/g, "").slice(0, 10))
+                      }
+                      placeholder="9876543210"
+                      inputMode="numeric"
+                      className="form-input py-2 pl-10 text-sm"
+                      required
+                    />
+                  </Field>
+                </div>
+              )}
+
+              {!isResetPassword && (
+                <Field label="Email" icon={Mail}>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => update("email", event.target.value)}
+                    placeholder="you@example.com"
+                    className="form-input py-2 pl-10 text-sm"
+                    required
+                  />
+                </Field>
+              )}
+
+              {isResetPassword && (
+                <div
+                  className={`rounded-[14px] border p-3 text-xs font-bold leading-5 ${
+                    resetSession?.resetToken
+                      ? "border-emerald-100 bg-emerald-50 text-emerald-800"
+                      : "border-amber-100 bg-amber-50 text-amber-800"
+                  }`}
                 >
-                  Resend code
-                </button>
-                {devOtp && (
-                  <span className="mt-2 block text-xs text-emerald-700">
-                    Development OTP: {devOtp}
-                  </span>
-                )}
-              </div>
-            ) : null}
-
-            {loginNotice && (
-              <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
-                {loginNotice}
-              </div>
-            )}
-
-            {(formError || error) && (
-              <div className="rounded-[18px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-                {formError || error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 text-sm font-black text-brand-foreground shadow-lg shadow-brand/25 transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
-            >
-              {submitLabel}
-              <ArrowRight className="size-4" />
-            </button>
-
-            {!isSignup && !isForgot && !isResetPassword && (
-              <>
-                <div className="flex items-center gap-3 pt-2">
-                  <span className="h-px flex-1 bg-slate-200" />
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-                    Demo quick login
-                  </span>
-                  <span className="h-px flex-1 bg-slate-200" />
+                  {resetSession?.resetToken ? (
+                    <>OTP verified for {resetSession.email}.</>
+                  ) : (
+                    <>
+                      Reset session expired.{" "}
+                      <Link to="/forgot-password" className="font-black text-brand">
+                        Verify email again
+                      </Link>
+                    </>
+                  )}
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      update("email", "admin@rentpe.demo");
-                      update("password", "admin123");
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 text-xs font-black text-purple-700 transition-colors hover:border-purple-300 hover:bg-purple-100"
-                  >
-                    <Shield className="size-3.5" />
-                    Demo Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      update("email", "owner@rentpe.demo");
-                      update("password", "owner123");
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
-                  >
-                    <Building2 className="size-3.5" />
-                    Demo Owner
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      update("email", "user@rentpe.demo");
-                      update("password", "user123");
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
-                  >
-                    <UserRound className="size-3.5" />
-                    Demo User
-                  </button>
-                </div>
-              </>
-            )}
-          </form>
+              )}
 
-          <p className="mt-6 text-center text-sm font-bold text-slate-500">
-            {isForgot || isResetPassword
-              ? "Remembered it?"
-              : isSignup
-                ? "Already have an account?"
-                : "New here?"}{" "}
-            <Link
-              to={isForgot || isResetPassword || isSignup ? "/login" : "/signup"}
-              className="font-black text-brand hover:text-brand/80"
-            >
-              {isForgot || isResetPassword || isSignup ? "Login" : "Create account"}
-            </Link>
-          </p>
-          {!isSignup && !isForgot && !isResetPassword && (
-            <p className="mt-3 text-center text-sm font-bold">
-              <Link to="/forgot-password" className="text-brand hover:text-brand/80">
-                Forgot password?
-              </Link>
-            </p>
-          )}
-        </section>
+              {!isForgot && (
+                <Field label={isResetPassword ? "New password" : "Password"} icon={Lock}>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(event) => update("password", event.target.value)}
+                    placeholder="Minimum 6 characters"
+                    className="form-input py-2 pl-10 text-sm"
+                    minLength={6}
+                    required
+                  />
+                </Field>
+              )}
+
+              {isResetPassword && (
+                <Field label="Confirm password" icon={Lock}>
+                  <input
+                    type="password"
+                    value={form.confirmPassword}
+                    onChange={(event) => update("confirmPassword", event.target.value)}
+                    placeholder="Re-enter new password"
+                    className="form-input py-2 pl-10 text-sm"
+                    minLength={6}
+                    required
+                  />
+                </Field>
+              )}
+
+              {!isForgot && !isResetPassword && (
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-[14px] border border-slate-200 bg-slate-50 p-2.5">
+                  <input
+                    type="checkbox"
+                    checked={form.isOwner}
+                    onChange={(event) => update("isOwner", event.target.checked)}
+                    className="mt-0.5 size-4 accent-brand"
+                  />
+                  <span>
+                    <span className="block text-xs font-black text-ink">Continue as room owner</span>
+                    <span className="block text-[11px] font-bold leading-4 text-slate-500">
+                      {isSignup
+                        ? "Owner accounts show List Your Room after OTP verification."
+                        : "Tick this only when logging in as a room owner."}
+                    </span>
+                  </span>
+                </label>
+              )}
+
+              {showGoogleLogin && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      or
+                    </span>
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
+
+                  {googleClientId ? (
+                    <div className="google-login-shell !min-h-10">
+                      <div ref={googleButtonRef} className="google-login-button" />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormError("Google login is not configured. Add VITE_GOOGLE_CLIENT_ID.")
+                      }
+                      className="google-login-shell !min-h-10 gap-2.5 px-4 text-xs font-black text-ink transition-colors hover:text-[#1a73e8]"
+                    >
+                      <span className="flex size-5 items-center justify-center rounded-full bg-white font-black text-[#4285f4] shadow-sm ring-1 ring-slate-200 text-xs">
+                        G
+                      </span>
+                      Continue with Google
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {(otpReady || resetOtpReady) && (
+                <Field label="Email OTP" icon={ShieldCheck}>
+                  <input
+                    value={otp}
+                    onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="6 digit code"
+                    inputMode="numeric"
+                    className="form-input py-2 pl-10 text-sm"
+                    required
+                  />
+                </Field>
+              )}
+
+              {(isSignup && otpReady) || (isForgot && resetOtpReady) ? (
+                <div className="rounded-[14px] border border-emerald-100 bg-emerald-50 p-3 text-xs font-bold leading-5 text-emerald-800">
+                  OTP sent to {otpEmail}.{" "}
+                  <button
+                    type="button"
+                    onClick={isForgot ? sendResetOtp : sendSignupOtp}
+                    disabled={loading}
+                    className="font-black text-brand disabled:opacity-60"
+                  >
+                    Resend code
+                  </button>
+                  {devOtp && (
+                    <span className="mt-1 block text-xs text-emerald-700">
+                      Development OTP: {devOtp}
+                    </span>
+                  )}
+                </div>
+              ) : null}
+
+              {loginNotice && (
+                <div className="rounded-[14px] border border-emerald-100 bg-emerald-50 p-3 text-xs font-bold leading-5 text-emerald-800">
+                  {loginNotice}
+                </div>
+              )}
+
+              {(formError || error) && (
+                <div className="rounded-[14px] border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">
+                  {formError || error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-sm font-black text-brand-foreground shadow-md shadow-brand/20 transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+              >
+                {submitLabel}
+                <ArrowRight className="size-4" />
+              </button>
+
+              {!isSignup && !isForgot && !isResetPassword && (
+                <>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      Demo quick login
+                    </span>
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update("email", "admin@rentpe.demo");
+                        update("password", "admin123");
+                      }}
+                      className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2 text-[11px] font-black text-purple-700 transition-colors hover:bg-purple-100"
+                    >
+                      <Shield className="size-3" />
+                      Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update("email", "owner@rentpe.demo");
+                        update("password", "owner123");
+                      }}
+                      className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 text-[11px] font-black text-blue-700 transition-colors hover:bg-blue-100"
+                    >
+                      <Building2 className="size-3" />
+                      Owner
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update("email", "user@rentpe.demo");
+                        update("password", "user123");
+                      }}
+                      className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-600 transition-colors hover:border-brand hover:text-brand"
+                    >
+                      <UserRound className="size-3" />
+                      User
+                    </button>
+                  </div>
+                </>
+              )}
+            </form>
+
+            <div className="mt-3 flex items-center justify-between text-xs font-bold">
+              <p className="text-slate-500">
+                {isForgot || isResetPassword
+                  ? "Remembered it?"
+                  : isSignup
+                    ? "Already have account?"
+                    : "New here?"}{" "}
+                <Link
+                  to={isForgot || isResetPassword || isSignup ? "/login" : "/signup"}
+                  className="font-black text-brand hover:underline"
+                >
+                  {isForgot || isResetPassword || isSignup ? "Login" : "Create account"}
+                </Link>
+              </p>
+              {!isSignup && !isForgot && !isResetPassword && (
+                <Link to="/forgot-password" className="text-brand hover:underline">
+                  Forgot password?
+                </Link>
+              )}
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );
@@ -614,11 +619,11 @@ function clearResetSession() {
 function Field({ label, icon: Icon, children }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">
+      <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">
         {label}
       </span>
       <span className="relative block">
-        <Icon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+        <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
         {children}
       </span>
     </label>

@@ -78,7 +78,7 @@ export function ChatProvider({ children }) {
       if (message.senderEmail !== user.email) {
         socket.emit("message:delivered", { conversationId, messageIds: [message._id] });
         if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-          new Notification("RentPE", {
+          new Notification("RoomsFind", {
             body: `${message.text || "Sent a photo"}`,
             icon: "/favicon.ico",
             tag: conversationId,

@@ -40,28 +40,36 @@ export async function sendOtpEmail({ email, otp, purpose = "login" }) {
   ].join("\n");
 
   // Brevo calls this Transactional Email REST route /smtp/email, but this uses API-key HTTP.
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email }],
-      subject: title,
-      htmlContent,
-      textContent,
-    }),
-  });
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email }],
+        subject: title,
+        htmlContent,
+        textContent,
+      }),
+    });
 
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`Brevo email failed: ${message}`);
+    if (!response.ok) {
+      const message = await response.text();
+      console.error(`Brevo email failed: ${message}`);
+      console.log(`[Brevo Fallback] Dev OTP for ${email}: ${otp}`);
+      return { delivered: false, devOtp: otp };
+    }
+
+    return { delivered: true };
+  } catch (err) {
+    console.error(`Brevo email request failed:`, err.message);
+    console.log(`[Brevo Fallback] Dev OTP for ${email}: ${otp}`);
+    return { delivered: false, devOtp: otp };
   }
-
-  return { delivered: true };
 }
 
 function buildOtpEmailHtml({ title, intro, action, otp }) {

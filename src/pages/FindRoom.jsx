@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { Check, Compass, Loader2, LocateFixed, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import RoomCard from "@/components/RoomCard.jsx";
 import SiteHeader from "@/components/SiteHeader.jsx";
 import { rooms as staticRooms } from "@/data/rooms.js";
+import { useUserLocation } from "@/hooks/useUserLocation.js";
 import {
   getCityOption,
   roomTypeOptions,
@@ -15,6 +16,15 @@ import {
 import { normalizeRooms } from "@/lib/roomAdapter.js";
 import { createRoomSearchIndex, searchRoomIds } from "@/lib/roomSearch.js";
 import { fetchRooms } from "@/store/roomsSlice.js";
+
+export const distanceFilterOptions = [
+  { value: "all", label: "All distances" },
+  { value: "under_3", label: "< 3 km", maxKm: 3 },
+  { value: "under_4", label: "< 4 km", maxKm: 4 },
+  { value: "under_5", label: "< 5 km", maxKm: 5 },
+  { value: "under_10", label: "< 10 km", maxKm: 10 },
+  { value: "over_5", label: "> 5 km", minKm: 5 },
+];
 
 const filterTypes = roomTypeOptions;
 const filterGenders = ["Girls", "Boys", "Co-ed"];
@@ -56,14 +66,30 @@ export default function FindRoom() {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const apiRooms = useSelector((state) => state.rooms.items);
-  const fallbackRooms = useMemo(() => normalizeRooms(staticRooms), []);
-  const rooms = apiRooms.length ? apiRooms : fallbackRooms;
+  const [selectedCity, setSelectedCity] = useState(
+    () => searchParams.get("city") || "",
+  );
+  const selectedCityOption = getCityOption(selectedCity);
+  const {
+    coordinates: userCoords,
+    loading: locationLoading,
+    error: locationError,
+    isGps,
+    detectLocation,
+    clearLocation,
+  } = useUserLocation(selectedCityOption.city);
+
+  const baseRooms = apiRooms.length ? apiRooms : staticRooms;
+  const rooms = useMemo(
+    () => normalizeRooms(baseRooms, userCoords),
+    [baseRooms, userCoords]
+  );
   const roomSearchIndex = useMemo(() => createRoomSearchIndex(rooms), [rooms]);
   const [keywordQuery, setKeywordQuery] = useState(
     () => searchParams.get("q") || searchParams.get("location") || "",
   );
-  const [selectedCity, setSelectedCity] = useState(
-    () => searchParams.get("city") || "",
+  const [selectedDistance, setSelectedDistance] = useState(
+    () => searchParams.get("dist") || "all",
   );
   const [showFilters, setShowFilters] = useState(
     () =>
@@ -71,7 +97,8 @@ export default function FindRoom() {
       searchParams.get("all") === "1" ||
       Boolean(searchParams.get("q")) ||
       Boolean(searchParams.get("location")) ||
-      Boolean(searchParams.get("city")),
+      Boolean(searchParams.get("city")) ||
+      Boolean(searchParams.get("dist")),
   );
   const [priceMax, setPriceMax] = useState(() =>
     Number(searchParams.get("budget") || defaultPriceMax),
@@ -84,7 +111,6 @@ export default function FindRoom() {
   const [sortMode, setSortMode] = useState(() => searchParams.get("sort") || "recommended");
   const [visibleCount, setVisibleCount] = useState(initialVisibleRooms);
   const deferredKeywordQuery = useDeferredValue(keywordQuery);
-  const selectedCityOption = getCityOption(selectedCity);
 
   useEffect(() => {
     dispatch(fetchRooms());
@@ -95,6 +121,7 @@ export default function FindRoom() {
     const nextBudget = searchParams.get("budget");
     const nextCity = searchParams.get("city");
     const nextSort = searchParams.get("sort");
+    const nextDist = searchParams.get("dist");
 
     if (nextKeyword !== null) {
       setKeywordQuery(nextKeyword);
@@ -103,6 +130,10 @@ export default function FindRoom() {
 
     if (nextBudget !== null) {
       setPriceMax(Number(nextBudget));
+    }
+
+    if (nextDist !== null) {
+      setSelectedDistance(nextDist);
     }
 
     if (nextCity !== null) {
@@ -144,6 +175,14 @@ export default function FindRoom() {
       ) {
         return false;
       }
+      if (selectedDistance !== "all") {
+        const distOption = distanceFilterOptions.find((d) => d.value === selectedDistance);
+        if (distOption) {
+          if (room.distanceKm === null || room.distanceKm === undefined) return false;
+          if (distOption.maxKm !== undefined && room.distanceKm > distOption.maxKm) return false;
+          if (distOption.minKm !== undefined && room.distanceKm <= distOption.minKm) return false;
+        }
+      }
 
       return true;
     });
@@ -158,6 +197,7 @@ export default function FindRoom() {
     rooms,
     selectedAmenities,
     selectedCityOption.city,
+    selectedDistance,
     selectedGenders,
     selectedTypes,
     sortMode,
@@ -172,6 +212,7 @@ export default function FindRoom() {
     priceMax,
     selectedAmenities,
     selectedCityOption.city,
+    selectedDistance,
     selectedGenders,
     selectedTypes,
     sortMode,
@@ -187,6 +228,7 @@ export default function FindRoom() {
     selectedTypes.length +
     selectedGenders.length +
     selectedAmenities.length +
+    Number(selectedDistance !== "all") +
     Number(furnishedOnly) +
     Number(!availableOnly) +
     Number(priceMax !== defaultPriceMax) +
@@ -204,6 +246,7 @@ export default function FindRoom() {
     if (keywordQuery.trim()) params.set("q", keywordQuery.trim());
     if (priceMax !== defaultPriceMax) params.set("budget", String(priceMax));
     if (selectedCityOption.city) params.set("city", selectedCityOption.city);
+    if (selectedDistance !== "all") params.set("dist", selectedDistance);
     if (sortMode !== "recommended") params.set("sort", sortMode);
     if (showFilters) params.set("filters", "1");
     return params;
@@ -216,6 +259,7 @@ export default function FindRoom() {
   function resetFilters() {
     setKeywordQuery("");
     setPriceMax(defaultPriceMax);
+    setSelectedDistance("all");
     setSelectedTypes([]);
     setSelectedGenders([]);
     setSelectedAmenities([]);
@@ -281,7 +325,83 @@ export default function FindRoom() {
             </div>
           </motion.form>
 
-          <motion.div variants={fadeUp} className="mt-10">
+          {/* Quick Distance & Location Control */}
+          <motion.div
+            variants={fadeUp}
+            className="mx-auto mt-4 max-w-[780px] rounded-2xl border border-slate-200/90 bg-white/95 p-3 shadow-xs backdrop-blur-sm sm:px-4"
+          >
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                  <Compass className="size-3.5 text-brand" />
+                  Distance:
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {distanceFilterOptions.map((opt) => {
+                    const active = selectedDistance === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDistance(opt.value);
+                          if (opt.value !== "all" && !userCoords) {
+                            detectLocation();
+                          }
+                        }}
+                        className={`rounded-full px-3 py-1 text-xs font-black transition-all ${
+                          active
+                            ? "bg-brand text-white shadow-xs shadow-brand/30"
+                            : "bg-slate-100/90 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {userCoords ? (
+                  <div className="flex items-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{isGps ? "Live GPS" : `${selectedCityOption.shortLabel || selectedCityOption.city || "City"} center`}</span>
+                    <button
+                      type="button"
+                      onClick={detectLocation}
+                      title="Refresh current location"
+                      className="ml-1 font-black text-emerald-800 underline hover:text-emerald-950"
+                    >
+                      {locationLoading ? <Loader2 className="inline size-3 animate-spin" /> : "Refresh"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={detectLocation}
+                    disabled={locationLoading}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft/70 px-3.5 py-1 text-xs font-black text-brand transition-colors hover:bg-brand-soft"
+                  >
+                    {locationLoading ? (
+                      <Loader2 className="size-3 animate-spin text-brand" />
+                    ) : (
+                      <LocateFixed className="size-3 text-brand" />
+                    )}
+                    <span>{locationLoading ? "Locating..." : "📍 Use My Location"}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {locationError && (
+              <p className="mt-2 text-xs font-medium text-rose-500">
+                ⚠️ {locationError}
+              </p>
+            )}
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="mt-8">
             <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
                 <h1 className="text-3xl font-black tracking-normal text-ink">Find rooms</h1>
@@ -292,6 +412,9 @@ export default function FindRoom() {
                   </span>
                   {selectedCityOption.city ? ` in ${selectedCityOption.label}` : " across cities"}
                   {deferredKeywordQuery ? ` matching "${deferredKeywordQuery}"` : ""}
+                  {selectedDistance !== "all"
+                    ? ` • ${distanceFilterOptions.find((d) => d.value === selectedDistance)?.label}`
+                    : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -391,6 +514,34 @@ export default function FindRoom() {
                     </div>
                   </FilterBlock>
 
+                  <FilterBlock label="Distance from you">
+                    <div className="flex flex-wrap gap-1.5">
+                      {distanceFilterOptions.map((opt) => {
+                        const active = selectedDistance === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDistance(opt.value);
+                              if (opt.value !== "all" && !userCoords) {
+                                detectLocation();
+                              }
+                            }}
+                            className={`rounded-full border px-3 py-1 text-xs font-black transition-colors ${
+                              active
+                                ? "border-brand bg-brand text-brand-foreground"
+                                : "border-slate-200 text-slate-600 hover:border-brand hover:text-brand"
+                            }`}
+                          >
+                            {active && <Check className="mr-1 inline size-3" />}
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </FilterBlock>
+
                   <FilterBlock label="Sort">
                     <select
                       value={sortMode}
@@ -451,7 +602,11 @@ function sortRooms(rooms, sortMode, matchRank) {
   return nextRooms.sort((firstRoom, secondRoom) => {
     if (sortMode === "rentLow") return firstRoom.price - secondRoom.price;
     if (sortMode === "rentHigh") return secondRoom.price - firstRoom.price;
-    if (sortMode === "distance") return firstRoom.distanceKm - secondRoom.distanceKm;
+    if (sortMode === "distance") {
+      const d1 = Number.isFinite(firstRoom.distanceKm) ? firstRoom.distanceKm : 999999;
+      const d2 = Number.isFinite(secondRoom.distanceKm) ? secondRoom.distanceKm : 999999;
+      return d1 - d2;
+    }
     if (sortMode === "rating") {
       return (secondRoom.owner?.rating || 0) - (firstRoom.owner?.rating || 0);
     }

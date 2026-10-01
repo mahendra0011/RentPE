@@ -5,6 +5,7 @@ import { HashRouter } from "react-router-dom";
 
 import App from "./App.jsx";
 import { store } from "./store/index.js";
+import "lenis/dist/lenis.css";
 import "./styles.css";
 
 function redirectLegacyPathToHash() {

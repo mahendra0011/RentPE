@@ -8,6 +8,8 @@ export const seedRooms = [
     type: "Single Room",
     gender: "Girls",
     price: 6500,
+    distance: "1.2 km away",
+    distanceKm: 1.2,
     description:
       "Bright, fully furnished single room in a quiet residential lane near City College and DB Mall.",
     rules: ["No smoking", "ID proof required", "Gate closes at 10 PM"],
@@ -26,6 +28,10 @@ export const seedRooms = [
     ],
     furnished: true,
     availability: "available",
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=3000&q=85",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=3000&q=85",
+    ],
     status: "live",
     owner: {
       name: "Sunita Sharma",
@@ -44,6 +50,8 @@ export const seedRooms = [
     type: "PG",
     gender: "Boys",
     price: 4200,
+    distance: "400 m away",
+    distanceKm: 0.4,
     description:
       "Affordable shared accommodation for students with mess facility, study desks, and storage.",
     rules: ["No loud music after 10 PM", "Mess timing is fixed", "Visitors allowed in common area"],
@@ -61,6 +69,9 @@ export const seedRooms = [
     ],
     furnished: true,
     availability: "available",
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=3000&q=85",
+    ],
     status: "live",
     owner: {
       name: "Rakesh Verma",
@@ -79,6 +90,8 @@ export const seedRooms = [
     type: "Flat",
     gender: "Co-ed",
     price: 12000,
+    distance: "2.5 km away",
+    distanceKm: 2.5,
     description:
       "Premium studio in E-8 Extension with modular kitchen, work desk, balcony, lift, and 24/7 security.",
     rules: ["Security deposit required", "No subletting", "Society rules must be followed"],
@@ -96,6 +109,10 @@ export const seedRooms = [
     ],
     furnished: true,
     availability: "available",
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=3000&q=85",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=3000&q=85",
+    ],
     status: "live",
     owner: {
       name: "Anil Mehta",
@@ -114,6 +131,8 @@ export const seedRooms = [
     type: "Shared Room",
     gender: "Girls",
     price: 5500,
+    distance: "800 m away",
+    distanceKm: 0.8,
     description:
       "Twin-sharing rooms with attached bath, hot water, AC, and simple house rules for students.",
     rules: ["ID proof required", "No smoking", "Visitors allowed with permission"],
@@ -131,6 +150,9 @@ export const seedRooms = [
     ],
     furnished: true,
     availability: "available",
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&w=3000&q=85",
+    ],
     status: "live",
     owner: {
       name: "Geeta Pandey",
@@ -149,6 +171,8 @@ export const seedRooms = [
     type: "Flat",
     gender: "Co-ed",
     price: 18000,
+    distance: "3.1 km away",
+    distanceKm: 3.1,
     description:
       "Spacious 2BHK in central Bhopal with modular kitchen, two balconies, and family-friendly society.",
     rules: [
@@ -170,6 +194,10 @@ export const seedRooms = [
     ],
     furnished: false,
     availability: "occupied",
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=3000&q=85",
+      "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=3000&q=85",
+    ],
     status: "live",
     owner: {
       name: "Pooja Iyer",
@@ -188,6 +216,8 @@ export const seedRooms = [
     type: "Hostel",
     gender: "Boys",
     price: 3800,
+    distance: "1.8 km away",
+    distanceKm: 1.8,
     description:
       "Budget-friendly hostel for students. Triple sharing with locker, study table, WiFi, and clean common spaces.",
     rules: ["Study hours after 9 PM", "Keep common spaces clean", "Rent due by 5th of every month"],
@@ -205,6 +235,9 @@ export const seedRooms = [
     ],
     furnished: true,
     availability: "available",
+    panoramaUrls: [
+      "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=3000&q=85",
+    ],
     status: "live",
     owner: {
       name: "Mohit Singh",

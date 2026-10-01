@@ -20,6 +20,7 @@ import chatRouter from "./routes/chat.js";
 import geoRouter from "./routes/geo.js";
 import reviewsRouter from "./routes/reviews.js";
 import roomsRouter from "./routes/rooms.js";
+import panoramaRouter from "./routes/panorama.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -89,6 +90,7 @@ app.use("/api/chat", chatRouter);
 app.use("/api/geo", geoRouter);
 app.use("/api/reviews", reviewsRouter);
 app.use("/api/rooms", roomsRouter);
+app.use("/api/panorama", panoramaRouter);
 
 app.use((_request, response) => {
   response.status(404).json({ message: "Route not found" });
