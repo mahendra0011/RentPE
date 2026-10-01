@@ -4,6 +4,8 @@ RentPE is a room rental marketplace for students, interns, job seekers, and peop
 
 The app uses owner-entered text for discovery: city, area, landmark, address, title, amenities, rules, and description. A map or exact coordinates are not required to publish a listing.
 
+live link - https://rentpe-e6km.onrender.com
+
 ## Features
 
 ### Room Seeker
