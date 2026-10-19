@@ -108,6 +108,20 @@ const ioData = setupSocket(server);
 setSocketIO(ioData.io);
 setRoomsSocketIO(ioData.io);
 
+server.on("clientError", (err, socket) => {
+  if (err.code === "ECONNRESET" || !socket.writable) {
+    return;
+  }
+  socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+});
+
+process.on("uncaughtException", (err) => {
+  if (err.code === "ECONNRESET" || err.code === "EPIPE") {
+    return;
+  }
+  console.error("[Process] Uncaught Exception:", err);
+});
+
 connectDB().finally(() => {
   server.listen(port, () => {
     console.log(`RentPE API running on http://localhost:${port}`);

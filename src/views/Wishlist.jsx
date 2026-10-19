@@ -1,3 +1,5 @@
+"use client";
+
 import { ArrowRight, Heart } from "lucide-react";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";

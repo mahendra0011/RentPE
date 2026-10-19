@@ -15,6 +15,9 @@ export default defineConfig({
   server: {
     port: 5180,
     strictPort: true,
+    watch: {
+      ignored: ["**/android/**", "**/dist/**"],
+    },
     proxy: {
       "/api": apiProxyTarget,
       "/socket.io": {

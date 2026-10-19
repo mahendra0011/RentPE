@@ -272,7 +272,10 @@ export function ChatProvider({ children }) {
 
   const startConversation = useCallback(
     async (roomSlug, message) => {
-      if (!roomSlug || !message.trim() || !user) return null;
+      if (!user) {
+        throw new Error("Please log in to chat with the property owner.");
+      }
+      if (!roomSlug || !message.trim()) return null;
       const data = await apiRequest("/api/chat/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

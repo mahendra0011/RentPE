@@ -1,16 +1,16 @@
 # RentPE - Next-Gen Room Rental & 360° Virtual Tour Platform
 
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Android%20(Capacitor)-blue.svg)](#)
-[![Node Version](https://img.shields.io/badge/Node-v20%2B-green.svg)](#)
+[![Next.js](https://img.shields.io/badge/Next.js-16%20(App%20Router)-black.svg)](#)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](#)
-[![Vite](https://img.shields.io/badge/Vite-7-purple.svg)](#)
 [![Capacitor](https://img.shields.io/badge/Capacitor-v8-1192e8.svg)](#)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38bdf8.svg)](#)
+[![Node Version](https://img.shields.io/badge/Node-v20%2B-green.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](#)
 
 > **Live Web Application:** [https://rentpe-e6km.onrender.com](https://rentpe-e6km.onrender.com)
 
-**RentPE** is a modern, end-to-end room rental marketplace designed for students, working professionals, interns, and relocators looking for PGs, hostels, flats, and private apartments. Combining **immersive 360° virtual tours**, **real-time chat with anti-scam protection**, **interactive MapLibre & routing**, and **gyroscope-guided mobile capture**, RentPE bridges the gap between room seekers and property owners.
+**RentPE** is a modern, full-featured room rental marketplace powered by **Next.js 16 App Router (with advanced SSR Google SEO)** and a **real-time Node.js/Express 5 + Socket.io backend**, complemented by a native **Capacitor Android APK**. Designed for students, working professionals, and property owners, RentPE features **immersive 360° virtual tours**, **real-time chat with anti-scam protection**, **interactive MapLibre & routing**, and **automated Google Rich Snippets (Schema.org)**.
 
 ---
 
@@ -399,20 +399,33 @@ npm run server:dev
 ```
 - Server starts on: **`http://localhost:5000`**
 - Health check: **`http://localhost:5000/api/health`**
+- Provides: Express REST APIs, Socket.io Real-Time Chat, MongoDB Atlas storage, and Redis caching.
 
-### 3. Start the Frontend Web App (Terminal 2)
+### 3. Start the Next.js Frontend Web App (Terminal 2)
 ```bash
 npm run dev
 ```
-- Client runs on: **`http://localhost:5180`**
+- Next.js Web App runs on: **`http://localhost:3005`**
+- **SSR & Google SEO Engine:**
+  - Automated dynamic `/sitemap.xml` generated at `http://localhost:3005/sitemap.xml`
+  - Dynamic crawlers configuration at `http://localhost:3005/robots.txt`
+  - Server-side rendered OpenGraph metadata & Twitter Preview Cards
+  - Automated Google Rich Snippets with Schema.org `RealEstateListing` JSON-LD structured data on `/rooms/[id]`
 - Automatically proxies `/api` and `/socket.io` to the backend on port 5000.
 
-### 4. Build Capacitor Android APK (React Web App -> Native Android APK)
+### 4. Build for Production
+```bash
+# Next.js SSR Production Build
+npm run build
+npm run start
+```
 
-The React web application is bundled into a native Android APK using **Capacitor**:
+### 5. Build Capacitor Android APK (Web App -> Native Android APK)
+
+The application is bundled into a native Android APK using **Capacitor**:
 
 ```bash
-# 1. Build the Vite production bundle & sync into Android native project
+# 1. Build the production bundle & sync into Android native project
 npm run cap:build
 
 # 2. Open project in Android Studio (optional)

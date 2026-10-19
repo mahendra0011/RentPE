@@ -17,15 +17,25 @@ const ALLOWED_SOCKET_ORIGINS = (process.env.CORS_ORIGINS || "")
   ])
   .filter(Boolean);
 
-function isOriginAllowed(origin) {
-  if (!origin) return true; // allow non-browser clients
+function isOriginAllowed(origin, callback) {
+  if (!origin) {
+    if (typeof callback === "function") callback(null, true);
+    return true;
+  }
   const normalized = origin.replace(/\/$/, "");
-  if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(normalized)) return true;
-  if (/^https:\/\/[a-z0-9-]+\.onrender\.com$/i.test(normalized)) return true;
-  return ALLOWED_SOCKET_ORIGINS.some((a) => {
-    const allowed = a.replace(/\/$/, "");
-    return normalized === allowed;
-  });
+  const isAllowed =
+    /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(normalized) ||
+    /^https:\/\/[a-z0-9-]+\.onrender\.com$/i.test(normalized) ||
+    ALLOWED_SOCKET_ORIGINS.some((a) => a.replace(/\/$/, "") === normalized);
+
+  if (typeof callback === "function") {
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  }
+  return isAllowed;
 }
 
 function getAuthUser(auth) {
@@ -78,6 +88,10 @@ export function setupSocket(httpServer) {
   });
 
   io.on("connection", (socket) => {
+    socket.on("error", (err) => {
+      console.warn(`[Socket] Error on socket ${socket.id}:`, err.message);
+    });
+
     const user = socket.user;
     const userEmail = user.email.toLowerCase();
 

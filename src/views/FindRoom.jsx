@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { Check, Compass, Loader2, LocateFixed, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";

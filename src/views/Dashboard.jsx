@@ -1,3 +1,5 @@
+"use client";
+
 import { Building2, Heart, MessageCircle, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";

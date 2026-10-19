@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -422,9 +424,17 @@ export default function RoomDetails() {
                 )}
               </ul>
               {(error || chatError) && (
-                <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                  {chatError || error}
-                </p>
+                <div className="mt-4 rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-800">
+                  <p>{chatError || error}</p>
+                  {chatError?.toLowerCase().includes("log in") && (
+                    <Link
+                      to="/login"
+                      className="mt-2 inline-flex items-center gap-1 font-black text-brand underline hover:text-brand/80"
+                    >
+                      Login Now &rarr;
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           </aside>

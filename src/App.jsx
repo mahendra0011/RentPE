@@ -2,17 +2,17 @@ import { useLayoutEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ReactLenis, useLenis } from "lenis/react";
 
-import AdminDashboard from "@/pages/AdminDashboard.jsx";
-import Auth from "@/pages/Auth.jsx";
-import Dashboard from "@/pages/Dashboard.jsx";
-import FindRoom from "@/pages/FindRoom.jsx";
-import Home from "@/pages/Home.jsx";
-import ListRoom from "@/pages/ListRoom.jsx";
-import MyListedRooms from "@/pages/MyListedRooms.jsx";
-import NotFound from "@/pages/NotFound.jsx";
-import RoomDetails from "@/pages/RoomDetails.jsx";
-import Wishlist from "@/pages/Wishlist.jsx";
-import DownloadApps from "@/pages/DownloadApps.jsx";
+import AdminDashboard from "@/views/AdminDashboard.jsx";
+import Auth from "@/views/Auth.jsx";
+import Dashboard from "@/views/Dashboard.jsx";
+import FindRoom from "@/views/FindRoom.jsx";
+import Home from "@/views/Home.jsx";
+import ListRoom from "@/views/ListRoom.jsx";
+import MyListedRooms from "@/views/MyListedRooms.jsx";
+import NotFound from "@/views/NotFound.jsx";
+import RoomDetails from "@/views/RoomDetails.jsx";
+import Wishlist from "@/views/Wishlist.jsx";
+import DownloadApps from "@/views/DownloadApps.jsx";
 
 import ChatDrawer from "@/components/ChatDrawer.jsx";
 import { ChatProvider } from "@/context/ChatContext.jsx";
