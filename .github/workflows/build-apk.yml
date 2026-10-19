@@ -44,8 +44,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
-      - name: Build Web Application (Vite)
-        run: npm run build
+      - name: Build Web Application for Capacitor (Vite -> dist)
+        run: npm run vite:build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://rentpe-e6km.onrender.com' }}
           VITE_MAPTILER_API_KEY: ${{ secrets.VITE_MAPTILER_API_KEY || 'hcKUAgW8Mgd5HUTlCvTe' }}
