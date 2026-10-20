@@ -9,8 +9,6 @@ const citySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-citySchema.index({ name: 1 });
-
 const City = mongoose.models.City || mongoose.model("City", citySchema);
 
 export default City;

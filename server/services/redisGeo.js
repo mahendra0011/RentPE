@@ -159,7 +159,10 @@ export async function queryNearbyRoomsRedis(longitude, latitude, radiusKm = 50) 
 
     return distanceMap;
   } catch (err) {
-    console.warn("Redis GEORADIUS error, falling back to Haversine:", err.message);
+    if (!queryNearbyRoomsRedis._warned) {
+      console.warn("Redis GEORADIUS/GEOSEARCH error, falling back to Haversine formula:", err.message);
+      queryNearbyRoomsRedis._warned = true;
+    }
     return null;
   }
 }

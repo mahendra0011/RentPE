@@ -1,5 +1,12 @@
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers.jsx";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
 
 export const viewport = {
   themeColor: "#4f46e5",
@@ -69,8 +76,16 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-background font-sans text-ink antialiased">
+    <html lang="en" className={inter.className}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${inter.className} min-h-screen bg-background font-sans text-ink antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

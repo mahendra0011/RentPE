@@ -405,10 +405,10 @@ npm run server:dev
 ```bash
 npm run dev
 ```
-- Next.js Web App runs on: **`http://localhost:3005`**
+- Next.js Web App runs on: **`http://localhost:3000`**
 - **SSR & Google SEO Engine:**
-  - Automated dynamic `/sitemap.xml` generated at `http://localhost:3005/sitemap.xml`
-  - Dynamic crawlers configuration at `http://localhost:3005/robots.txt`
+  - Automated dynamic `/sitemap.xml` generated at `http://localhost:3000/sitemap.xml`
+  - Dynamic crawlers configuration at `http://localhost:3000/robots.txt`
   - Server-side rendered OpenGraph metadata & Twitter Preview Cards
   - Automated Google Rich Snippets with Schema.org `RealEstateListing` JSON-LD structured data on `/rooms/[id]`
 - Automatically proxies `/api` and `/socket.io` to the backend on port 5000.
